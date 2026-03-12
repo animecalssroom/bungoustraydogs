@@ -1,0 +1,352 @@
+.shell {
+  padding: 0 0 6rem;
+}
+
+.grid {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.notice {
+  margin: 0 auto 1.5rem;
+  max-width: 1100px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  padding: 1rem 1.25rem;
+  color: var(--text2);
+  font-family: var(--font-cormorant), serif;
+  font-size: 1.05rem;
+  font-style: italic;
+  line-height: 1.6;
+}
+
+.error {
+  margin: 0 auto 1.5rem;
+  max-width: 1100px;
+  color: var(--accent);
+  font-family: var(--font-space-mono), monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.card {
+  border: 1px solid var(--border);
+  background: var(--card);
+  padding: 2rem;
+  display: grid;
+  gap: 1.5rem;
+}
+
+.meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.label {
+  color: var(--text3);
+  font-family: var(--font-space-mono), monospace;
+  font-size: 0.58rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.status {
+  color: var(--accent);
+  font-family: var(--font-space-mono), monospace;
+  font-size: 0.58rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.question {
+  margin: 0;
+  color: var(--text);
+  font-family: var(--font-cormorant), serif;
+  font-size: 1.45rem;
+  font-style: italic;
+  line-height: 1.6;
+}
+
+.fighters {
+  display: grid;
+  grid-template-columns: 1fr 100px 1fr;
+  gap: 1rem;
+  align-items: stretch;
+}
+
+.fighter {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--border2);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--fighter-color) 9%, var(--card)) 0%, var(--card) 100%);
+  padding: 1.5rem;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.fighterFaction {
+  width: fit-content;
+  background: color-mix(in srgb, var(--fighter-color) 14%, transparent);
+  color: var(--fighter-color);
+  font-family: var(--font-space-mono), monospace;
+  font-size: 0.52rem;
+  letter-spacing: 0.16em;
+  padding: 0.35rem 0.55rem;
+  text-transform: uppercase;
+}
+
+.fighterName {
+  margin: 0;
+  color: var(--text);
+  font-family: var(--font-cinzel), serif;
+  font-size: 1.6rem;
+  line-height: 1.12;
+}
+
+.fighterJp {
+  color: var(--text3);
+  font-family: var(--font-cormorant), serif;
+  font-size: 0.98rem;
+  font-style: italic;
+}
+
+.fighterAbility {
+  color: var(--fighter-color);
+  font-family: var(--font-cormorant), serif;
+  font-size: 1rem;
+  font-style: italic;
+}
+
+.fighterQuote {
+  color: var(--text2);
+  font-family: var(--font-cormorant), serif;
+  font-size: 1rem;
+  font-style: italic;
+  line-height: 1.6;
+}
+
+.fighterSymbol {
+  position: absolute;
+  right: 0.75rem;
+  bottom: -0.2rem;
+  color: color-mix(in srgb, var(--fighter-color) 16%, transparent);
+  font-family: var(--font-cinzel), serif;
+  font-size: 5rem;
+  line-height: 1;
+}
+
+.versus {
+  border-inline: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text3);
+  font-family: var(--font-cinzel), serif;
+  font-size: 1.4rem;
+  letter-spacing: 0.18em;
+}
+
+.barWrap {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.barTrack {
+  overflow: hidden;
+  height: 10px;
+  background: var(--border2);
+  display: flex;
+}
+
+.barA,
+.barB {
+  height: 100%;
+  transition: width 0.8s ease;
+}
+
+.barMeta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  color: var(--text3);
+  font-family: var(--font-space-mono), monospace;
+  font-size: 0.58rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.9rem;
+}
+
+.votedState {
+  color: var(--accent);
+  font-family: var(--font-space-mono), monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.thread {
+  border-top: 1px solid var(--border);
+  padding-top: 1.5rem;
+  display: grid;
+  gap: 1rem;
+}
+
+.threadHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.threadTitle {
+  color: var(--text);
+  font-family: var(--font-space-mono), monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.threadNote {
+  color: var(--text4);
+  font-family: var(--font-space-mono), monospace;
+  font-size: 0.55rem;
+  letter-spacing: 0.08em;
+}
+
+.argumentList {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.argument {
+  border: 1px solid var(--border2);
+  background: var(--surface2);
+  padding: 1rem;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.argumentHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.argumentAuthor {
+  color: var(--text);
+  font-family: var(--font-cinzel), serif;
+  font-size: 0.92rem;
+}
+
+.argumentMeta {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.argumentFaction {
+  color: var(--argument-color);
+  font-family: var(--font-space-mono), monospace;
+  font-size: 0.5rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.argumentRank,
+.argumentTime {
+  color: var(--text4);
+  font-family: var(--font-space-mono), monospace;
+  font-size: 0.5rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.argumentBody {
+  color: var(--text2);
+  font-family: var(--font-cormorant), serif;
+  font-size: 1rem;
+  line-height: 1.65;
+}
+
+.empty {
+  color: var(--text4);
+  font-family: var(--font-cormorant), serif;
+  font-size: 1rem;
+  font-style: italic;
+}
+
+.composer {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.textarea {
+  width: 100%;
+  min-height: 120px;
+  resize: vertical;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  padding: 1rem;
+  font-family: var(--font-cormorant), serif;
+  font-size: 1rem;
+  line-height: 1.6;
+  outline: none;
+}
+
+.composerMeta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  color: var(--text4);
+  font-family: var(--font-space-mono), monospace;
+  font-size: 0.55rem;
+  letter-spacing: 0.08em;
+}
+
+@media (max-width: 900px) {
+  .fighters {
+    grid-template-columns: 1fr;
+  }
+
+  .versus {
+    min-height: 48px;
+    border-inline: none;
+    border-block: 1px solid var(--border);
+  }
+}
+
+@media (max-width: 640px) {
+  .card {
+    padding: 1.4rem;
+  }
+
+  .actions {
+    grid-template-columns: 1fr;
+  }
+
+  .fighterName {
+    font-size: 1.3rem;
+  }
+
+  .question {
+    font-size: 1.2rem;
+  }
+}

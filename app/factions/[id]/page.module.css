@@ -1,0 +1,428 @@
+.main {
+  min-height: 100vh;
+  padding-top: 72px;
+}
+
+.section {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 4rem 2rem 6rem;
+}
+
+.hero {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: var(--banner-bg, var(--card));
+  color: var(--banner-text, var(--text));
+  isolation: isolate;
+}
+
+.hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at top right, var(--banner-glow, rgba(255, 255, 255, 0.08)), transparent 32%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 35%),
+    linear-gradient(90deg, transparent 0, var(--banner-rule, rgba(255, 255, 255, 0.06)) 1px, transparent 1px),
+    linear-gradient(transparent 0, var(--banner-rule, rgba(255, 255, 255, 0.06)) 1px, transparent 1px);
+  background-size: auto, auto, 54px 54px, 54px 54px;
+  opacity: 0.85;
+  pointer-events: none;
+}
+
+.hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(135deg, transparent 0 79%, var(--banner-accent, var(--accent)) 79% 80%, transparent 80%),
+    linear-gradient(180deg, transparent 0 87%, color-mix(in srgb, var(--banner-accent, var(--accent)) 32%, transparent) 87% 100%);
+  opacity: 0.24;
+  pointer-events: none;
+}
+
+.heroInner {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.75fr);
+  gap: 2rem;
+  min-height: 430px;
+  padding: 3rem;
+}
+
+.heroCopy {
+  display: flex;
+  flex-direction: column;
+  align-self: end;
+  max-width: 760px;
+}
+
+.heroTag {
+  margin-bottom: 0.9rem;
+  font-family: var(--font-record);
+  font-size: 0.62rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--banner-muted, var(--text3));
+}
+
+.heroJp {
+  margin-bottom: 0.4rem;
+  font-family: 'Noto Serif JP', serif;
+  font-size: 0.74rem;
+  letter-spacing: 0.28em;
+  color: var(--banner-muted, var(--text3));
+}
+
+.heroTitle {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: clamp(2.4rem, 5vw, 4.6rem);
+  line-height: 0.98;
+  letter-spacing: 0.04em;
+}
+
+.heroPhilosophy {
+  margin: 1rem 0 0;
+  font-family: var(--font-literary);
+  font-size: 1.18rem;
+  font-style: italic;
+  line-height: 1.6;
+  color: var(--banner-accent, var(--accent));
+}
+
+.heroDescription {
+  max-width: 620px;
+  margin: 1.15rem 0 0;
+  font-family: var(--font-literary);
+  font-size: 1.02rem;
+  line-height: 1.8;
+  color: color-mix(in srgb, var(--banner-text, var(--text)) 82%, transparent);
+}
+
+.heroActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.9rem;
+  margin-top: 2rem;
+}
+
+.heroAside {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.watermark {
+  position: absolute;
+  top: 1.6rem;
+  right: 1.8rem;
+  font-family: 'Noto Serif JP', serif;
+  font-size: clamp(7rem, 15vw, 12rem);
+  line-height: 1;
+  color: var(--banner-mark, var(--kanji));
+  pointer-events: none;
+  user-select: none;
+}
+
+.classification {
+  align-self: flex-end;
+  padding: 0.45rem 0.8rem;
+  border: 1px solid color-mix(in srgb, var(--banner-accent, var(--accent)) 36%, transparent);
+  font-family: var(--font-record);
+  font-size: 0.56rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--banner-accent, var(--accent));
+  background: color-mix(in srgb, var(--banner-accent, var(--accent)) 8%, transparent);
+}
+
+.metrics {
+  display: grid;
+  gap: 0.9rem;
+  margin-top: auto;
+}
+
+.metric {
+  position: relative;
+  overflow: hidden;
+  padding: 1rem 1rem 1.05rem;
+  border: 1px solid color-mix(in srgb, var(--banner-accent, var(--accent)) 18%, var(--border));
+  background: color-mix(in srgb, var(--banner-accent, var(--accent)) 6%, var(--surface2));
+}
+
+.metricLabel {
+  margin-bottom: 0.35rem;
+  font-family: var(--font-record);
+  font-size: 0.55rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--banner-muted, var(--text4));
+}
+
+.metricValue {
+  font-family: var(--font-heading);
+  font-size: 1.42rem;
+  color: var(--banner-text, var(--text));
+}
+
+.content {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(290px, 0.8fr);
+  gap: 1.5rem;
+  margin-top: 2rem;
+}
+
+.stack {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.panel {
+  border: 1px solid var(--border);
+  background: var(--card);
+  padding: 2rem;
+}
+
+.panelEyebrow {
+  margin-bottom: 0.9rem;
+  font-family: var(--font-record);
+  font-size: 0.58rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.panelLead {
+  margin: 0;
+  font-family: var(--font-literary);
+  font-size: 1rem;
+  line-height: 1.8;
+  color: var(--text2);
+}
+
+.roster {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.rosterItem,
+.eventItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid var(--border2);
+}
+
+.rosterItem:last-child,
+.eventItem:last-child {
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.rosterName,
+.leaderName,
+.eventTitle {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 1rem;
+  color: var(--text);
+}
+
+.rosterMeta,
+.leaderMeta,
+.eventMeta {
+  margin-top: 0.35rem;
+  font-family: var(--font-record);
+  font-size: 0.56rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text3);
+}
+
+.apValue {
+  white-space: nowrap;
+  font-family: var(--font-record);
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.leaderBlock {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.leaderQuote {
+  margin: 0;
+  padding-left: 0.9rem;
+  border-left: 2px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  font-family: var(--font-literary);
+  font-size: 1rem;
+  font-style: italic;
+  line-height: 1.8;
+  color: var(--text2);
+}
+
+.sealed {
+  min-height: 210px;
+  display: grid;
+  align-content: center;
+  gap: 0.75rem;
+}
+
+.sealedBar {
+  width: 100%;
+  height: 12px;
+  background:
+    linear-gradient(90deg, rgba(0, 0, 0, 0.72) 0 18%, transparent 18% 24%, rgba(0, 0, 0, 0.72) 24% 51%, transparent 51% 59%, rgba(0, 0, 0, 0.72) 59% 100%);
+  opacity: 0.16;
+}
+
+.heroAgency {
+  --banner-accent: var(--color-agency);
+  --banner-bg:
+    linear-gradient(135deg, rgba(139, 96, 32, 0.17), transparent 42%),
+    linear-gradient(180deg, rgba(245, 239, 227, 0.96), rgba(237, 227, 204, 0.98)),
+    linear-gradient(90deg, rgba(139, 96, 32, 0.08), transparent 22%);
+  --banner-text: #24140a;
+  --banner-muted: rgba(92, 58, 30, 0.9);
+  --banner-mark: rgba(110, 80, 32, 0.08);
+  --banner-rule: rgba(139, 96, 32, 0.08);
+  --banner-glow: rgba(212, 134, 31, 0.18);
+}
+
+.heroMafia {
+  --banner-accent: var(--color-mafia);
+  --banner-bg:
+    radial-gradient(circle at left center, rgba(204, 26, 26, 0.28), transparent 38%),
+    linear-gradient(135deg, rgba(13, 6, 8, 0.98), rgba(35, 8, 10, 0.98)),
+    linear-gradient(90deg, rgba(204, 26, 26, 0.18), transparent 20%);
+  --banner-text: #f2e3dc;
+  --banner-muted: rgba(232, 180, 170, 0.82);
+  --banner-mark: rgba(204, 26, 26, 0.11);
+  --banner-rule: rgba(204, 26, 26, 0.08);
+  --banner-glow: rgba(204, 26, 26, 0.2);
+}
+
+.heroGuild {
+  --banner-accent: var(--color-guild);
+  --banner-bg:
+    linear-gradient(90deg, rgba(200, 160, 32, 0.16), transparent 18%),
+    linear-gradient(135deg, rgba(12, 16, 32, 0.98), rgba(24, 28, 52, 0.98)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 45%);
+  --banner-text: #f0e8c7;
+  --banner-muted: rgba(216, 198, 132, 0.82);
+  --banner-mark: rgba(200, 160, 32, 0.1);
+  --banner-rule: rgba(200, 160, 32, 0.08);
+  --banner-glow: rgba(200, 160, 32, 0.18);
+}
+
+.heroDogs {
+  --banner-accent: var(--color-dogs);
+  --banner-bg:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent 18%),
+    linear-gradient(135deg, rgba(21, 28, 38, 0.98), rgba(54, 72, 95, 0.96)),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.05) 0 2px, transparent 2px 34px);
+  --banner-text: #edf2f7;
+  --banner-muted: rgba(190, 210, 226, 0.82);
+  --banner-mark: rgba(74, 106, 138, 0.16);
+  --banner-rule: rgba(255, 255, 255, 0.08);
+  --banner-glow: rgba(74, 106, 138, 0.24);
+}
+
+.heroSpecial {
+  --banner-accent: var(--color-special);
+  --banner-bg:
+    linear-gradient(90deg, rgba(74, 90, 106, 0.14), transparent 18%),
+    linear-gradient(135deg, rgba(25, 31, 37, 0.98), rgba(56, 63, 73, 0.98)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 38%);
+  --banner-text: #e6eaee;
+  --banner-muted: rgba(178, 189, 198, 0.78);
+  --banner-mark: rgba(74, 90, 106, 0.18);
+  --banner-rule: rgba(140, 150, 158, 0.08);
+  --banner-glow: rgba(74, 90, 106, 0.16);
+}
+
+.heroRats {
+  --banner-accent: #6a1a6a;
+  --banner-bg:
+    radial-gradient(circle at center right, rgba(106, 26, 106, 0.2), transparent 34%),
+    linear-gradient(135deg, rgba(10, 8, 15, 0.98), rgba(27, 11, 27, 0.98));
+  --banner-text: #e8dcea;
+  --banner-muted: rgba(196, 165, 202, 0.78);
+  --banner-mark: rgba(106, 26, 106, 0.14);
+  --banner-rule: rgba(106, 26, 106, 0.08);
+  --banner-glow: rgba(106, 26, 106, 0.18);
+}
+
+.heroDecay {
+  --banner-accent: #3a5a7a;
+  --banner-bg:
+    radial-gradient(circle at top right, rgba(58, 90, 122, 0.22), transparent 36%),
+    linear-gradient(135deg, rgba(16, 19, 28, 0.98), rgba(28, 38, 54, 0.98));
+  --banner-text: #e3ebf4;
+  --banner-muted: rgba(177, 194, 214, 0.78);
+  --banner-mark: rgba(58, 90, 122, 0.14);
+  --banner-rule: rgba(58, 90, 122, 0.08);
+  --banner-glow: rgba(58, 90, 122, 0.18);
+}
+
+.heroClock {
+  --banner-accent: #5a4a2a;
+  --banner-bg:
+    linear-gradient(90deg, rgba(90, 74, 42, 0.15), transparent 18%),
+    linear-gradient(135deg, rgba(24, 20, 15, 0.98), rgba(54, 44, 26, 0.98));
+  --banner-text: #efe5d3;
+  --banner-muted: rgba(209, 191, 159, 0.8);
+  --banner-mark: rgba(90, 74, 42, 0.14);
+  --banner-rule: rgba(90, 74, 42, 0.08);
+  --banner-glow: rgba(90, 74, 42, 0.18);
+}
+
+@media (max-width: 1080px) {
+  .heroInner,
+  .content {
+    grid-template-columns: 1fr;
+  }
+
+  .heroAside {
+    max-width: 420px;
+  }
+}
+
+@media (max-width: 768px) {
+  .section {
+    padding: 3rem 1rem 5rem;
+  }
+
+  .heroInner,
+  .panel {
+    padding: 1.4rem;
+  }
+
+  .watermark {
+    top: 1rem;
+    right: 1rem;
+    font-size: 6rem;
+  }
+
+  .heroActions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .heroActions :global(.btn-primary),
+  .heroActions :global(.btn-secondary) {
+    width: 100%;
+    text-align: center;
+  }
+}

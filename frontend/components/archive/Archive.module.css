@@ -1,0 +1,321 @@
+.archiveShell {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 2rem;
+  padding: 0 2rem 6rem;
+}
+
+.sidebar {
+  position: sticky;
+  top: 96px;
+  align-self: start;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--bg2) 88%, transparent);
+  padding: 1.25rem;
+}
+
+.sidebarBlock + .sidebarBlock {
+  margin-top: 1.5rem;
+}
+
+.sidebarEyebrow,
+.sidebarLabel,
+.cardMeta,
+.caseMeta,
+.fieldLabel,
+.searchMeta {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text3);
+}
+
+.sidebarTitle,
+.cardTitle,
+.designationName,
+.caseNumber {
+  font-family: 'Cinzel', serif;
+}
+
+.sidebarTitle {
+  margin-top: 0.35rem;
+  font-size: 1.2rem;
+  color: var(--text);
+}
+
+.filterStack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.filterButton {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  width: 100%;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text2);
+  padding: 0.8rem 0.9rem;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.filterButtonActive {
+  border-color: var(--accent);
+  color: var(--text);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.mainPane {
+  min-width: 0;
+}
+
+.searchRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.searchInput {
+  width: 100%;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--text);
+  padding: 0.95rem 1rem;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.1rem;
+}
+
+.cardGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+}
+
+.card {
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--archive-accent);
+  background: var(--card);
+  text-decoration: none;
+  padding: 1.2rem;
+  color: inherit;
+}
+
+.cardTitle {
+  margin: 0.55rem 0 0.4rem;
+  font-size: 1.18rem;
+  color: var(--text);
+}
+
+.cardAbility,
+.designationSub,
+.visitNote,
+.caseSection p,
+.caseSection li,
+.cardTeaser {
+  font-family: 'Cormorant Garamond', serif;
+}
+
+.cardAbility {
+  color: var(--archive-accent);
+  font-size: 1.05rem;
+  font-style: italic;
+}
+
+.cardRow {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0.9rem 0 0.75rem;
+}
+
+.cardBadge {
+  border: 1px solid var(--border);
+  padding: 0.2rem 0.55rem;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text2);
+}
+
+.cardAuthor {
+  color: var(--text3);
+  font-size: 0.95rem;
+}
+
+.cardTeaser {
+  color: var(--text2);
+  font-size: 1rem;
+  line-height: 1.55;
+}
+
+.caseWrap {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 0 2rem 6rem;
+}
+
+.caseFile {
+  border: 1px solid var(--border);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--bg2) 92%, transparent), var(--bg)),
+    linear-gradient(90deg, transparent 0, transparent 96%, color-mix(in srgb, var(--accent) 8%, transparent) 100%);
+  padding: 2rem;
+}
+
+.caseHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.caseNumber {
+  font-size: clamp(1.4rem, 2.8vw, 2rem);
+  color: var(--text);
+}
+
+.caseKanji {
+  font-family: 'Noto Serif JP', serif;
+  font-size: 2rem;
+  color: var(--accent);
+}
+
+.designation {
+  padding: 1.75rem 0;
+}
+
+.designationName {
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  color: var(--text);
+}
+
+.designationSub {
+  margin-top: 0.4rem;
+  font-size: 1.35rem;
+  color: var(--text2);
+  font-style: italic;
+}
+
+.factsGrid,
+.traitGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  padding: 1rem 0 1.75rem;
+}
+
+.caseSection {
+  padding: 1.5rem 0;
+  border-top: 1px solid var(--border);
+}
+
+.sectionLabel {
+  margin-bottom: 0.9rem;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text3);
+}
+
+.fieldValue {
+  color: var(--text);
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.05rem;
+}
+
+.traitGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.traitRow {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr) 46px;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.barTrack {
+  height: 8px;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--bg2) 86%, transparent);
+}
+
+.barFill {
+  height: 100%;
+  background: var(--accent);
+}
+
+.registryMark {
+  font-style: italic;
+  color: var(--text2);
+  font-size: 1.15rem;
+  line-height: 1.7;
+}
+
+.visitNote {
+  margin-top: 1.5rem;
+  color: var(--text4);
+  font-style: italic;
+  font-size: 1.05rem;
+  line-height: 1.7;
+}
+
+.filedBy {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+  color: var(--text3);
+  font-family: 'Space Mono', monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 960px) {
+  .archiveShell {
+    grid-template-columns: 1fr;
+    padding-inline: 1rem;
+  }
+
+  .sidebar {
+    position: static;
+  }
+
+  .factsGrid,
+  .traitGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .searchRow,
+  .caseHeader {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .caseWrap {
+    padding-inline: 1rem;
+  }
+
+  .caseFile {
+    padding: 1.15rem;
+  }
+
+  .traitRow {
+    grid-template-columns: 72px minmax(0, 1fr) 40px;
+  }
+}

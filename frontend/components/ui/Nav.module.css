@@ -1,0 +1,690 @@
+.nav {
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 500;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 1.25rem;
+  min-height: 72px;
+  padding: 0 1.5rem;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 70%),
+    var(--nav);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(24px) saturate(1.15);
+  box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.nav::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(
+      90deg,
+      transparent 0,
+      color-mix(in srgb, var(--accent) 14%, transparent) 0.65rem,
+      transparent 3rem
+    ),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.02), transparent 2.8rem);
+  opacity: 0.8;
+  pointer-events: none;
+}
+
+.brand {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  color: inherit;
+  text-decoration: none;
+}
+
+.brandEmblem {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface2) 78%, transparent);
+  overflow: hidden;
+}
+
+.brandEmblem::after {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  border: 1px solid var(--border2);
+}
+
+.brandKanji {
+  position: relative;
+  z-index: 1;
+  font-family: 'Noto Serif JP', serif;
+  font-size: 1rem;
+  color: var(--accent);
+}
+
+.rainMark {
+  position: absolute;
+  inset: 0;
+  color: color-mix(in srgb, var(--accent) 44%, transparent);
+  opacity: 0.8;
+}
+
+.rainMark line {
+  animation: navRain 2.2s linear infinite;
+}
+
+.rainMark line:nth-child(2) {
+  animation-delay: 0.3s;
+}
+
+.rainMark line:nth-child(3) {
+  animation-delay: 0.6s;
+}
+
+.brandCopy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.brandTitle {
+  font-family: var(--font-heading);
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--text);
+}
+
+.brandTitleAccent {
+  color: var(--accent);
+}
+
+.brandSubtitle {
+  font-family: var(--font-record);
+  font-size: 0.52rem;
+  letter-spacing: 0.18em;
+  color: color-mix(in srgb, var(--text2) 70%, var(--text3));
+  text-transform: uppercase;
+}
+
+.links {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  list-style: none;
+}
+
+.linkItem {
+  display: flex;
+  align-items: center;
+}
+
+.linkItem:not(:last-child)::after {
+  content: '';
+  width: 1px;
+  height: 18px;
+  margin: 0 0.15rem;
+  background: var(--border);
+}
+
+.link {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.6rem 0.95rem;
+  color: color-mix(in srgb, var(--text2) 82%, var(--text3));
+  text-decoration: none;
+  font-family: var(--font-record);
+  font-size: 0.58rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  transition: color 0.25s ease;
+}
+
+.link::after {
+  content: '';
+  position: absolute;
+  right: 0.95rem;
+  bottom: 0.1rem;
+  left: 0.95rem;
+  height: 1px;
+  background: var(--accent);
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform 0.25s ease;
+}
+
+.link:hover,
+.linkActive {
+  color: var(--accent);
+}
+
+.link:hover::after,
+.linkActive::after {
+  transform: scaleX(1);
+}
+
+.factionLink {
+  color: var(--faction-link-color, var(--accent));
+}
+
+.factionLink::after {
+  background: var(--faction-link-color, var(--accent));
+}
+
+.right {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.accountLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-height: 36px;
+  padding: 0 0.85rem;
+  border: 1px solid color-mix(in srgb, var(--account-accent, var(--accent)) 28%, var(--border));
+  background: color-mix(in srgb, var(--surface) 64%, var(--surface2));
+  color: inherit;
+  text-decoration: none;
+}
+
+.accountSeal {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border: 1px solid color-mix(in srgb, var(--account-accent, var(--accent)) 35%, var(--border));
+  color: var(--account-accent, var(--accent));
+  font-family: 'Noto Serif JP', serif;
+  font-size: 0.8rem;
+}
+
+.accountHandle {
+  font-family: var(--font-record);
+  font-size: 0.58rem;
+  letter-spacing: 0.14em;
+  color: var(--text2);
+}
+
+.themeDock {
+  display: inline-flex;
+  align-items: stretch;
+  min-height: 36px;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface) 64%, var(--surface2));
+}
+
+.cityModeButton,
+.lanternButton,
+.menuButton,
+.mobileCityMode,
+.mobileLanternButton,
+.mobileActionButton {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.cityModeButton {
+  display: inline-flex;
+  min-width: 96px;
+  padding: 0.35rem 0.75rem;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.15rem;
+  border-right: 1px solid var(--border);
+  text-align: left;
+}
+
+.cityModeLabel,
+.cityModeMeta,
+.lanternLabel,
+.mobileSectionLabel,
+.mobileLink,
+.mobileActionLink,
+.mobileActionButton,
+.mobileLanternLabel {
+  font-family: var(--font-record);
+}
+
+.cityModeLabel {
+  font-size: 0.5rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--text2) 86%, var(--text3));
+}
+
+.cityModeMeta {
+  font-size: 0.46rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--text3) 74%, var(--text4));
+}
+
+.cityModeButtonActive {
+  background: var(--tag);
+}
+
+.cityModeButtonActive .cityModeLabel {
+  color: var(--accent);
+}
+
+.cityModeButtonActive .cityModeMeta {
+  color: var(--text3);
+}
+
+.themeLanterns {
+  display: inline-flex;
+  align-items: stretch;
+}
+
+.lanternButton {
+  display: inline-flex;
+  min-width: 68px;
+  padding: 0.35rem 0.6rem;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.15rem;
+}
+
+.lanternButton:not(:last-child) {
+  border-right: 1px solid var(--border);
+}
+
+.lanternGlyph {
+  font-size: 0.88rem;
+  line-height: 1;
+  color: color-mix(in srgb, var(--text2) 55%, var(--text3));
+  opacity: 0.72;
+}
+
+.lanternLabel {
+  font-size: 0.44rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--text3) 80%, var(--text4));
+}
+
+.lanternButton:hover .lanternGlyph,
+.lanternButtonActive .lanternGlyph {
+  color: var(--accent);
+  opacity: 1;
+}
+
+.lanternButton:hover .lanternLabel,
+.lanternButtonActive .lanternLabel {
+  color: var(--accent);
+}
+
+.lanternButtonAuto:not(.lanternButtonActive) .lanternGlyph {
+  opacity: 0.6;
+}
+
+.ownerLink,
+.signOut,
+.enterLink,
+.menuButton,
+.mobileActionLink,
+.mobileActionButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 0 0.8rem;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface) 52%, transparent);
+  color: color-mix(in srgb, var(--text2) 84%, var(--text3));
+  font-family: var(--font-record);
+  font-size: 0.55rem;
+  letter-spacing: 0.12em;
+  text-transform: lowercase;
+  text-decoration: none;
+}
+
+.ownerLink {
+  color: var(--accent);
+}
+
+.enterLink {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.menuButton,
+.mobileBackdrop,
+.mobilePanel {
+  display: none;
+}
+
+.mobileBackdrop {
+  position: fixed;
+  inset: 72px 0 0;
+  border: none;
+  background: rgba(6, 4, 8, 0.48);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 460;
+}
+
+.mobileBackdropOpen {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.mobilePanel {
+  position: fixed;
+  top: 72px;
+  right: 0;
+  width: min(360px, 100vw);
+  height: calc(100vh - 72px);
+  padding: 1rem;
+  border-left: 1px solid var(--border);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 30%),
+    var(--nav);
+  backdrop-filter: blur(28px) saturate(1.1);
+  transform: translateX(104%);
+  transition: transform 0.28s ease;
+  z-index: 470;
+  overflow-y: auto;
+  pointer-events: none;
+}
+
+.mobilePanelOpen {
+  transform: translateX(0);
+  pointer-events: auto;
+}
+
+.mobileSection {
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface) 60%, var(--surface2));
+  padding: 0.95rem;
+}
+
+.mobileSection + .mobileSection {
+  margin-top: 0.85rem;
+}
+
+.mobileSectionLabel {
+  display: block;
+  margin-bottom: 0.75rem;
+  font-size: 0.52rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--text3) 78%, var(--text4));
+}
+
+.mobileLinkList,
+.mobileLanterns {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.mobileLink {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 0.9rem;
+  border: 1px solid var(--border2);
+  background: transparent;
+  color: var(--mobile-link-accent, var(--text2));
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-decoration: none;
+}
+
+.mobileLinkActive {
+  border-color: var(--mobile-link-accent, var(--accent));
+  background: var(--tag);
+  color: var(--mobile-link-accent, var(--accent));
+}
+
+.mobileCityMode {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: 44px;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--border);
+  color: color-mix(in srgb, var(--text2) 82%, var(--text3));
+  font-family: var(--font-record);
+  font-size: 0.54rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.mobileCityModeActive {
+  border-color: var(--accent);
+  background: var(--tag);
+  color: var(--accent);
+}
+
+.mobileLanternButton {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.85rem 0.9rem;
+  border: 1px solid var(--border2);
+  text-align: left;
+}
+
+.mobileLanternButtonActive {
+  border-color: var(--accent);
+  background: var(--tag);
+}
+
+.mobileLanternCopy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.mobileLanternLabel {
+  font-size: 0.52rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text2);
+}
+
+.mobileLanternMeta {
+  font-family: var(--font-literary);
+  font-size: 0.92rem;
+  font-style: italic;
+  color: var(--text3);
+}
+
+:global([data-theme='neutral']) .nav,
+:global([data-theme='dark']) .nav {
+  box-shadow:
+    inset 0 -1px 0 color-mix(in srgb, var(--accent) 16%, transparent),
+    0 10px 32px rgba(0, 0, 0, 0.22);
+}
+
+:global([data-theme='neutral']) .brandSubtitle,
+:global([data-theme='dark']) .brandSubtitle,
+:global([data-theme='neutral']) .link,
+:global([data-theme='dark']) .link,
+:global([data-theme='neutral']) .cityModeLabel,
+:global([data-theme='dark']) .cityModeLabel,
+:global([data-theme='neutral']) .ownerLink,
+:global([data-theme='dark']) .ownerLink,
+:global([data-theme='neutral']) .signOut,
+:global([data-theme='dark']) .signOut,
+:global([data-theme='neutral']) .menuButton,
+:global([data-theme='dark']) .menuButton {
+  color: var(--text2);
+}
+
+:global([data-theme='neutral']) .cityModeMeta,
+:global([data-theme='dark']) .cityModeMeta,
+:global([data-theme='neutral']) .lanternLabel,
+:global([data-theme='dark']) .lanternLabel,
+:global([data-theme='neutral']) .mobileSectionLabel,
+:global([data-theme='dark']) .mobileSectionLabel {
+  color: color-mix(in srgb, var(--text2) 64%, var(--text3));
+}
+
+:global([data-theme='neutral']) .lanternGlyph,
+:global([data-theme='dark']) .lanternGlyph {
+  color: var(--text2);
+  opacity: 0.82;
+}
+
+.mobileActions {
+  display: flex;
+  gap: 0.65rem;
+  margin-top: 0.85rem;
+}
+
+.mobileActionLink,
+.mobileActionButton {
+  flex: 1;
+  min-height: 42px;
+  border-color: var(--border);
+}
+
+.mobileActionLink {
+  text-transform: none;
+}
+
+@keyframes navRain {
+  0% {
+    transform: translateY(-8px);
+    opacity: 0;
+  }
+
+  20% {
+    opacity: 0.7;
+  }
+
+  100% {
+    transform: translateY(16px);
+    opacity: 0;
+  }
+}
+
+@media (max-width: 1380px) {
+  .brandSubtitle {
+    display: none;
+  }
+}
+
+@media (max-width: 1180px) {
+  .cityModeMeta,
+  .lanternLabel {
+    display: none;
+  }
+
+  .cityModeButton {
+    min-width: auto;
+    padding-right: 0.65rem;
+    padding-left: 0.65rem;
+  }
+
+  .lanternButton {
+    min-width: 48px;
+  }
+}
+
+@media (max-width: 980px) {
+  .themeDock {
+    display: none;
+  }
+
+  .brandCopy {
+    gap: 0;
+  }
+}
+
+@media (max-width: 900px) {
+  .nav {
+    grid-template-columns: auto 1fr auto;
+  }
+
+  .links,
+  .ownerLink,
+  .signOut,
+  .enterLink {
+    display: none;
+  }
+
+  .menuButton,
+  .mobileBackdrop,
+  .mobilePanel {
+    display: inline-flex;
+  }
+
+  .menuButton {
+    min-height: 36px;
+    padding: 0 0.7rem;
+    color: var(--text3);
+  }
+
+  .menuButtonActive {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--tag);
+  }
+
+  .mobilePanel {
+    display: block;
+  }
+}
+
+@media (max-width: 820px) {
+  .nav {
+    min-height: 64px;
+    padding: 0 0.9rem;
+    gap: 0.8rem;
+  }
+
+  .right {
+    gap: 0.45rem;
+  }
+
+  .mobileBackdrop {
+    inset: 64px 0 0;
+  }
+
+  .mobilePanel {
+    top: 64px;
+    height: calc(100vh - 64px);
+  }
+}
+
+@media (max-width: 640px) {
+  .brandCopy {
+    display: none;
+  }
+
+  .accountLink {
+    padding: 0 0.5rem;
+  }
+
+  .accountHandle {
+    display: none;
+  }
+}

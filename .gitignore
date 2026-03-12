@@ -1,0 +1,45 @@
+# Node
+node_modules/
+.next/
+.next-build/
+coverage/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+.env.*
+
+# Editor
+.vscode/
+.idea/
+*.swp
+
+# Build
+out/
+dist/
+build/
+
+# Test
+*.test.ts.snap
+
+# Misc
+*.log
+*.local
+
+# Supabase
+supabase/.temp/
+supabase/.output/
+
+# Ignore generated SQL dumps
+*.sql
+
+# Ignore Playwright output
+playwright-report/

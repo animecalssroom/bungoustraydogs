@@ -1,0 +1,1214 @@
+.showcase {
+  position: relative;
+}
+
+.hero {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+  padding-top: 60px;
+  background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-bot) 100%);
+}
+
+.heroSky {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 18% 18%, color-mix(in srgb, var(--accent) 18%, transparent), transparent 28%),
+    radial-gradient(circle at 82% 14%, color-mix(in srgb, var(--bg) 55%, transparent), transparent 20%),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--sky-top) 92%, white 8%) 0%,
+      var(--sky-bot) 58%,
+      color-mix(in srgb, var(--bg2) 82%, var(--sky-bot)) 100%
+    );
+}
+
+.heroVignette {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.08), transparent 22%, transparent 72%, rgba(0, 0, 0, 0.18) 100%),
+    radial-gradient(circle at center, transparent 42%, rgba(0, 0, 0, 0.14) 100%);
+}
+
+.heroShoji {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(var(--shoji) 1px, transparent 1px),
+    linear-gradient(90deg, var(--shoji) 1px, transparent 1px);
+  background-size: 76px 76px;
+  opacity: 0.92;
+}
+
+.heroKanji {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Noto Serif JP', serif;
+  font-size: clamp(15rem, 42vw, 35rem);
+  font-weight: 200;
+  line-height: 1;
+  color: var(--kanji);
+  user-select: none;
+  pointer-events: none;
+}
+
+.heroCity {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 42%;
+  color: var(--text);
+  opacity: var(--city-opacity, 0.12);
+}
+
+.particleLayer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.particle {
+  position: absolute;
+  border-radius: 999px;
+  background: var(--particle);
+  animation: homeParticleDrift linear infinite;
+}
+
+.verticalLeft,
+.verticalRight {
+  position: absolute;
+  top: 50%;
+  z-index: 1;
+  writing-mode: vertical-rl;
+  font-family: 'Noto Serif JP', serif;
+  font-size: 0.65rem;
+  font-weight: 300;
+  letter-spacing: 0.3em;
+  color: var(--text3);
+  opacity: 0.68;
+  transform: translateY(-50%);
+}
+
+.verticalLeft {
+  left: 2.75rem;
+}
+
+.verticalRight {
+  right: 2.75rem;
+  transform: translateY(-50%) rotate(180deg);
+}
+
+.heroContent {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  min-height: calc(100vh - 60px);
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem 8rem;
+  text-align: center;
+}
+
+.heroInner {
+  max-width: 980px;
+}
+
+.heroEyebrow {
+  margin-bottom: 1.75rem;
+  font-family: 'Noto Serif JP', serif;
+  font-size: 0.72rem;
+  font-weight: 300;
+  letter-spacing: 0.42em;
+  color: var(--accent);
+}
+
+.heroTitle {
+  font-family: 'Cinzel', serif;
+  font-size: clamp(3rem, 7.5vw, 6.6rem);
+  font-weight: 700;
+  line-height: 1.02;
+  letter-spacing: 0.04em;
+  color: var(--text);
+  text-transform: uppercase;
+}
+
+.heroTitleAccent {
+  color: var(--accent);
+}
+
+.heroTitleJp {
+  margin-top: 1rem;
+  font-family: 'Noto Serif JP', serif;
+  font-size: clamp(0.85rem, 1.8vw, 1.3rem);
+  font-weight: 300;
+  letter-spacing: 0.44em;
+  color: var(--text2);
+}
+
+.heroDivider {
+  width: 140px;
+  height: 1px;
+  margin: 2.5rem auto;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+}
+
+.heroQuote {
+  max-width: 900px;
+  margin: 0 auto;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: clamp(1.45rem, 2.55vw, 2.45rem);
+  font-style: italic;
+  line-height: 1.55;
+  color: var(--text2);
+}
+
+.heroThemeAttr {
+  margin-top: 1rem;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.24em;
+  color: var(--accent);
+}
+
+.heroActions {
+  display: flex;
+  justify-content: center;
+  gap: 1.1rem;
+  margin-top: 3rem;
+  flex-wrap: wrap;
+}
+
+.heroNarrative,
+.heroActionSlot,
+.heroSubnote,
+.openingNarrative,
+.heroQuoteAttr {
+  display: none;
+}
+
+.heroIntroOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background:
+    radial-gradient(circle at 18% 20%, color-mix(in srgb, var(--accent) 24%, transparent), transparent 28%),
+    radial-gradient(circle at 82% 16%, rgba(255, 255, 255, 0.08), transparent 18%),
+    linear-gradient(135deg, #020204 0%, #07060b 44%, #0f0708 100%);
+  backdrop-filter: blur(8px);
+}
+
+.heroIntroPanel {
+  position: relative;
+  width: min(1100px, 100%);
+  min-height: calc(100vh - 3rem);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.heroIntroPanel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, var(--border));
+  background:
+    linear-gradient(var(--shoji) 1px, transparent 1px),
+    linear-gradient(90deg, var(--shoji) 1px, transparent 1px);
+  background-size: 86px 86px;
+  opacity: 0.72;
+  pointer-events: none;
+}
+
+.heroIntroTag,
+.heroIntroWordmark,
+.heroIntroSubline,
+.heroIntroAction,
+.heroIntroNote {
+  position: relative;
+  z-index: 1;
+}
+
+.heroIntroTag {
+  margin-bottom: 1.2rem;
+  font-family: 'Noto Serif JP', serif;
+  font-size: clamp(0.82rem, 1.3vw, 1rem);
+  letter-spacing: 0.7em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--text2) 72%, white 28%);
+}
+
+.heroIntroWordmark {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.heroIntroTitle,
+.heroIntroTitleAccent {
+  font-family: 'Cinzel', serif;
+  font-weight: 700;
+  line-height: 0.92;
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+
+.heroIntroTitle {
+  font-size: clamp(3.6rem, 11vw, 10rem);
+  color: color-mix(in srgb, var(--text) 92%, white 8%);
+}
+
+.heroIntroTitleAccent {
+  font-size: clamp(4rem, 12vw, 11rem);
+  color: color-mix(in srgb, var(--accent) 86%, white 14%);
+}
+
+.heroIntroSubline {
+  width: min(680px, 100%);
+  margin-top: 2rem;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: clamp(1.15rem, 2vw, 1.7rem);
+  font-style: italic;
+  line-height: 1.55;
+  color: color-mix(in srgb, var(--text2) 84%, white 16%);
+}
+
+.heroIntroAction {
+  display: flex;
+  justify-content: center;
+  margin-top: 2.75rem;
+}
+
+.heroIntroNote {
+  margin-top: 1.1rem;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.66rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--text3) 86%, white 14%);
+}
+
+.strip {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 3;
+  display: flex;
+  gap: 1.75rem;
+  align-items: center;
+  padding: 1rem 2.5rem;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+  backdrop-filter: blur(20px);
+  overflow-x: auto;
+}
+
+.stripLabel {
+  flex-shrink: 0;
+  white-space: nowrap;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.55rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--text3);
+}
+
+.stripItems {
+  display: flex;
+  gap: 1.2rem;
+  align-items: center;
+}
+
+.stripItem {
+  display: flex;
+  gap: 0.55rem;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.stripName {
+  white-space: nowrap;
+  font-family: 'Noto Serif JP', serif;
+  font-size: 0.62rem;
+  color: var(--text2);
+}
+
+.stripBarTrack {
+  width: 64px;
+  height: 3px;
+  background: var(--war-track);
+  overflow: hidden;
+}
+
+.stripBar {
+  height: 100%;
+}
+
+.stripScore {
+  white-space: nowrap;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.52rem;
+  color: var(--text3);
+}
+
+.section {
+  padding: 6rem 0;
+  scroll-margin-top: 90px;
+}
+
+.sectionMuted {
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  background: var(--bg2);
+}
+
+.sectionWrap {
+  width: min(1300px, calc(100% - 5rem));
+  margin: 0 auto;
+}
+
+.sectionHead {
+  max-width: 760px;
+  margin: 0 auto 3.5rem;
+  text-align: center;
+}
+
+.sectionEyebrow {
+  margin-bottom: 0.95rem;
+  font-family: 'Noto Serif JP', serif;
+  font-size: 0.68rem;
+  font-weight: 300;
+  letter-spacing: 0.4em;
+  color: var(--accent);
+}
+
+.sectionTitle {
+  font-family: 'Cinzel', serif;
+  font-size: clamp(2rem, 4.5vw, 3.7rem);
+  font-weight: 600;
+  line-height: 1.08;
+  color: var(--text);
+}
+
+.sectionTitle em {
+  font-family: 'IM Fell English', serif;
+  font-style: italic;
+  color: var(--accent);
+}
+
+.sectionDivider {
+  width: 96px;
+  height: 1px;
+  margin: 1.5rem auto;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+}
+
+.sectionSub {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.12rem;
+  font-style: italic;
+  line-height: 1.8;
+  color: var(--text2);
+}
+
+.factionGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px;
+}
+
+.factionCard {
+  position: relative;
+  overflow: hidden;
+  padding: 1.8rem 1.6rem 1.75rem;
+  border: 1px solid var(--border2);
+  background: var(--card);
+  color: inherit;
+  text-decoration: none;
+  transition:
+    transform 0.35s ease,
+    border-color 0.35s ease,
+    background-color 0.35s ease,
+    box-shadow 0.35s ease;
+}
+
+.factionCard:hover {
+  transform: translateY(-3px);
+  border-color: var(--border);
+  background: var(--surface);
+  box-shadow: 0 18px 35px rgba(0, 0, 0, 0.06);
+  z-index: 1;
+}
+
+.factionRank {
+  position: absolute;
+  top: 1rem;
+  right: 1.4rem;
+  font-family: 'Cinzel', serif;
+  font-size: clamp(2.8rem, 5vw, 4rem);
+  font-weight: 700;
+  line-height: 1;
+  color: var(--border);
+}
+
+.factionStatus {
+  max-width: 70%;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.55rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--text3);
+}
+
+.factionName {
+  margin-top: 0.9rem;
+  font-family: 'Cinzel', serif;
+  font-size: 1.18rem;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--text);
+}
+
+.factionNameJp {
+  margin-top: 0.4rem;
+  font-family: 'Noto Serif JP', serif;
+  font-size: 0.72rem;
+  letter-spacing: 0.22em;
+  color: var(--text3);
+}
+
+.factionDesc {
+  margin-top: 1rem;
+  min-height: 4.6rem;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 0.94rem;
+  font-style: italic;
+  line-height: 1.65;
+  color: var(--text2);
+}
+
+.factionBarTrack {
+  height: 3px;
+  margin-top: 1.3rem;
+  background: var(--war-track);
+  overflow: hidden;
+}
+
+.factionBarFill {
+  height: 100%;
+}
+
+.factionMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 0.75rem;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.58rem;
+}
+
+.factionAp {
+  color: var(--accent);
+}
+
+.factionMembers {
+  color: var(--text3);
+}
+
+.factionKanji {
+  position: absolute;
+  right: -0.1rem;
+  bottom: -0.5rem;
+  font-family: 'Noto Serif JP', serif;
+  font-size: 6.5rem;
+  font-weight: 200;
+  line-height: 1;
+  color: var(--kanji);
+  user-select: none;
+}
+
+.archiveControls {
+  display: flex;
+  gap: 0.7rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-bottom: 3rem;
+}
+
+.filterButton {
+  padding: 0.75rem 1.15rem;
+  border: 1px solid var(--border);
+  background: transparent;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.58rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text3);
+  cursor: pointer;
+  transition:
+    background-color 0.25s ease,
+    color 0.25s ease,
+    border-color 0.25s ease,
+    transform 0.25s ease;
+}
+
+.filterButton:hover,
+.filterButtonActive {
+  border-color: var(--accent);
+  background: var(--tag);
+  color: var(--accent);
+}
+
+.archiveGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+}
+
+.characterCard {
+  position: relative;
+  overflow: hidden;
+  padding: 2rem 1.95rem 1.85rem;
+  border: 1px solid var(--border2);
+  background: var(--card);
+  transition:
+    transform 0.35s ease,
+    border-color 0.35s ease,
+    background-color 0.35s ease,
+    box-shadow 0.35s ease;
+}
+
+.characterCard:hover {
+  transform: translateY(-3px);
+  border-color: var(--border);
+  background: var(--surface);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.05);
+  z-index: 1;
+}
+
+.characterCard::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 3px;
+  height: 100%;
+  background: var(--card-accent, var(--accent));
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.characterCard:hover::before {
+  opacity: 1;
+}
+
+.characterBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.7rem;
+  background: var(--tag);
+  font-family: 'Space Mono', monospace;
+  font-size: 0.5rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--card-accent, var(--accent));
+}
+
+.characterName {
+  margin-top: 1.4rem;
+  font-family: 'Cinzel', serif;
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.15;
+  color: var(--text);
+}
+
+.characterNameJp {
+  margin-top: 0.55rem;
+  font-family: 'Noto Serif JP', serif;
+  font-size: 0.76rem;
+  letter-spacing: 0.2em;
+  color: var(--text3);
+}
+
+.characterAbility {
+  margin-top: 1.25rem;
+  font-family: 'IM Fell English', serif;
+  font-size: 1.1rem;
+  font-style: italic;
+  color: var(--card-accent, var(--accent));
+}
+
+.characterAbilityJp {
+  margin-top: 0.35rem;
+  font-family: 'Noto Serif JP', serif;
+  font-size: 0.62rem;
+  letter-spacing: 0.16em;
+  color: var(--text3);
+}
+
+.characterSummary {
+  margin-top: 1.35rem;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 0.96rem;
+  font-style: italic;
+  line-height: 1.82;
+  color: var(--text2);
+}
+
+.characterQuote {
+  margin-top: 1.35rem;
+  padding-left: 0.9rem;
+  border-left: 2px solid var(--card-accent, var(--accent));
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 0.92rem;
+  font-style: italic;
+  line-height: 1.75;
+  color: var(--text3);
+}
+
+.characterStats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.characterStatLabel {
+  margin-bottom: 0.35rem;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.48rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text4);
+}
+
+.characterStatTrack {
+  height: 2px;
+  background: var(--war-track);
+  overflow: hidden;
+}
+
+.characterStatFill {
+  height: 100%;
+  background: var(--card-accent, var(--accent));
+}
+
+.characterAuthor {
+  margin-top: 1.4rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--border2);
+  font-family: 'Space Mono', monospace;
+  font-size: 0.52rem;
+  letter-spacing: 0.08em;
+  line-height: 1.75;
+  color: var(--text4);
+}
+
+.characterAuthor span {
+  color: var(--card-accent, var(--accent));
+}
+
+.characterSymbol {
+  position: absolute;
+  right: -0.2rem;
+  bottom: -0.25rem;
+  font-family: 'Noto Serif JP', serif;
+  font-size: 6rem;
+  font-weight: 200;
+  line-height: 1;
+  color: var(--kanji);
+  user-select: none;
+}
+
+.arenaCard {
+  margin-top: 3rem;
+  border: 1px solid var(--border);
+  background: var(--card);
+  overflow: hidden;
+}
+
+.arenaQuestion {
+  max-width: 700px;
+  margin: 0 auto 2.4rem;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.15rem;
+  font-style: italic;
+  line-height: 1.8;
+  text-align: center;
+  color: var(--text2);
+}
+
+.arenaSplit {
+  display: grid;
+  grid-template-columns: 1fr 80px 1fr;
+}
+
+.fighter {
+  position: relative;
+  overflow: hidden;
+  padding: 2.6rem 2.35rem;
+  transition: background-color 0.3s ease;
+}
+
+.fighter:hover {
+  background: var(--surface2);
+}
+
+.fighterTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.75rem;
+  background: var(--tag);
+  font-family: 'Space Mono', monospace;
+  font-size: 0.5rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--card-accent, var(--accent));
+}
+
+.fighterName {
+  margin-top: 1.35rem;
+  font-family: 'Cinzel', serif;
+  font-size: 1.55rem;
+  font-weight: 600;
+  line-height: 1.1;
+  color: var(--text);
+}
+
+.fighterNameJp {
+  margin-top: 0.45rem;
+  font-family: 'Noto Serif JP', serif;
+  font-size: 0.7rem;
+  letter-spacing: 0.22em;
+  color: var(--text3);
+}
+
+.fighterAbility {
+  margin-top: 0.95rem;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.58rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--card-accent, var(--accent));
+}
+
+.fighterQuote {
+  margin-top: 1.2rem;
+  max-width: 28rem;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 0.98rem;
+  font-style: italic;
+  line-height: 1.7;
+  color: var(--text2);
+}
+
+.fighterVotes {
+  margin-top: 1.4rem;
+  font-family: 'Cinzel', serif;
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: var(--card-accent, var(--accent));
+}
+
+.fighterVotesLabel {
+  display: block;
+  margin-top: 0.2rem;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.52rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text3);
+}
+
+.arenaAction {
+  margin-top: 1.25rem;
+}
+
+.fighterSymbol {
+  position: absolute;
+  right: -0.35rem;
+  bottom: -0.5rem;
+  font-family: 'Noto Serif JP', serif;
+  font-size: 8rem;
+  font-weight: 200;
+  color: var(--kanji);
+}
+
+.arenaVs {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.9rem;
+  border-right: 1px solid var(--border);
+  border-left: 1px solid var(--border);
+  background: var(--bg3);
+}
+
+.arenaLine {
+  width: 1px;
+  flex: 1;
+  background: var(--border);
+}
+
+.arenaVsText {
+  font-family: 'Cinzel', serif;
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: var(--accent);
+}
+
+.arenaBarTrack {
+  height: 4px;
+  background: var(--war-track);
+}
+
+.arenaBarFill {
+  height: 100%;
+}
+
+.arenaLink {
+  margin-top: 2rem;
+  text-align: center;
+}
+
+.loreGrid {
+  display: grid;
+  grid-template-columns: 1.7fr 1fr;
+  grid-template-rows: auto auto;
+  gap: 1px;
+}
+
+.loreCard {
+  border: 1px solid var(--border2);
+  background: var(--card);
+  padding: 2.2rem 2rem;
+  color: inherit;
+  text-decoration: none;
+  transition:
+    transform 0.3s ease,
+    border-color 0.3s ease,
+    background-color 0.3s ease;
+}
+
+.loreCard:hover {
+  transform: translateY(-2px);
+  border-color: var(--border);
+  background: var(--surface);
+}
+
+.loreFeatured {
+  grid-row: span 2;
+  padding: 3rem 2.7rem;
+}
+
+.loreTag {
+  display: inline-block;
+  padding: 0.35rem 0.8rem;
+  background: var(--tag);
+  font-family: 'Space Mono', monospace;
+  font-size: 0.5rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.loreTitle {
+  margin-top: 1.45rem;
+  font-family: 'Cinzel', serif;
+  font-size: 1.2rem;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--text);
+}
+
+.loreFeatured .loreTitle {
+  font-size: clamp(2rem, 3.2vw, 3rem);
+}
+
+.loreExcerpt {
+  margin-top: 1.15rem;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1rem;
+  font-style: italic;
+  line-height: 1.88;
+  color: var(--text2);
+}
+
+.loreMeta {
+  margin-top: 1.5rem;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.55rem;
+  letter-spacing: 0.08em;
+  color: var(--text3);
+}
+
+.examCard {
+  max-width: 700px;
+  margin: 3rem auto 0;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: var(--card);
+  padding: 3rem 2.4rem;
+}
+
+.examStamp {
+  position: absolute;
+  top: 1.5rem;
+  right: 2rem;
+  font-family: 'Noto Serif JP', serif;
+  font-size: 0.56rem;
+  letter-spacing: 0.32em;
+  color: var(--text3);
+}
+
+.examProgress {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 0.4rem;
+  margin-bottom: 1.8rem;
+}
+
+.examDot {
+  height: 2px;
+  background: var(--war-track);
+}
+
+.examDotActive {
+  background: var(--accent);
+}
+
+.examScenarioNum {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.55rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text3);
+}
+
+.examQuestion {
+  margin-top: 1.15rem;
+  font-family: 'IM Fell English', serif;
+  font-size: 1.3rem;
+  font-style: italic;
+  line-height: 1.6;
+  color: var(--text);
+}
+
+.examOptions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  margin-top: 1.8rem;
+}
+
+.examPreviewOption {
+  display: flex;
+  gap: 0.85rem;
+  align-items: flex-start;
+  padding: 0.95rem 1.1rem;
+  border: 1px solid var(--border2);
+  background: var(--surface2);
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1rem;
+  line-height: 1.55;
+  color: var(--text);
+}
+
+.examPreviewOption:hover {
+  border-color: var(--accent);
+  background: var(--tag);
+}
+
+.examOptionKey {
+  min-width: 1rem;
+  font-family: 'Cinzel', serif;
+  font-size: 0.62rem;
+  color: var(--accent);
+}
+
+.examCallToAction {
+  margin-top: 2.2rem;
+  text-align: center;
+}
+
+@keyframes homeParticleDrift {
+  0% {
+    transform: translateY(100vh) rotate(0deg);
+    opacity: 0;
+  }
+
+  10% {
+    opacity: 0.8;
+  }
+
+  90% {
+    opacity: 0.45;
+  }
+
+  100% {
+    transform: translateY(-30px) rotate(720deg);
+    opacity: 0;
+  }
+}
+
+@media (max-width: 1180px) {
+  .archiveGrid,
+  .factionGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 980px) {
+  .loreGrid,
+  .archiveGrid,
+  .factionGrid,
+  .arenaSplit {
+    grid-template-columns: 1fr;
+  }
+
+  .loreFeatured {
+    grid-row: auto;
+  }
+
+  .arenaVs {
+    flex-direction: row;
+    border-right: none;
+    border-left: none;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    padding: 1rem;
+  }
+
+  .arenaLine {
+    width: auto;
+    height: 1px;
+    flex: 1;
+  }
+}
+
+@media (max-width: 768px) {
+  .sectionWrap {
+    width: min(100%, calc(100% - 2rem));
+  }
+
+  .verticalLeft,
+  .verticalRight,
+  .heroKanji {
+    display: none;
+  }
+
+  .heroContent {
+    min-height: calc(100vh - 120px);
+    padding-top: 3rem;
+    padding-bottom: 7rem;
+    padding-right: 1rem;
+    padding-left: 1rem;
+  }
+
+  .heroTitleJp {
+    letter-spacing: 0.25em;
+  }
+
+  .heroQuote {
+    max-width: 100%;
+    font-size: clamp(1.35rem, 6.1vw, 2rem);
+    line-height: 1.5;
+  }
+
+  .heroThemeAttr {
+    line-height: 1.8;
+  }
+
+  .heroActions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .heroCity {
+    height: 34%;
+  }
+
+  .heroShoji {
+    background-size: 54px 54px;
+  }
+
+  .heroIntroOverlay {
+    padding: 1rem;
+  }
+
+  .heroIntroPanel {
+    min-height: calc(100vh - 2rem);
+  }
+
+  .heroIntroTag {
+    letter-spacing: 0.36em;
+  }
+
+  .heroIntroTitle {
+    font-size: clamp(2.6rem, 16vw, 4.8rem);
+  }
+
+  .heroIntroTitleAccent {
+    font-size: clamp(2.9rem, 18vw, 5.4rem);
+  }
+
+  .heroIntroSubline {
+    margin-top: 1.5rem;
+    font-size: clamp(1rem, 4.8vw, 1.3rem);
+  }
+
+  .heroIntroNote {
+    max-width: 20rem;
+    line-height: 1.7;
+  }
+
+  .heroIntroAction {
+    margin-top: 2.4rem;
+  }
+
+  .strip {
+    gap: 1rem;
+    padding: 0.9rem 1rem;
+  }
+
+  .fighter,
+  .loreFeatured,
+  .examCard {
+    padding-right: 1.35rem;
+    padding-left: 1.35rem;
+  }
+
+  .characterCard,
+  .factionCard,
+  .loreCard {
+    padding-right: 1.3rem;
+    padding-left: 1.3rem;
+  }
+
+  .characterStats {
+    gap: 0.7rem;
+  }
+
+  .archiveControls {
+    justify-content: flex-start;
+  }
+}

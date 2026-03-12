@@ -1,0 +1,666 @@
+import type { ArchiveEntry, FactionId } from '@/backend/types'
+
+const CREATED_AT = '2026-03-12T00:00:00.000Z'
+
+function makeEntry(
+  entry: Omit<ArchiveEntry, 'id' | 'created_at'> & { faction: FactionId },
+): ArchiveEntry {
+  return {
+    id: entry.slug,
+    created_at: CREATED_AT,
+    ...entry,
+  }
+}
+
+export const ARCHIVE_FALLBACK_CATALOG: ArchiveEntry[] = [
+  makeEntry({
+    slug: 'nakajima-atsushi',
+    character_name: 'Atsushi Nakajima',
+    character_name_jp: '中島敦',
+    faction: 'agency',
+    ability_name: 'Beast Beneath the Moonlight',
+    ability_name_jp: '月下獣',
+    ability_type: 'destruction',
+    ability_description:
+      'Atsushi transforms into a white tiger whose speed, claws, and regeneration overwhelm a normal battlefield. The file notes that the ability answers strongest when fear turns into resolve.',
+    trait_power: 3,
+    trait_intel: 2,
+    trait_loyalty: 4,
+    trait_control: 2,
+    real_author_name: 'Atsushi Nakajima',
+    real_author_dates: '1909-1942',
+    real_author_bio:
+      'Nakajima was a Japanese modernist writer whose work often circled identity, alienation, and the pressure of living up to impossible standards. His prose carries both classical gravity and deep psychological unease.',
+    literary_movement: 'Japanese modernism',
+    notable_works: 'Sangetsuki, Light Wind and Dreams',
+    ability_literary_connection:
+      'The tiger form draws directly from Sangetsuki, where a man is consumed by the beast hidden inside his own pride and fear. BSD turns that inner metamorphosis into a visible combat signature.',
+    registry_note:
+      'The file reads as if the city caught a frightened soul mid-transformation and chose not to look away.',
+    status: 'active',
+  }),
+  makeEntry({
+    slug: 'dazai-osamu',
+    character_name: 'Osamu Dazai',
+    character_name_jp: '太宰治',
+    faction: 'agency',
+    ability_name: 'No Longer Human',
+    ability_name_jp: '人間失格',
+    ability_type: 'counter',
+    ability_description:
+      'Any ability Dazai touches is nullified immediately, regardless of scale or refinement. Registry notes classify it as one of Yokohama\'s most disruptive anti-ability signatures.',
+    trait_power: 2,
+    trait_intel: 5,
+    trait_loyalty: 2,
+    trait_control: 3,
+    real_author_name: 'Osamu Dazai',
+    real_author_dates: '1909-1948',
+    real_author_bio:
+      'Dazai was a major voice in postwar Japanese literature, known for autobiographical fiction, irony, and emotional collapse written with terrifying clarity. His work sits close to the fracture line between performance and confession.',
+    literary_movement: 'Japanese postwar literature',
+    notable_works: 'No Longer Human, The Setting Sun',
+    ability_literary_connection:
+      'No Longer Human becomes an erasure power because the original novel is already about estrangement from ordinary humanity. In BSD, that alienation is weaponized into direct negation.',
+    registry_note:
+      'The city keeps this file open because too many other files change shape around it.',
+    status: 'active',
+  }),
+  makeEntry({
+    slug: 'kunikida-doppo',
+    character_name: 'Doppo Kunikida',
+    character_name_jp: '国木田独歩',
+    faction: 'agency',
+    ability_name: 'Lone Poet',
+    ability_name_jp: '独歩吟客',
+    ability_type: 'analysis',
+    ability_description:
+      'Objects written into Kunikida\'s notebook can be manifested into reality within practical limits. The file marks the ability as unusually stable because it depends on planning rather than impulse.',
+    trait_power: 3,
+    trait_intel: 4,
+    trait_loyalty: 4,
+    trait_control: 5,
+    real_author_name: 'Doppo Kunikida',
+    real_author_dates: '1871-1908',
+    real_author_bio:
+      'Kunikida was an early modern Japanese writer associated with romanticism, natural observation, and essays shaped by ideals confronting reality. His prose frequently treats principle as something lived rather than merely argued.',
+    literary_movement: 'Japanese romanticism and naturalism',
+    notable_works: 'Musashino, Aitei Tsushin',
+    ability_literary_connection:
+      'BSD reimagines the writer\'s disciplined interior life as literal materialization through the notebook. The ability turns written intention into concrete form.',
+    registry_note:
+      'A practical idealist is more dangerous than a dreamer; the city files this one under proof.',
+    status: 'active',
+  }),
+  makeEntry({
+    slug: 'ranpo-edogawa',
+    character_name: 'Ranpo Edogawa',
+    character_name_jp: '江戸川乱歩',
+    faction: 'agency',
+    ability_name: 'Ultra-Deduction',
+    ability_name_jp: '超推理',
+    ability_type: 'analysis',
+    ability_description:
+      'Ranpo dissects a case with impossible speed, identifying the answer while others are still describing the problem. The registry continues to debate whether the danger lies in the ability or in the mind underneath it.',
+    trait_power: 1,
+    trait_intel: 5,
+    trait_loyalty: 3,
+    trait_control: 4,
+    real_author_name: 'Edogawa Ranpo',
+    real_author_dates: '1894-1965',
+    real_author_bio:
+      'Ranpo helped define modern Japanese detective and mystery fiction, combining puzzle structure with grotesque psychology. His influence on crime writing in Japan is foundational.',
+    literary_movement: 'Japanese detective fiction',
+    notable_works: 'The Human Chair, The Beast in the Shadows',
+    ability_literary_connection:
+      'Ultra-Deduction lifts Ranpo\'s status as a master mystery architect into a near-supernatural investigative faculty. BSD translates genre-defining deduction into institutional authority.',
+    registry_note:
+      'Some files solve themselves when he enters the room. The registry resents this and benefits from it.',
+    status: 'active',
+  }),
+  makeEntry({
+    slug: 'akiko-yosano',
+    character_name: 'Akiko Yosano',
+    character_name_jp: '与謝野晶子',
+    faction: 'agency',
+    ability_name: 'Thou Shalt Not Die',
+    ability_name_jp: '君死給勿',
+    ability_type: 'counter',
+    ability_description:
+      'Yosano can restore the body from lethal injury, but only when the patient stands at the edge of death. The ability is recorded as both miraculous and terrifying because treatment requires violence before mercy.',
+    trait_power: 4,
+    trait_intel: 3,
+    trait_loyalty: 4,
+    trait_control: 4,
+    real_author_name: 'Akiko Yosano',
+    real_author_dates: '1878-1942',
+    real_author_bio:
+      'Yosano was a poet, essayist, and public intellectual whose writing joined sensuality, intellect, and fierce anti-war feeling. She remains one of the most recognizable modern women writers in Japan.',
+    literary_movement: 'Japanese romantic and modern poetry',
+    notable_works: 'Midaregami, Thou Shalt Not Die',
+    ability_literary_connection:
+      'The ability borrows its name from Yosano\'s anti-war poem and twists it into battlefield medicine. BSD keeps the command against death but expresses it through brutal intervention.',
+    registry_note:
+      'The city calls this healing only because it has no word for rescue that arrives like a threat.',
+    status: 'active',
+  }),
+  makeEntry({
+    slug: 'junichiro-tanizaki',
+    character_name: 'Junichiro Tanizaki',
+    character_name_jp: '谷崎潤一郎',
+    faction: 'agency',
+    ability_name: 'Light Snow',
+    ability_name_jp: '細雪',
+    ability_type: 'manipulation',
+    ability_description:
+      'Tanizaki bends perception through illusion, concealment, and false staging. Files classify the signature as ideal for controlled escape, infiltration, and misdirection.',
+    trait_power: 2,
+    trait_intel: 3,
+    trait_loyalty: 4,
+    trait_control: 3,
+    real_author_name: 'Junichiro Tanizaki',
+    real_author_dates: '1886-1965',
+    real_author_bio:
+      'Tanizaki wrote about desire, aesthetic obsession, family structures, and the unstable border between elegance and perversity. His work is a key pillar of modern Japanese fiction.',
+    literary_movement: 'Modern Japanese literature',
+    notable_works: 'The Makioka Sisters, In Praise of Shadows',
+    ability_literary_connection:
+      'Light Snow takes the refined atmosphere of The Makioka Sisters and turns it into visual deception. The softness of the title becomes camouflage rather than comfort.',
+    registry_note:
+      'This file prefers angles, screens, and the single second in which certainty slips.',
+    status: 'active',
+  }),
+  makeEntry({
+    slug: 'naomi-tanizaki',
+    character_name: 'Naomi Tanizaki',
+    character_name_jp: '谷崎ナオミ',
+    faction: 'agency',
+    ability_name: 'Classified Ability',
+    ability_name_jp: '機密指定',
+    ability_type: 'manipulation',
+    ability_description:
+      'Operational details remain sealed in the public archive. Internal notes still associate the file with deception support, quick adaptation, and strong attachment behavior.',
+    trait_power: 2,
+    trait_intel: 4,
+    trait_loyalty: 4,
+    trait_control: 4,
+    real_author_name: 'Naomi',
+    real_author_dates: 'N/A',
+    real_author_bio:
+      'Unlike most entries, Naomi is not drawn from a historical author figure but from the atmosphere surrounding Tanizaki\'s literary world. The registry keeps the record because the relationship itself shapes the file.',
+    literary_movement: 'Archive composite',
+    notable_works: 'Classified',
+    ability_literary_connection:
+      'This file functions as an in-world extension of the Tanizaki literary orbit rather than a direct author adaptation. Its public record remains intentionally incomplete.',
+    registry_note:
+      'Some files are retained not for clarity but because omission itself becomes part of the pattern.',
+    status: 'active',
+  }),
+  makeEntry({
+    slug: 'kyouka-izumi',
+    character_name: 'Kyouka Izumi',
+    character_name_jp: '泉鏡花',
+    faction: 'agency',
+    ability_name: 'Demon Snow',
+    ability_name_jp: '夜叉白雪',
+    ability_type: 'destruction',
+    ability_description:
+      'A bladed phantom appears and kills according to issued commands, giving Kyouka both reach and distance from the violence itself. The registry marks the file as severe trauma bound to precision execution.',
+    trait_power: 4,
+    trait_intel: 2,
+    trait_loyalty: 4,
+    trait_control: 3,
+    real_author_name: 'Kyoka Izumi',
+    real_author_dates: '1873-1939',
+    real_author_bio:
+      'Izumi was known for luminous prose, gothic atmospheres, and stories where beauty and dread coexist. His work often feels theatrical, haunted, and slightly untethered from ordinary realism.',
+    literary_movement: 'Japanese romanticism and neo-classicism',
+    notable_works: 'The Holy Man of Mount Koya, Demon Pond',
+    ability_literary_connection:
+      'Demon Snow channels Izumi\'s supernatural elegance into a murder spirit with ceremonial poise. The result feels less like a weapon than a ghost obeying paperwork.',
+    registry_note:
+      'Snow is only innocent from a distance; this file insists on the distinction.',
+    status: 'active',
+  }),
+  makeEntry({
+    slug: 'kenji-miyazawa',
+    character_name: 'Kenji Miyazawa',
+    character_name_jp: '宮沢賢治',
+    faction: 'agency',
+    ability_name: 'Undefeated by the Rain',
+    ability_name_jp: '雨ニモマケズ',
+    ability_type: 'destruction',
+    ability_description:
+      'Kenji manifests overwhelming physical strength when conditions align with his simple faith and resolve. Public notes describe the signature as deceptively gentle until it becomes unstoppable.',
+    trait_power: 5,
+    trait_intel: 1,
+    trait_loyalty: 5,
+    trait_control: 2,
+    real_author_name: 'Kenji Miyazawa',
+    real_author_dates: '1896-1933',
+    real_author_bio:
+      'Miyazawa wrote poetry and fiction shaped by rural life, Buddhist feeling, science, and spiritual compassion. His work remains beloved for pairing innocence with cosmic scale.',
+    literary_movement: 'Japanese children\'s and spiritual literature',
+    notable_works: 'Night on the Galactic Railroad, Ame ni mo Makezu',
+    ability_literary_connection:
+      'The title comes from Miyazawa\'s famous poem about endurance, humility, and service. BSD recasts those values as impossible bodily force that never loses its moral softness.',
+    registry_note:
+      'The file looks harmless until the city remembers that weather can level whole districts.',
+    status: 'active',
+  }),
+  makeEntry({
+    slug: 'fukuzawa-yukichi',
+    character_name: 'Yukichi Fukuzawa',
+    character_name_jp: '福沢諭吉',
+    faction: 'agency',
+    ability_name: 'All Men Are Equal',
+    ability_name_jp: '人上人不造',
+    ability_type: 'analysis',
+    ability_description:
+      'Fukuzawa stabilizes the abilities of those under his protection, turning disorder into disciplined function. Registry notes class it as leadership expressed through systemic control rather than spectacle.',
+    trait_power: 2,
+    trait_intel: 5,
+    trait_loyalty: 5,
+    trait_control: 5,
+    real_author_name: 'Yukichi Fukuzawa',
+    real_author_dates: '1835-1901',
+    real_author_bio:
+      'Fukuzawa was an educator, thinker, and major intellectual voice of modernizing Japan. His writing emphasized independence, practical learning, and civic development.',
+    literary_movement: 'Meiji enlightenment thought',
+    notable_works: 'An Encouragement of Learning',
+    ability_literary_connection:
+      'The ability turns Fukuzawa\'s political and educational philosophy into organizational equilibrium. Equality becomes the condition that lets talent function without collapse.',
+    registry_note:
+      'Some authority looks loud. This file proves the more durable version rarely is.',
+    status: 'active',
+  }),
+  makeEntry({
+    slug: 'nakahara-chuuya',
+    character_name: 'Chuuya Nakahara',
+    character_name_jp: '中原中也',
+    faction: 'mafia',
+    ability_name: 'For the Tainted Sorrow',
+    ability_name_jp: '汚れつちまつた悲しみに',
+    ability_type: 'destruction',
+    ability_description:
+      'Chuuya manipulates gravity with devastating control, collapsing both bodies and terrain into his preferred geometry. The file remains classified as catastrophic when emotional restraints fail.',
+    trait_power: 5,
+    trait_intel: 3,
+    trait_loyalty: 5,
+    trait_control: 2,
+    real_author_name: 'Chuya Nakahara',
+    real_author_dates: '1907-1937',
+    real_author_bio:
+      'Nakahara was a modern Japanese poet famous for lyrical melancholy, urban feeling, and intense emotional compression. His verse carries elegance sharpened by self-destruction.',
+    literary_movement: 'Japanese modernist poetry',
+    notable_works: 'Poems of the Goat, For the Tainted Sorrow',
+    ability_literary_connection:
+      'BSD transforms a poem of contamination and grief into literal gravitational ruin. Sorrow becomes mass, pressure, and collapse.',
+    registry_note:
+      'The city measures this file in damaged pavement and the seconds before impact.',
+    status: 'active',
+  }),
+  makeEntry({
+    slug: 'akutagawa-ryunosuke',
+    character_name: 'Ryunosuke Akutagawa',
+    character_name_jp: '芥川龍之介',
+    faction: 'mafia',
+    ability_name: 'Rashomon',
+    ability_name_jp: '羅生門',
+    ability_type: 'destruction',
+    ability_description:
+      'A black cloth-beast extends from Akutagawa\'s coat, cutting, devouring, and reshaping matter at close to medium range. Registry notes connect the file to severe aggression and a fixation on proving worth through annihilation.',
+    trait_power: 5,
+    trait_intel: 3,
+    trait_loyalty: 4,
+    trait_control: 3,
+    real_author_name: 'Ryunosuke Akutagawa',
+    real_author_dates: '1892-1927',
+    real_author_bio:
+      'Akutagawa is one of the central figures of modern Japanese short fiction, known for psychological intensity, moral ambiguity, and meticulous style. His stories often examine cruelty, instability, and fractured truth.',
+    literary_movement: 'Japanese modernism',
+    notable_works: 'Rashomon, In a Grove, Hell Screen',
+    ability_literary_connection:
+      'Rashomon borrows the name of a story already bound to desperation and moral collapse. BSD turns that atmosphere into a predatory extension of the self.',
+    registry_note:
+      'This file does not ask whether the world is cruel; it enters the room assuming the answer.',
+    status: 'active',
+  }),
+  makeEntry({
+    slug: 'mori-ogai',
+    character_name: 'Ougai Mori',
+    character_name_jp: '森鴎外',
+    faction: 'mafia',
+    ability_name: 'Vita Sexualis',
+    ability_name_jp: 'ヰタ・セクスアリス',
+    ability_type: 'analysis',
+    ability_description:
+      'Mori\'s ability externalizes strategic will through Elise, a controlled projection that extends his reach across the battlefield. The file is logged as command intelligence wearing the shape of a childlike illusion.',
+    trait_power: 3,
+    trait_intel: 5,
+    trait_loyalty: 5,
+    trait_control: 5,
+    real_author_name: 'Mori Ogai',
+    real_author_dates: '1862-1922',
+    real_author_bio:
+      'Mori was a novelist, translator, physician, and major Meiji intellectual whose writing often balances desire, social systems, and cultivated detachment. He bridged literature with official state life in unusual ways.',
+    literary_movement: 'Meiji intellectual realism',
+    notable_works: 'Vita Sexualis, The Wild Geese',
+    ability_literary_connection:
+      'BSD takes the introspective and controversial title Vita Sexualis and converts it into a remote-controlled projection. Interior observation becomes outward manipulation.',
+    registry_note:
+      'The file never raises its voice. That is usually when the city loses the most ground.',
+    status: 'active',
+  }),
+  makeEntry({
+    slug: 'ozaki-kouyou',
+    character_name: 'Kouyou Ozaki',
+    character_name_jp: '尾崎紅葉',
+    faction: 'mafia',
+    ability_name: 'Golden Demon',
+    ability_name_jp: '金色夜叉',
+    ability_type: 'manipulation',
+    ability_description:
+      'A bladed specter manifests at Ozaki\'s command, striking with elegance rather than haste. Registry notes frame the ability as ritual violence refined into high art.',
+    trait_power: 3,
+    trait_intel: 4,
+    trait_loyalty: 4,
+    trait_control: 4,
+    real_author_name: 'Koyo Ozaki',
+    real_author_dates: '1868-1903',
+    real_author_bio:
+      'Ozaki was a celebrated Meiji-era novelist whose serialized fiction helped define popular literary taste. His work often blends melodrama, desire, and social pressure.',
+    literary_movement: 'Meiji popular fiction',
+    notable_works: 'The Gold Demon',
+    ability_literary_connection:
+      'The Gold Demon becomes Golden Demon, shifting melodramatic obsession into an obedient killing apparition. Emotional excess is recast as weapon discipline.',
+    registry_note:
+      'The public file calls it elegance because the more accurate words are harder to print.',
+    status: 'active',
+  }),
+  makeEntry({
+    slug: 'tachihara-michizou',
+    character_name: 'Michizou Tachihara',
+    character_name_jp: '立原道造',
+    faction: 'mafia',
+    ability_name: 'Midwinter Memento',
+    ability_name_jp: '真冬のメメント',
+    ability_type: 'destruction',
+    ability_description:
+      'Tachihara manipulates metal with flexible battlefield utility, turning ordinary structures into immediate weapons. Registry notes flag the file for split-loyalty complications.',
+    trait_power: 4,
+    trait_intel: 3,
+    trait_loyalty: 3,
+    trait_control: 3,
+    real_author_name: 'Michizo Tachihara',
+    real_author_dates: '1914-1939',
+    real_author_bio:
+      'Tachihara was a poet and architect whose work carries delicacy, romantic longing, and a sense of youth cut short. His writing is remembered for lyric grace touched by winter imagery.',
+    literary_movement: 'Japanese lyric poetry',
+    notable_works: 'Poems associated with winter and memory',
+    ability_literary_connection:
+      'Midwinter Memento translates lyric coldness and fragile remembrance into metal control. The ability feels less forged than remembered into shape.',
+    registry_note:
+      'This file always sounds like it belongs wholly to someone else until the metal starts moving.',
+    status: 'active',
+  }),
+  makeEntry({
+    slug: 'edgar-allan-poe',
+    character_name: 'Edgar Allan Poe',
+    character_name_jp: 'エドガー・アラン・ポオ',
+    faction: 'guild',
+    ability_name: 'Black Cat in the Rue Morgue',
+    ability_name_jp: '黒猫',
+    ability_type: 'analysis',
+    ability_description:
+      'Targets are drawn into a mystery-space where resolution depends on surviving the logic of the narrative. The registry classifies the ability as literary confinement with investigative conditions.',
+    trait_power: 1,
+    trait_intel: 5,
+    trait_loyalty: 2,
+    trait_control: 4,
+    real_author_name: 'Edgar Allan Poe',
+    real_author_dates: '1809-1849',
+    real_author_bio:
+      'Poe shaped modern detective fiction, psychological horror, and the short story as a precision instrument. His work blends obsession, structure, and gothic dread.',
+    literary_movement: 'American gothic and detective fiction',
+    notable_works: 'The Black Cat, The Murders in the Rue Morgue, The Raven',
+    ability_literary_connection:
+      'BSD fuses two Poe titles into a closed narrative trap, honoring both the detective blueprint and the haunted atmosphere. Reading becomes the condition of escape.',
+    registry_note:
+      'This file does not imprison bodies first. It imprisons interpretation.',
+    status: 'active',
+  }),
+  makeEntry({
+    slug: 'fitzgerald',
+    character_name: 'F. Scott Fitzgerald',
+    character_name_jp: 'フィッツジェラルド',
+    faction: 'guild',
+    ability_name: 'The Great Fitzgerald',
+    ability_name_jp: '華麗なるフィッツジェラルド',
+    ability_type: 'manipulation',
+    ability_description:
+      'Fitzgerald converts wealth into physical enhancement, effectively spending capital as power output. The registry file records few cleaner examples of economy becoming force.',
+    trait_power: 4,
+    trait_intel: 4,
+    trait_loyalty: 3,
+    trait_control: 4,
+    real_author_name: 'F. Scott Fitzgerald',
+    real_author_dates: '1896-1940',
+    real_author_bio:
+      'Fitzgerald is one of the defining voices of the Jazz Age, writing with glitter, fatigue, ambition, and ruin in equal measure. His fiction often exposes the cost beneath spectacle.',
+    literary_movement: 'American modernism',
+    notable_works: 'The Great Gatsby, Tender Is the Night',
+    ability_literary_connection:
+      'The Great Fitzgerald turns the glamour and currency of Fitzgerald\'s literary world into a literal transaction engine. Wealth stops symbolizing power and simply becomes it.',
+    registry_note:
+      'The city distrusts any file that can write checks directly onto the battlefield.',
+    status: 'active',
+  }),
+  makeEntry({
+    slug: 'lucy-montgomery',
+    character_name: 'Lucy Maud Montgomery',
+    character_name_jp: 'ルーシー・モード・モンゴメリ',
+    faction: 'guild',
+    ability_name: 'Anne of Abyssal Red',
+    ability_name_jp: '深淵の赤毛のアン',
+    ability_type: 'manipulation',
+    ability_description:
+      'Lucy creates a sealed room domain where she controls the terms of confinement and release. The file is marked emotionally volatile but structurally exact.',
+    trait_power: 2,
+    trait_intel: 3,
+    trait_loyalty: 3,
+    trait_control: 4,
+    real_author_name: 'L. M. Montgomery',
+    real_author_dates: '1874-1942',
+    real_author_bio:
+      'Montgomery is best known for fiction that balances imagination, loneliness, belonging, and the emotional charge of place. Her writing often treats inner life as a complete landscape.',
+    literary_movement: 'Canadian literary realism',
+    notable_works: 'Anne of Green Gables, Emily of New Moon',
+    ability_literary_connection:
+      'BSD darkens Anne of Green Gables into Anne of Abyssal Red, preserving imagination while draining away safety. The domestic room becomes a prison domain.',
+    registry_note:
+      'This file proves that a room can feel like childhood and captivity at the same time.',
+    status: 'active',
+  }),
+  makeEntry({
+    slug: 'john-steinbeck',
+    character_name: 'John Steinbeck',
+    character_name_jp: 'ジョン・スタインベック',
+    faction: 'guild',
+    ability_name: 'The Grapes of Wrath',
+    ability_name_jp: '怒りの葡萄',
+    ability_type: 'destruction',
+    ability_description:
+      'Steinbeck commands vine growth across wide space, overwhelming opponents through persistence and area denial. Registry notes file the signature under pressure warfare rather than sudden assault.',
+    trait_power: 4,
+    trait_intel: 2,
+    trait_loyalty: 4,
+    trait_control: 3,
+    real_author_name: 'John Steinbeck',
+    real_author_dates: '1902-1968',
+    real_author_bio:
+      'Steinbeck wrote about labor, migration, community, and exploitation with a plain style capable of carrying enormous moral force. He remains central to twentieth-century American fiction.',
+    literary_movement: 'American social realism',
+    notable_works: 'The Grapes of Wrath, Of Mice and Men, East of Eden',
+    ability_literary_connection:
+      'The title becomes literal agricultural force in BSD. The novel\'s anger at displacement and pressure is recast as living terrain that closes in on the enemy.',
+    registry_note:
+      'The city has seen quieter violence than this. It usually grows first.',
+    status: 'active',
+  }),
+  makeEntry({
+    slug: 'louisa-may-alcott',
+    character_name: 'Louisa May Alcott',
+    character_name_jp: 'ルイーザ・メイ・オルコット',
+    faction: 'guild',
+    ability_name: 'Little Women',
+    ability_name_jp: '若草物語',
+    ability_type: 'analysis',
+    ability_description:
+      'Alcott accelerates time within a secluded workspace, allowing immense production under controlled isolation. The registry records it as one of the clearest examples of intellect becoming temporal advantage.',
+    trait_power: 2,
+    trait_intel: 4,
+    trait_loyalty: 4,
+    trait_control: 5,
+    real_author_name: 'Louisa May Alcott',
+    real_author_dates: '1832-1888',
+    real_author_bio:
+      'Alcott wrote domestic fiction, sensation stories, and moral dramas shaped by labor, independence, and family bonds. Her work often asks what growth costs in private rooms.',
+    literary_movement: 'American domestic realism',
+    notable_works: 'Little Women, Work',
+    ability_literary_connection:
+      'BSD transforms domestic interiority into an accelerated creation chamber. The room of writing becomes a weaponized production schedule.',
+    registry_note:
+      'This file wins by leaving the clock outside and taking the manuscript with it.',
+    status: 'active',
+  }),
+  makeEntry({
+    slug: 'teruko-okura',
+    character_name: 'Teruko Okura',
+    character_name_jp: '大倉燁子',
+    faction: 'hunting_dogs',
+    ability_name: 'Classified Ability',
+    ability_name_jp: '機密指定',
+    ability_type: 'analysis',
+    ability_description:
+      'The public record withholds the exact mechanism. Open notes instead describe command pressure, accelerated enforcement, and a battlefield style built around absolute initiative.',
+    trait_power: 4,
+    trait_intel: 4,
+    trait_loyalty: 4,
+    trait_control: 5,
+    real_author_name: 'Teruko Okura',
+    real_author_dates: '1896-1966',
+    real_author_bio:
+      'Okura wrote mystery and popular fiction in modern Japan, often working inside narrative structures built on tension and exposure. Her presence in BSD fits the surveillance instinct of the Hunting Dogs archive.',
+    literary_movement: 'Japanese popular mystery fiction',
+    notable_works: 'Works associated with mystery and women\'s popular fiction',
+    ability_literary_connection:
+      'Even with the public mechanism redacted, the file aligns literary investigation with state force. Suspense is converted into command tempo.',
+    registry_note:
+      'Some files are less frightening for what they do than for how calmly they expect obedience.',
+    status: 'active',
+  }),
+  makeEntry({
+    slug: 'tetchou-suehiro',
+    character_name: 'Tetchou Suehiro',
+    character_name_jp: '末広鉄腸',
+    faction: 'hunting_dogs',
+    ability_name: 'Plum Blossoms in Snow',
+    ability_name_jp: '雪中梅',
+    ability_type: 'destruction',
+    ability_description:
+      'Suehiro reshapes the reach and direction of bladed attacks with abnormal elasticity and force. Registry notes describe the signature as disciplined absurdity made lethal.',
+    trait_power: 5,
+    trait_intel: 2,
+    trait_loyalty: 5,
+    trait_control: 4,
+    real_author_name: 'Suehiro Tetcho',
+    real_author_dates: '1849-1896',
+    real_author_bio:
+      'Suehiro was a Meiji political novelist and journalist whose work tied rhetoric to public conflict. His literary presence often sits close to argument, conviction, and national tension.',
+    literary_movement: 'Meiji political literature',
+    notable_works: 'Plum Blossoms in Snow',
+    ability_literary_connection:
+      'BSD treats the title as a paradox of beauty within severity. Snow and blossom become a blade logic that remains elegant even while tearing through matter.',
+    registry_note:
+      'The file is orderly enough to frighten military staff and strange enough to keep them watching.',
+    status: 'active',
+  }),
+  makeEntry({
+    slug: 'jouno-saigiku',
+    character_name: 'Saigiku Jouno',
+    character_name_jp: '条野採菊',
+    faction: 'hunting_dogs',
+    ability_name: 'Priceless Tears',
+    ability_name_jp: '千金の涙',
+    ability_type: 'analysis',
+    ability_description:
+      'Jouno disperses into particles and weaponizes hyperacute perception against evasive movement and deception. Registry notes file the result as sadism supported by extraordinary sensory control.',
+    trait_power: 3,
+    trait_intel: 5,
+    trait_loyalty: 3,
+    trait_control: 4,
+    real_author_name: 'Saigiku Jono',
+    real_author_dates: '1882-1944',
+    real_author_bio:
+      'Jono belongs to the late Meiji and Taisho literary sphere, where lyric sensitivity and social shifts often intersect. In BSD that sensitivity is turned cold and predatory.',
+    literary_movement: 'Modern Japanese poetry',
+    notable_works: 'Works associated with lyrical observation',
+    ability_literary_connection:
+      'Priceless Tears reworks emotional refinement into forensic cruelty. The title\'s sentiment survives only as a polished surface over surveillance violence.',
+    registry_note:
+      'This file listens to panic the way other people listen to rainfall.',
+    status: 'active',
+  }),
+  makeEntry({
+    slug: 'fukuchi-ouchi',
+    character_name: 'Ouchi Fukuchi',
+    character_name_jp: '福地桜痴',
+    faction: 'hunting_dogs',
+    ability_name: 'Mirror Lion',
+    ability_name_jp: '鏡獅子',
+    ability_type: 'destruction',
+    ability_description:
+      'Fukuchi extends battlefield reach far beyond normal limits, making every line of engagement feel pre-lost. Registry notes classify the file as war logic embodied by a single veteran.',
+    trait_power: 5,
+    trait_intel: 4,
+    trait_loyalty: 4,
+    trait_control: 5,
+    real_author_name: 'Fukuchi Ochi',
+    real_author_dates: '1841-1906',
+    real_author_bio:
+      'Fukuchi was a journalist, critic, translator, and dramatist active in the turbulence of early modern Japan. His career sits close to politics, performance, and public persuasion.',
+    literary_movement: 'Meiji political theater and journalism',
+    notable_works: 'Kagami Jishi and related dramatic writing',
+    ability_literary_connection:
+      'Mirror Lion takes theatrical ferocity and turns it into command-level warfare. The adaptation keeps spectacle but removes any distance from consequence.',
+    registry_note:
+      'The city archives this file under command, theater, and the moment they become indistinguishable.',
+    status: 'active',
+  }),
+  makeEntry({
+    slug: 'ango-sakaguchi',
+    character_name: 'Ango Sakaguchi',
+    character_name_jp: '坂口安吾',
+    faction: 'special_div',
+    ability_name: 'Discourse on Decadence',
+    ability_name_jp: '堕落論',
+    ability_type: 'analysis',
+    ability_description:
+      'By touching an object or place, Ango extracts layered memory from its contact history. The registry classifies the file as intelligence recovery rather than direct combat use.',
+    trait_power: 1,
+    trait_intel: 5,
+    trait_loyalty: 4,
+    trait_control: 5,
+    real_author_name: 'Ango Sakaguchi',
+    real_author_dates: '1906-1955',
+    real_author_bio:
+      'Sakaguchi wrote essays and fiction that confronted collapse, postwar disillusionment, and the strange honesty that appears after systems fail. He remains closely associated with the Buraiha current in Japanese literature.',
+    literary_movement: 'Buraiha / Japanese postwar literature',
+    notable_works: 'Discourse on Decadence, In the Forest, Under Cherries in Full Bloom',
+    ability_literary_connection:
+      'BSD turns Sakaguchi\'s meditation on degeneration into forensic memory extraction. Decadence becomes evidence rather than theory.',
+    registry_note:
+      'The city trusts this file because it remembers even when everyone involved would prefer not to.',
+    status: 'active',
+  }),
+]

@@ -1,0 +1,272 @@
+Two things to handle here. What Codex builds, and what you do manually after. Let me separate them cleanly.
+
+WHAT TO TELL CODEX
+Send this as a separate focused prompt — don't mix it with Prompt 3:
+
+PROMPT — OWNER SETUP + SPECIAL DIVISION DIRECT ACCESS
+Build two things. Nothing else.
+
+THING 1 — ONE TIME OWNER SETUP PAGE
+Create app/setup/owner/page.tsx
+This page exists for one purpose — the first person to reach it after deployment claims the owner role. After that it permanently closes.
+typescript// This page must:
+// 1. Check if any owner already exists in profiles
+//    SELECT COUNT(*) FROM profiles WHERE role = 'owner'
+//    If count > 0 — redirect to / immediately
+//    Page is closed forever after first use
+
+// 2. If no owner exists and user is logged in:
+//    Show a single form:
+//    "CLAIM REGISTRY CONTROL"
+//    One button: "ESTABLISH OWNER ACCESS"
+//    No styling beyond the site defaults
+//    No explanation of what this does
+
+// 3. On button click:
+//    UPDATE profiles SET role = 'owner'
+//    WHERE id = auth.uid()
+//    Then redirect to /owner
+
+// 4. If user is not logged in:
+//    Redirect to /login
+//    After login redirect back here
+
+// Security:
+// This route must be added to middleware
+// After owner exists — returns 404
+// Not just a redirect — actual 404
+// Nobody should know this page existed
+Add to middleware.ts:
+typescript// Check if owner setup page should be accessible
+if (pathname === '/setup/owner') {
+  const supabase = createMiddlewareClient({ req, res })
+  const { count } = await supabase
+    .from('profiles')
+    .select('*', { count: 'exact', head: true })
+    .eq('role', 'owner')
+  
+  if (count && count > 0) {
+    return NextResponse.rewrite(
+      new URL('/404', request.url)
+    )
+  }
+}
+```
+
+---
+
+**THING 2 — SPECIAL DIVISION DIRECT ACCESS**
+
+Right now the onboarding flow is:
+```
+signup → username → quiz → result → faction confirm
+```
+
+Ango needs a different flow:
+```
+signup → username → /onboarding/special-access → 
+special division confirm → faction space
+Create app/onboarding/special-access/page.tsx:
+typescript// This page is only accessible if:
+// profiles.exam_status = 'special_invited'
+// Anyone else hitting this URL → redirect to 
+// /onboarding/exam
+
+// The page shows:
+// Full screen. Dark background. No rain.
+// 
+// Center of screen, text appears line by line
+// with 0.8s between each, Cormorant italic:
+//
+// "The city has reviewed your file."
+// [1.5s pause]
+// "Standard examination is not required."
+// [1.5s pause]  
+// "You have been expected."
+// [2s pause]
+//
+// Then Special Division kanji 務 reveals
+// using KanjiReveal component
+// Color: var(--color-special)
+//
+// Then below it:
+// "Special Division" in Cinzel
+// "特務部" in Cormorant italic
+//
+// Then the Special Division philosophy fades in:
+// "You were not supposed to be here.
+//  The quiz had no answer for you — which means 
+//  the city sees something the factions cannot.
+//  The Special Division does not recruit.
+//  It observes. You have been observed.
+//  What happens next is not up to you."
+//
+// Then ONE button:
+// "ACCEPT YOUR DESIGNATION"
+//
+// On click:
+// UPDATE profiles SET
+//   faction = 'special',
+//   role = 'member',
+//   exam_completed = true,
+//   exam_status = 'special_assigned'
+// WHERE id = auth.uid()
+//
+// INSERT INTO faction_slots 
+//   increment active_count for 'special'
+//
+// INSERT INTO user_events:
+//   event_type = 'exam_complete'
+//   ap_awarded = 20
+//
+// INSERT INTO faction_activity:
+//   faction = 'special'
+//   event_type = 'member_joined'
+//   description = 'New operative designated'
+//
+// Then redirect to /faction/special
+// WITH the first faction entry sequence
+// triggering (the full screen welcome moment)
+Add a special_invited exam status to the onboarding middleware check:
+typescript// In middleware.ts where onboarding redirects 
+// are handled — add this check:
+
+// If user has exam_status = 'special_invited'
+// and tries to go to /onboarding/exam
+// redirect to /onboarding/special-access instead
+
+if (pathname === '/onboarding/exam') {
+  const profile = // fetch from supabase
+  if (profile?.exam_status === 'special_invited') {
+    return NextResponse.redirect(
+      new URL('/onboarding/special-access', request.url)
+    )
+  }
+}
+Add to owner panel app/owner/page.tsx — a simple action button:
+typescript// In the owner panel add a section:
+// "DESIGNATE SPECIAL ACCESS"
+// 
+// Search input — find user by username
+// Shows their current status
+// Button: "GRANT SPECIAL DIVISION ACCESS"
+//
+// On click:
+// UPDATE profiles SET 
+//   exam_status = 'special_invited'
+// WHERE username = [searched username]
+//
+// INSERT INTO notifications:
+//   user_id = found user's id
+//   message = 'You have been expected. 
+//              Check your registry file.'
+//   type = 'special_invited'
+//
+// Next time that user visits /onboarding/exam
+// they get redirected to /onboarding/special-access
+// automatically
+```
+
+---
+
+**CRITICAL RULES**
+```
+- /setup/owner returns 404 after first use
+  Not a redirect. Actual 404. 
+  Nobody should discover it existed.
+
+- /onboarding/special-access is only reachable
+  if exam_status = 'special_invited'
+  Anyone else gets redirected to /onboarding/exam
+
+- Special Division bypass must still award 20 AP
+  for exam completion — same as normal exam
+
+- The special access page has NO back button
+  NO alternative options
+  NO explanation of how they got there
+  The city invited them. That's all.
+
+- Owner grant action in owner panel must send
+  a notification to the user immediately
+  They should feel something changed 
+  before they know what
+```
+
+---
+
+Feed that to Codex now. When it's done come back.
+
+---
+
+## WHAT YOU DO MANUALLY AFTER CODEX FINISHES
+
+**Step 1 — Deploy to Vercel first**
+
+Push everything to GitHub. Vercel auto-deploys. Get the live URL.
+
+**Step 2 — Create your owner account**
+
+Go to your live site. Sign up with your personal Gmail. Choose your private username. Complete the normal onboarding — take the quiz, get assigned a faction, accept it. You're a normal member for now.
+
+Then immediately go to:
+```
+yourdomain.vercel.app/setup/owner
+```
+
+Click the button. You are now owner. This page no longer exists for anyone else.
+
+**Step 3 — Verify in Supabase**
+
+Go to Supabase → Table Editor → profiles. Find your row. Confirm:
+```
+role = 'owner'
+Now go to your live site. Navigate to /owner. If it loads — owner setup worked.
+Step 4 — Create your Ango account
+Open a different browser entirely. Sign up with your second Gmail. Username: ango_sakaguchi. Complete the quiz — answer like Ango would. Analytical, loyal to the system, controlled. You'll probably land in Agency or Special. Doesn't matter — you're going to override it.
+Step 5 — Set Ango up via owner panel
+Switch back to your owner browser. Go to /owner/assign-character. Find ango_sakaguchi. Then run this SQL directly in Supabase:
+sqlUPDATE profiles
+SET 
+  role = 'mod',
+  faction = 'special',
+  character_name = 'Ango Sakaguchi',
+  character_match_id = 'ango-sakaguchi',
+  character_ability = 'Discourse on Decadence',
+  character_ability_jp = '堕落論',
+  character_type = 'analysis',
+  character_description = 'The city registry identifies this signature as Sakaguchi Ango. All records pass through him. Nothing escapes his observation.',
+  character_assigned_at = now(),
+  exam_completed = true,
+  exam_status = 'special_assigned'
+WHERE username = 'ango_sakaguchi';
+```
+
+**Step 6 — Test Ango can access Special Division**
+
+Switch to your Ango browser. Navigate to `/faction/special`. If the faction space loads — everything worked. Ango is home.
+
+**Step 7 — For your inner circle**
+
+When your 4 trusted people sign up — from your owner panel use the "Grant Special Division Access" button IF you want them in Special Division. Otherwise let them take the quiz normally and end up in their correct faction. Then from the owner panel assign their reserved character after.
+
+---
+
+## THE BROWSER SETUP IN PLAIN TERMS
+```
+Chrome → your Ango account (always)
+Firefox → your owner account (always)
+
+Bookmark in Firefox:
+  /owner
+  /owner/assign-character
+  supabase.com/dashboard (your project)
+  vercel.com/dashboard
+
+Bookmark in Chrome:
+  /faction/special
+  /profile/ango_sakaguchi
+  /registry (mod queue)
+  /chronicle
+That's the complete setup. Two accounts, two browsers, two roles. One builds the world invisibly. One lives in it visibly. Never mix them.
+横浜は、いつも雨が降っている。
