@@ -1,8 +1,11 @@
+import { unstable_noStore as noStore } from 'next/cache'
 import { Footer } from '@/frontend/components/ui/Footer'
 import { Nav } from '@/frontend/components/ui/Nav'
 import { UserModel } from '@/backend/models/user.model'
 import { createClient } from '@/frontend/lib/supabase/server'
+import { AngoProfileAction } from '@/frontend/components/ango/AngoProfileAction'
 import { ProfileExperience } from '@/frontend/components/profile/ProfileExperience'
+import { ProfileViewPing } from '@/frontend/components/profile/ProfileViewPing'
 import { ErrorBoundary } from '@/frontend/components/ui/ErrorBoundary'
 
 export default async function ProfilePage({
@@ -10,6 +13,7 @@ export default async function ProfilePage({
 }: {
   params: { username: string }
 }) {
+  noStore()
   const profile = await UserModel.getByUsername(params.username)
   if (!profile) {
     return (
@@ -49,6 +53,10 @@ export default async function ProfilePage({
     <ErrorBoundary>
       <Nav />
       <main style={{ paddingTop: '60px', minHeight: '100vh' }}>
+        <ProfileViewPing
+          username={profile.username}
+          isOwnProfile={user?.id === profile.id}
+        />
         <div
           className="section-wrap"
           style={{ paddingTop: 'clamp(2rem, 5vw, 4rem)', paddingBottom: '5rem' }}
@@ -57,6 +65,10 @@ export default async function ProfilePage({
             initialProfile={profile}
             initialEvents={initialEvents}
             viewerUserId={user?.id ?? null}
+          />
+          <AngoProfileAction
+            profile={profile}
+            isOwnProfile={user?.id === profile.id}
           />
         </div>
       </main>

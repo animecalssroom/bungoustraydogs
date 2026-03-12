@@ -3,6 +3,8 @@ import { Nav } from '@/frontend/components/ui/Nav'
 import { Footer } from '@/frontend/components/ui/Footer'
 import { ArchiveIndex } from '@/frontend/components/archive/ArchiveIndex'
 
+export const revalidate = 300
+
 export default async function ArchivePage() {
   const entries = await ArchiveModel.getAll()
 

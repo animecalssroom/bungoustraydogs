@@ -3,20 +3,13 @@
 import Link from 'next/link'
 import { useMemo, useState, type CSSProperties } from 'react'
 import { useAuth } from '@/frontend/context/AuthContext'
+import { AngoUsername } from '@/frontend/components/ango/AngoUsername'
 import { useArena, type ArenaPayload } from '@/frontend/hooks/useArena'
 import { FACTION_META, getCharacterReveal } from '@/frontend/lib/launch'
 import { canDo } from '@/frontend/lib/permissions'
 import { getRankTitle } from '@/backend/types'
 import type { ArenaArgument, ArenaDebate } from '@/backend/types'
 import styles from './ArenaCard.module.css'
-
-function argumentAuthor(argument: ArenaArgument) {
-  if (argument.author?.character_match_id) {
-    return getCharacterReveal(argument.author.character_match_id)?.name ?? argument.author.username
-  }
-
-  return argument.author?.username ?? 'Unknown file'
-}
 
 function fighterMeta(slug: string) {
   const character = getCharacterReveal(slug)
@@ -176,7 +169,16 @@ function ArenaDebateCard({
                 } as CSSProperties}
               >
                 <div className={styles.argumentHead}>
-                  <span className={styles.argumentAuthor}>{argumentAuthor(argument)}</span>
+                  <span className={styles.argumentAuthor}>
+                    {argument.author?.username ? (
+                      <AngoUsername userId={argument.user_id} username={argument.author.username} />
+                    ) : argument.author?.character_match_id ? (
+                      getCharacterReveal(argument.author.character_match_id)?.name ??
+                      argument.author.username
+                    ) : (
+                      'Unknown file'
+                    )}
+                  </span>
                   <div className={styles.argumentMeta}>
                     {argument.author?.faction ? (
                       <span className={styles.argumentFaction}>

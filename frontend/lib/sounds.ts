@@ -1,12 +1,15 @@
 let audioContext: AudioContext | null = null
 let rainSource: AudioBufferSourceNode | null = null
 let rainBuffer: AudioBuffer | null = null
+let windSource: AudioBufferSourceNode | null = null
+let windBuffer: AudioBuffer | null = null
+let agencySource: AudioBufferSourceNode | null = null
+let agencyBuffer: AudioBuffer | null = null
 
 function getContext(): AudioContext {
   if (!audioContext) {
     audioContext = new AudioContext()
   }
-
   return audioContext
 }
 
@@ -23,6 +26,8 @@ export function toggleSound(): boolean {
 
   if (!next) {
     stopRain()
+    stopWind()
+    stopAgency()
   }
 
   return next
@@ -33,7 +38,14 @@ export async function playSound(name: 'typewriter' | 'stamp'): Promise<void> {
 
   try {
     const ctx = getContext()
-    const response = await fetch(`/sounds/${name}.mp3`)
+    let response: Response | null = null
+    try {
+      response = await fetch(`/sounds/${name}.mp3`)
+      if (!response.ok) throw new Error('mp3 not found')
+    } catch {
+      response = await fetch(`/sounds/${name}.wav`)
+    }
+    if (!response.ok) return
     const arrayBuffer = await response.arrayBuffer()
     const buffer = await ctx.decodeAudioData(arrayBuffer)
     const source = ctx.createBufferSource()
@@ -50,7 +62,14 @@ export async function startRain(): Promise<void> {
     const ctx = getContext()
 
     if (!rainBuffer) {
-      const response = await fetch('/sounds/rain.mp3')
+      let response: Response | null = null
+      try {
+        response = await fetch('/sounds/rain.mp3')
+        if (!response.ok) throw new Error('mp3 not found')
+      } catch {
+        response = await fetch('/sounds/rain.wav')
+      }
+      if (!response.ok) return
       const arrayBuffer = await response.arrayBuffer()
       rainBuffer = await ctx.decodeAudioData(arrayBuffer)
     }
@@ -70,9 +89,91 @@ export async function startRain(): Promise<void> {
   } catch {}
 }
 
+export async function startWind(): Promise<void> {
+  if (!isSoundEnabled()) return
+
+  try {
+    const ctx = getContext()
+
+    if (!windBuffer) {
+      let response: Response | null = null
+      try {
+        response = await fetch('/sounds/wind.mp3')
+        if (!response.ok) throw new Error('mp3 not found')
+      } catch {
+        response = await fetch('/sounds/wind.wav')
+      }
+      if (!response.ok) return
+      const arrayBuffer = await response.arrayBuffer()
+      windBuffer = await ctx.decodeAudioData(arrayBuffer)
+    }
+
+    stopWind()
+
+    windSource = ctx.createBufferSource()
+    windSource.buffer = windBuffer
+    windSource.loop = true
+
+    const gainNode = ctx.createGain()
+    gainNode.gain.value = 0.25
+
+    windSource.connect(gainNode)
+    gainNode.connect(ctx.destination)
+    windSource.start()
+  } catch {}
+}
+
+export async function startAgency(): Promise<void> {
+  if (!isSoundEnabled()) return
+
+  try {
+    const ctx = getContext()
+
+    if (!agencyBuffer) {
+      let response: Response | null = null
+      try {
+        response = await fetch('/sounds/agency.mp3')
+        if (!response.ok) throw new Error('mp3 not found')
+      } catch {
+        response = await fetch('/sounds/agency.wav')
+      }
+      if (!response.ok) return
+      const arrayBuffer = await response.arrayBuffer()
+      agencyBuffer = await ctx.decodeAudioData(arrayBuffer)
+    }
+
+    stopAgency()
+
+    agencySource = ctx.createBufferSource()
+    agencySource.buffer = agencyBuffer
+    agencySource.loop = true
+
+    const gainNode = ctx.createGain()
+    gainNode.gain.value = 0.2
+
+    agencySource.connect(gainNode)
+    gainNode.connect(ctx.destination)
+    agencySource.start()
+  } catch {}
+}
+
 export function stopRain(): void {
   try {
     rainSource?.stop()
     rainSource = null
+  } catch {}
+}
+
+export function stopWind(): void {
+  try {
+    windSource?.stop()
+    windSource = null
+  } catch {}
+}
+
+export function stopAgency(): void {
+  try {
+    agencySource?.stop()
+    agencySource = null
   } catch {}
 }

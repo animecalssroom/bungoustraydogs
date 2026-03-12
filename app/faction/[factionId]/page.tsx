@@ -5,6 +5,7 @@ import { FactionSpaceModel } from '@/backend/models/faction-space.model'
 import { RegistryModel } from '@/backend/models/registry.model'
 import { Footer } from '@/frontend/components/ui/Footer'
 import { Nav } from '@/frontend/components/ui/Nav'
+import { FactionCheckIn } from '@/frontend/components/ui/FactionCheckIn'
 import { FactionPrivateSpace } from '@/frontend/components/faction/FactionPrivateSpace'
 import {
   normalizePrivateFactionRouteId,
@@ -72,6 +73,7 @@ export default async function FactionPrivateSpacePage({
   return (
     <>
       <Nav />
+      <FactionCheckIn factionId={factionId} />
       <FactionPrivateSpace
         factionId={factionId}
         profile={profile}

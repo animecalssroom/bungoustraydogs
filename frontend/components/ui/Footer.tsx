@@ -2,7 +2,8 @@ import Link from 'next/link'
 
 const footerColumns = [
   {
-    title: 'Navigate · 案内',
+    title: 'Navigate',
+    subtitle: '案内',
     links: [
       { href: '/registry', label: 'The Registry' },
       { href: '/archive', label: 'Character Archive' },
@@ -12,9 +13,11 @@ const footerColumns = [
     ],
   },
   {
-    title: 'Community · 社会',
+    title: 'Community',
+    subtitle: '社会',
     links: [
-      { href: '/lore', label: 'Write Lore' },
+      { href: '/lore/submit', label: 'Write Lore' },
+      { href: '/tickets', label: 'Registry Ticket Desk' },
       { href: '/arena', label: 'Open Debates' },
       { href: '/factions', label: 'Faction Events' },
       { href: '/signup', label: 'Founders Registry' },
@@ -22,13 +25,14 @@ const footerColumns = [
     ],
   },
   {
-    title: 'Factions · 勢力',
+    title: 'Factions',
+    subtitle: '勢力',
     links: [
-      { href: '/factions', label: '探偵社 Agency' },
-      { href: '/factions', label: 'Port Mafia 港' },
-      { href: '/factions', label: 'The Guild 富' },
-      { href: '/factions', label: 'Hunting Dogs 犬' },
-      { href: '/factions', label: 'Special Div. 務' },
+      { href: '/factions', label: 'Agency · 探偵社' },
+      { href: '/factions', label: 'Port Mafia · 港' },
+      { href: '/factions', label: 'The Guild · 富' },
+      { href: '/factions', label: 'Hunting Dogs · 犬' },
+      { href: '/factions', label: 'Special Division · 務' },
     ],
   },
 ] as const
@@ -97,11 +101,11 @@ export function Footer() {
                   marginTop: '4px',
                   fontFamily: 'Noto Serif JP, serif',
                   fontSize: '0.5rem',
-                  letterSpacing: '0.24em',
+                  letterSpacing: '0.2em',
                   color: 'var(--text3)',
                 }}
               >
-                文豪アーカイブ · Literary Records
+                Bungou Archive · Literary Records
               </span>
             </div>
           </Link>
@@ -118,7 +122,7 @@ export function Footer() {
             }}
           >
             A curated record of Yokohama&apos;s ability users, their gifts, their
-            philosophies, and the wars that keep the city lit after midnight.
+            philosophies, and the conflicts that keep the city lit after midnight.
           </p>
         </div>
 
@@ -134,7 +138,7 @@ export function Footer() {
                 color: 'var(--text3)',
               }}
             >
-              {column.title}
+              {column.title} · {column.subtitle}
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.7rem' }}>
               {column.links.map((link) => (
@@ -184,11 +188,11 @@ export function Footer() {
             fontFamily: 'Noto Serif JP, serif',
             fontSize: '0.66rem',
             fontWeight: 300,
-            letterSpacing: '0.3em',
+            letterSpacing: '0.16em',
             color: 'var(--text3)',
           }}
         >
-          横浜は、いつも雨が降っている。
+          Yokohama never fully dries.
         </span>
       </div>
     </footer>

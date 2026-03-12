@@ -6,7 +6,8 @@ import { useEffect, useState } from 'react'
 import type { CSSProperties } from 'react'
 import type { Profile } from '@/backend/types'
 import { createClient } from '@/frontend/lib/supabase/client'
-import { navigateToResolvedPath } from '@/frontend/lib/launch'
+import { resolvePostAuthPath } from '@/frontend/lib/launch'
+import { Nav } from '@/frontend/components/ui/Nav'
 
 const cardStyle: CSSProperties = {
   width: '100%',
@@ -33,7 +34,7 @@ async function loadProfileAndRoute(router: ReturnType<typeof useRouter>) {
     const json = await response.json().catch(() => ({}))
 
     if (response.ok && json.data) {
-      navigateToResolvedPath(json.data as Profile)
+      router.replace(resolvePostAuthPath(json.data as Profile))
       return
     }
 
@@ -171,17 +172,19 @@ export default function LoginPage() {
   }
 
   return (
-    <main
-      style={{
-        minHeight: '100vh',
-        display: 'grid',
-        placeItems: 'center',
-        background:
-          'radial-gradient(circle at top, rgba(212, 134, 31, 0.16), transparent 35%), var(--bg)',
-        padding: '96px 24px 32px',
-      }}
-    >
-      <div style={cardStyle}>
+    <>
+      <Nav />
+      <main
+        style={{
+          minHeight: '100vh',
+          display: 'grid',
+          placeItems: 'center',
+          background:
+            'radial-gradient(circle at top, rgba(212, 134, 31, 0.16), transparent 35%), var(--bg)',
+          padding: '96px 24px 32px',
+        }}
+      >
+        <div style={cardStyle}>
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
           <p
             style={{
@@ -412,7 +415,8 @@ export default function LoginPage() {
           </Link>
           .
         </p>
-      </div>
-    </main>
+        </div>
+      </main>
+    </>
   )
 }

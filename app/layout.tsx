@@ -3,9 +3,12 @@ import { Cinzel, Cormorant_Garamond, Space_Mono } from 'next/font/google'
 import '@/frontend/styles/globals.css'
 import { ANTI_FOUC_SCRIPT, ThemeProvider } from '@/frontend/context/ThemeContext'
 import { AuthProvider } from '@/frontend/context/AuthContext'
+import { AngoProvider } from '@/frontend/context/AngoContext'
 import InkTransition from '@/frontend/components/ui/InkTransition'
 import { FloatingAPLayer } from '@/frontend/components/ui/FloatingAP'
 import DailyLoginRitual from '@/frontend/components/ui/DailyLoginRitual'
+import { GuideBotWidget } from '@/frontend/components/guide-bot/GuideBotWidget'
+import { CharacterAssignmentRedirect } from '@/frontend/components/profile/CharacterAssignmentRedirect'
 
 const cinzel = Cinzel({
   subsets: ['latin'],
@@ -29,8 +32,9 @@ const spaceMono = Space_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'BungouArchive — 文豪アーカイブ',
-  description: "A curated record of Yokohama's ability users. The city determines where you belong.",
+  title: 'BungouArchive - 文豪アーカイブ',
+  description:
+    "A curated record of Yokohama's ability users. The city determines where you belong.",
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -47,9 +51,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body suppressHydrationWarning>
         <ThemeProvider>
           <AuthProvider>
-            <FloatingAPLayer />
-            <DailyLoginRitual />
-            <InkTransition>{children}</InkTransition>
+            <AngoProvider>
+              <FloatingAPLayer />
+              <DailyLoginRitual />
+              <CharacterAssignmentRedirect />
+              <InkTransition>{children}</InkTransition>
+              <GuideBotWidget />
+            </AngoProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>

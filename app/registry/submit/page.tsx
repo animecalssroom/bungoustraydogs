@@ -4,6 +4,7 @@ import type { Profile } from '@/backend/types'
 import { Nav } from '@/frontend/components/ui/Nav'
 import { Footer } from '@/frontend/components/ui/Footer'
 import { RegistrySubmitForm } from '@/frontend/components/registry/RegistrySubmitForm'
+import Link from 'next/link'
 
 async function getViewerProfile() {
   const supabase = createClient()
@@ -26,15 +27,38 @@ export default async function RegistrySubmitPage() {
     redirect('/login')
   }
 
-  if (!['member', 'mod', 'owner'].includes(viewer.role) || viewer.rank < 2) {
-    redirect('/registry')
+  if (!(viewer.role === 'mod' || viewer.role === 'owner')) {
+    redirect('/lore/submit')
   }
 
   return (
     <>
       <Nav />
       <main style={{ paddingTop: '96px', minHeight: '100vh' }}>
-        <RegistrySubmitForm />
+        <div className="section-wrap" style={{ paddingBottom: '1.5rem' }}>
+          <div
+            style={{
+              border: '1px solid var(--border)',
+              background: 'var(--card)',
+              padding: '1.5rem',
+              marginBottom: '1rem',
+            }}
+          >
+            <p className="section-eyebrow" style={{ marginBottom: '0.75rem' }}>
+              Registry Filing Desk
+            </p>
+            <p className="section-sub" style={{ padding: 0 }}>
+              Registry submissions are a staff-authored filing lane. Use this desk for in-world
+              field notes, incident reports, classified dossiers, and Chronicle-bound records.
+            </p>
+            <div style={{ marginTop: '1rem' }}>
+              <Link href="/guide" className="btn-secondary">
+                Read Contribution Guide
+              </Link>
+            </div>
+          </div>
+        </div>
+        <RegistrySubmitForm viewerRank={viewer.rank} />
       </main>
       <Footer />
     </>

@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from 'react'
 import { usePathname } from 'next/navigation'
-import { isSoundEnabled, startRain, stopRain, toggleSound } from '@/frontend/lib/sounds'
+import { isSoundEnabled, startRain, stopRain, startWind, stopWind, startAgency, stopAgency, toggleSound } from '@/frontend/lib/sounds'
+import { useTheme } from '@/frontend/context/ThemeContext'
 
 export default function SoundToggle() {
   const pathname = usePathname()
   const [enabled, setEnabled] = useState(false)
+  const { theme } = useTheme()
 
   useEffect(() => {
     const next = isSoundEnabled()
@@ -16,17 +18,49 @@ export default function SoundToggle() {
   useEffect(() => {
     if (!enabled) {
       stopRain()
+      stopWind()
+      stopAgency()
       return
     }
 
-    if (pathname === '/') {
+    if (pathname === '/' && theme === 'dark') {
       void startRain()
-      return () => stopRain()
+      stopWind()
+      stopAgency()
+      return () => {
+        stopRain()
+        stopWind()
+        stopAgency()
+      }
+    }
+
+    if (pathname === '/' && theme === 'neutral') {
+      void startWind()
+      stopRain()
+      stopAgency()
+      return () => {
+        stopWind()
+        stopRain()
+        stopAgency()
+      }
+    }
+
+    if (pathname === '/' && theme === 'light') {
+      void startAgency()
+      stopRain()
+      stopWind()
+      return () => {
+        stopAgency()
+        stopRain()
+        stopWind()
+      }
     }
 
     stopRain()
+    stopWind()
+    stopAgency()
     return undefined
-  }, [enabled, pathname])
+  }, [enabled, pathname, theme])
 
   function handleToggle() {
     const next = toggleSound()
@@ -34,11 +68,30 @@ export default function SoundToggle() {
 
     if (!next) {
       stopRain()
+      stopWind()
+      stopAgency()
       return
     }
 
-    if (pathname === '/') {
+    if (pathname === '/' && theme === 'dark') {
       void startRain()
+      stopWind()
+      stopAgency()
+      return
+    }
+
+    if (pathname === '/' && theme === 'neutral') {
+      void startWind()
+      stopRain()
+      stopAgency()
+      return
+    }
+
+    if (pathname === '/' && theme === 'light') {
+      void startAgency()
+      stopRain()
+      stopWind()
+      return
     }
   }
 

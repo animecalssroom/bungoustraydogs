@@ -1,6 +1,7 @@
 'use client'
 
 import { createContext, useContext } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   clearBrowserSupabaseSession,
   createClient,
@@ -26,6 +27,7 @@ const AuthContext = createContext<AuthContextType>({
 })
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const router = useRouter()
   const { user, profile, loading, error, refresh } = useProfile()
 
   const signOut = async () => {
@@ -36,7 +38,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       method: 'POST',
       cache: 'no-store',
     }).catch(() => null)
-    window.location.href = '/'
+    router.replace('/')
+    router.refresh()
   }
 
   return (

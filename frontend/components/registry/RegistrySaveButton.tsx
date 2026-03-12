@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useState, useTransition } from 'react'
 import styles from './Registry.module.css'
 
@@ -43,7 +44,11 @@ export function RegistrySaveButton({
       >
         {pending ? 'Filing...' : `Save File · ${saveCount}`}
       </button>
-      {message ? <p className={styles.helper}>{message}</p> : null}
+      {message ? (
+        <p className={styles.helper}>
+          {message} <Link href="/registry/saved">Open saved files.</Link>
+        </p>
+      ) : null}
     </div>
   )
 }

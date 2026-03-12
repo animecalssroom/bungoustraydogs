@@ -14,6 +14,11 @@ import {
   SpecialDivisionModel,
   type SpecialDivisionRecommendation,
 } from '@/backend/models/special-division.model'
+import {
+  SupportModel,
+  type ContentFlagQueueItem,
+  type TicketQueueItem,
+} from '@/backend/models/support.model'
 
 export interface OwnerDashboardUser {
   id: string
@@ -70,6 +75,10 @@ export interface OwnerReservedCharacter {
 
 export interface OwnerSpecialDivisionRecommendation
   extends SpecialDivisionRecommendation {}
+
+export interface OwnerSupportTicket extends TicketQueueItem {}
+
+export interface OwnerContentFlag extends ContentFlagQueueItem {}
 
 async function createNotification(
   userId: string,
@@ -192,7 +201,16 @@ async function getReservedCharacterStatuses() {
 
 export const OwnerModel = {
   async getDashboard() {
-    const [profilesResult, flagsResult, slotsResult, waitlistResult, eventsResult, reservedCharacters] =
+    const [
+      profilesResult,
+      flagsResult,
+      slotsResult,
+      waitlistResult,
+      eventsResult,
+      reservedCharacters,
+      supportTickets,
+      contentFlags,
+    ] =
       await Promise.all([
         supabaseAdmin
           .from('profiles')
@@ -216,6 +234,8 @@ export const OwnerModel = {
           .order('created_at', { ascending: false })
           .limit(20),
         getReservedCharacterStatuses(),
+        SupportModel.getQueueTickets(),
+        SupportModel.getQueueFlags(),
       ])
 
     const flags = (flagsResult.data ?? []) as AssignmentFlag[]
@@ -281,6 +301,8 @@ export const OwnerModel = {
       })),
       reservedCharacters,
       specialDivisionRecommendations,
+      supportTickets,
+      contentFlags,
     }
   },
 

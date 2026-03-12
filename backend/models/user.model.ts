@@ -56,12 +56,68 @@ export const UserModel = {
   async getRecentEvents(userId: string, limit = 50) {
     const { data } = await supabaseAdmin
       .from('user_events')
-      .select('id, user_id, event_type, faction, ap_awarded, created_at')
+      .select('id, user_id, event_type, faction, ap_awarded, metadata, created_at')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
       .limit(limit)
 
     return (data as UserEvent[] | null) ?? []
+  },
+
+  async shouldThrottleBehaviorEvent(
+    userId: string,
+    eventType: UserEventType,
+    metadata: Record<string, unknown> = {},
+  ) {
+    if (!['feed_view', 'archive_read', 'profile_view'].includes(eventType)) {
+      return false
+    }
+
+    const now = new Date()
+    const todayStart = new Date(now)
+    todayStart.setUTCHours(0, 0, 0, 0)
+
+    const { data } = await supabaseAdmin
+      .from('user_events')
+      .select('event_type, metadata, created_at')
+      .eq('user_id', userId)
+      .eq('event_type', eventType)
+      .gte('created_at', todayStart.toISOString())
+      .order('created_at', { ascending: false })
+
+    const events =
+      (data as Array<{
+        event_type: UserEventType
+        metadata?: Record<string, unknown> | null
+        created_at: string
+      }> | null) ?? []
+
+    if (eventType === 'feed_view') {
+      return events.length > 0
+    }
+
+    if (eventType === 'archive_read') {
+      return events.length >= 5
+    }
+
+    if (eventType === 'profile_view') {
+      const targetUsername =
+        typeof metadata.username === 'string' ? metadata.username.trim().toLowerCase() : ''
+
+      if (!targetUsername) {
+        return false
+      }
+
+      return events.some((event) => {
+        const eventUsername =
+          typeof event.metadata?.username === 'string'
+            ? event.metadata.username.trim().toLowerCase()
+            : ''
+        return eventUsername === targetUsername
+      })
+    }
+
+    return false
   },
 
   async addAp(
@@ -70,6 +126,10 @@ export const UserModel = {
     apAwarded: number,
     metadata?: Record<string, unknown>,
   ) {
+    if (await this.shouldThrottleBehaviorEvent(userId, eventType, metadata ?? {})) {
+      return
+    }
+
     const profile = await this.getById(userId)
     const faction = profile?.faction ?? null
     const now = new Date().toISOString()

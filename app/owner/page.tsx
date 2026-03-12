@@ -50,6 +50,8 @@ export default async function OwnerPage() {
             events={dashboard.events}
             reservedCharacters={dashboard.reservedCharacters}
             specialDivisionRecommendations={dashboard.specialDivisionRecommendations}
+            supportTickets={dashboard.supportTickets}
+            contentFlags={dashboard.contentFlags}
           />
         </section>
       </main>

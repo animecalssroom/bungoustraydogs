@@ -578,7 +578,7 @@ export function HomeShowcase() {
       <section className={`${styles.section} ${styles.sectionMuted}`} id="arena">
         <div className={styles.sectionWrap}>
           <div className={`reveal ${styles.sectionHead}`} data-home-reveal>
-            <p className={styles.sectionEyebrow}>{HOME_ARENA_DEBATE.label.replace(/Â·/g, '·')}</p>
+            <p className={styles.sectionEyebrow}>{HOME_ARENA_DEBATE.label}</p>
             <h2 className={styles.sectionTitle}>
               1v1 Community <em>Debate</em>
             </h2>

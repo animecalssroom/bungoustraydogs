@@ -41,7 +41,7 @@ export const THEME_DATA: Record<
     label: 'Dawn',
     labelJp: '夜明け',
     glyph: '◷',
-    eyebrow: '夜明け · Dawn · Agency Hours',
+    eyebrow: 'Dawn · Agency Hours · 夜明け',
     quote:
       '"No matter how many mistakes you make, you are still ahead of everyone who is not trying."',
     attr: 'Doppo Kunikida · 国木田独歩',
@@ -51,7 +51,7 @@ export const THEME_DATA: Record<
     label: 'Twilight',
     labelJp: '黄昏',
     glyph: '◐',
-    eyebrow: '黄昏 · Twilight · Neutral Hours',
+    eyebrow: 'Twilight · Neutral Hours · 黄昏',
     quote:
       '"The world belongs to those willing to pay the price. I simply know my worth."',
     attr: 'Francis Scott Key Fitzgerald · フィッツジェラルド',
@@ -61,7 +61,7 @@ export const THEME_DATA: Record<
     label: 'Midnight',
     labelJp: '深夜',
     glyph: '◑',
-    eyebrow: '深夜 · Midnight · Mafia Hours',
+    eyebrow: 'Midnight · Mafia Hours · 深夜',
     quote:
       '"Humans are foolish creatures. They seek strength, then break beneath it."',
     attr: 'Ryunosuke Akutagawa · 芥川龍之介',
@@ -124,21 +124,18 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
+  // On mount, restore theme mode and theme from localStorage if present
   useEffect(() => {
-    const savedMode = localStorage.getItem(THEME_MODE_KEY) as ThemeMode | null
-    const savedTheme = localStorage.getItem(THEME_OVERRIDE_KEY) as Theme | null
-
-    if (savedMode === 'manual' && savedTheme && THEME_DATA[savedTheme]) {
-      setThemeMode('manual')
-      applyTheme(savedTheme, false)
-      return
+    const storedMode = localStorage.getItem(THEME_MODE_KEY) as ThemeMode | null;
+    const storedTheme = localStorage.getItem(THEME_OVERRIDE_KEY) as Theme | null;
+    if (storedMode === 'manual' && storedTheme && ['light', 'neutral', 'dark'].includes(storedTheme)) {
+      setThemeMode('manual');
+      applyTheme(storedTheme, false);
+    } else {
+      setThemeMode('auto');
+      applyTheme(getTimeTheme(), false);
     }
-
-    const nextTheme = getTimeTheme()
-    setThemeMode('auto')
-    localStorage.setItem(THEME_MODE_KEY, 'auto')
-    applyTheme(nextTheme, false)
-  }, [applyTheme])
+  }, [applyTheme]);
 
   useEffect(() => {
     const interval = window.setInterval(() => {
@@ -155,21 +152,21 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   const setTheme = useCallback(
     (nextTheme: Theme) => {
-      localStorage.setItem(THEME_MODE_KEY, 'manual')
-      localStorage.setItem(THEME_OVERRIDE_KEY, nextTheme)
-      setThemeMode('manual')
-      applyTheme(nextTheme, true)
+      setThemeMode('manual');
+      localStorage.setItem(THEME_MODE_KEY, 'manual');
+      localStorage.setItem(THEME_OVERRIDE_KEY, nextTheme);
+      applyTheme(nextTheme, true);
     },
     [applyTheme],
-  )
+  );
 
   const resetThemeToAuto = useCallback(() => {
-    localStorage.setItem(THEME_MODE_KEY, 'auto')
-    localStorage.removeItem(THEME_OVERRIDE_KEY)
-    const nextTheme = getTimeTheme()
-    setThemeMode('auto')
-    applyTheme(nextTheme, true)
-  }, [applyTheme])
+    const nextTheme = getTimeTheme();
+    setThemeMode('auto');
+    localStorage.setItem(THEME_MODE_KEY, 'auto');
+    localStorage.removeItem(THEME_OVERRIDE_KEY);
+    applyTheme(nextTheme, true);
+  }, [applyTheme]);
 
   const value = useMemo(
     () => ({

@@ -16,6 +16,70 @@ interface UseProfileState {
   refresh: () => Promise<Profile | null>
 }
 
+type ProfileFetchResult = {
+  profile: Profile | null
+  error: string | null
+  unauthorized: boolean
+}
+
+let cachedProfileUserId: string | null = null
+let cachedProfile: Profile | null = null
+let inFlightProfileRequest:
+  | {
+      userId: string
+      promise: Promise<ProfileFetchResult>
+    }
+  | null = null
+
+async function fetchProfile(userId: string, force = false): Promise<ProfileFetchResult> {
+  if (!force && cachedProfileUserId === userId) {
+    return {
+      profile: cachedProfile,
+      error: null,
+      unauthorized: false,
+    }
+  }
+
+  if (!force && inFlightProfileRequest?.userId === userId) {
+    return inFlightProfileRequest.promise
+  }
+
+  const promise = fetch('/api/auth/me', { cache: 'no-store' })
+    .then(async (response) => {
+      const json = await response.json().catch(() => ({}))
+      const nextProfile = (json.data as Profile | null) ?? null
+
+      if (response.status === 401) {
+        cachedProfileUserId = null
+        cachedProfile = null
+        return {
+          profile: null,
+          error: (json.error as string | null) ?? null,
+          unauthorized: true,
+        }
+      }
+
+      if (response.ok) {
+        cachedProfileUserId = userId
+        cachedProfile = nextProfile
+      }
+
+      return {
+        profile: nextProfile,
+        error: response.ok ? null : (json.error as string | null) ?? 'Failed to load profile',
+        unauthorized: false,
+      }
+    })
+    .finally(() => {
+      if (inFlightProfileRequest?.userId === userId) {
+        inFlightProfileRequest = null
+      }
+    })
+
+  inFlightProfileRequest = { userId, promise }
+  return promise
+}
+
 export function useProfile(): UseProfileState {
   const [state, setState] = useState<UseProfileState>({
     user: null,
@@ -30,10 +94,12 @@ export function useProfile(): UseProfileState {
     let active = true
     let refresh: () => Promise<Profile | null> = async () => null
 
-    const load = async (nextUser: User | null) => {
+    const load = async (nextUser: User | null, force = false) => {
       if (!active) return null
 
       if (!nextUser) {
+        cachedProfileUserId = null
+        cachedProfile = null
         setState({
           user: null,
           profile: null,
@@ -44,11 +110,10 @@ export function useProfile(): UseProfileState {
         return null
       }
 
-      const response = await fetch('/api/auth/me', { cache: 'no-store' })
-      const json = await response.json().catch(() => ({}))
-      const nextProfile = (json.data as Profile | null) ?? null
+      const result = await fetchProfile(nextUser.id, force)
+      const nextProfile = result.profile
 
-      if (response.status === 401) {
+      if (result.unauthorized) {
         await supabase.auth.signOut()
         clearBrowserSupabaseSession()
 
@@ -58,7 +123,7 @@ export function useProfile(): UseProfileState {
           user: null,
           profile: null,
           loading: false,
-          error: (json.error as string | null) ?? null,
+          error: result.error,
           refresh,
         })
 
@@ -71,7 +136,7 @@ export function useProfile(): UseProfileState {
         user: nextUser,
         profile: nextProfile,
         loading: false,
-        error: response.ok ? null : (json.error as string | null) ?? 'Failed to load profile',
+        error: result.error,
         refresh,
       })
 
@@ -80,9 +145,9 @@ export function useProfile(): UseProfileState {
 
     refresh = async () => {
       const {
-        data: { user },
+        data: { session },
         error,
-      } = await supabase.auth.getUser()
+      } = await supabase.auth.getSession()
 
       if (error) {
         if (active) {
@@ -95,7 +160,7 @@ export function useProfile(): UseProfileState {
         return null
       }
 
-      return load(user)
+      return load(session?.user ?? null, true)
     }
 
     setState((current) => ({
@@ -103,7 +168,7 @@ export function useProfile(): UseProfileState {
       refresh,
     }))
 
-    void supabase.auth.getUser().then(({ data, error }) => {
+    void supabase.auth.getSession().then(({ data, error }) => {
       if (!active) return
 
       if (error) {
@@ -116,7 +181,7 @@ export function useProfile(): UseProfileState {
         return
       }
 
-      void load(data.user)
+      void load(data.session?.user ?? null)
     })
 
     const {

@@ -8,10 +8,13 @@ import type {
   OwnerDashboardEvent,
   OwnerDashboardFlag,
   OwnerReservedCharacter,
+  OwnerSupportTicket,
+  OwnerContentFlag,
   OwnerSpecialDivisionRecommendation,
   OwnerDashboardSlot,
   OwnerDashboardUser,
 } from '@/backend/models/owner.model'
+import type { VisibleFactionId } from '@/backend/types'
 
 interface OwnerConsoleProps {
   users: OwnerDashboardUser[]
@@ -20,6 +23,8 @@ interface OwnerConsoleProps {
   events: OwnerDashboardEvent[]
   reservedCharacters: OwnerReservedCharacter[]
   specialDivisionRecommendations: OwnerSpecialDivisionRecommendation[]
+  supportTickets: OwnerSupportTicket[]
+  contentFlags: OwnerContentFlag[]
 }
 
 function formatFactionName(faction: keyof typeof FACTION_META | null) {
@@ -33,14 +38,18 @@ export function OwnerConsole({
   events,
   reservedCharacters,
   specialDivisionRecommendations,
+  supportTickets,
+  contentFlags,
 }: OwnerConsoleProps) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
   const [search, setSearch] = useState('')
   const [error, setError] = useState('')
-  const [reassignChoice, setReassignChoice] = useState<
-    Partial<Record<string, (typeof VISIBLE_FACTIONS)[number]>>
-  >({})
+  const [ticketNotes, setTicketNotes] = useState<Record<string, string>>({})
+  const [flagNotes, setFlagNotes] = useState<Record<string, string>>({})
+  const [reassignChoice, setReassignChoice] = useState<Partial<Record<string, VisibleFactionId>>>(
+    {},
+  )
 
   const filteredUsers = useMemo(() => {
     const query = search.trim().toLowerCase()
@@ -127,6 +136,58 @@ export function OwnerConsole({
     refresh()
   }
 
+  const resolveTicket = async (
+    ticketId: string,
+    status: 'in_review' | 'resolved' | 'dismissed',
+  ) => {
+    setError('')
+
+    const response = await fetch(`/api/admin/tickets/${ticketId}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        status,
+        note: ticketNotes[ticketId]?.trim() || undefined,
+      }),
+    })
+    const json = await response.json().catch(() => ({}))
+
+    if (!response.ok) {
+      setError(json.error ?? 'Unable to update ticket.')
+      return
+    }
+
+    refresh()
+  }
+
+  const resolveContentFlag = async (
+    flagId: string,
+    action: 'dismiss' | 'take_action',
+  ) => {
+    setError('')
+
+    const response = await fetch(`/api/admin/flags/${flagId}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        action,
+        note: flagNotes[flagId]?.trim() || undefined,
+      }),
+    })
+    const json = await response.json().catch(() => ({}))
+
+    if (!response.ok) {
+      setError(json.error ?? 'Unable to resolve flagged file.')
+      return
+    }
+
+    refresh()
+  }
+
   const deleteUser = async (userId: string, username: string) => {
     setError('')
 
@@ -180,9 +241,17 @@ export function OwnerConsole({
           {error || 'Owner access is global and invisible to faction walls.'}
         </p>
         <div style={{ marginTop: '1.25rem' }}>
-          <Link href="/owner/assign-character" className="btn-secondary">
-            Open Reserved Assignment Desk
-          </Link>
+          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <Link href="/owner/assign-character" className="btn-secondary">
+              Open Reserved Assignment Desk
+            </Link>
+            <Link href="/admin/special-division" className="btn-secondary">
+              Open Ango Queue
+            </Link>
+            <Link href="/tickets" className="btn-secondary">
+              Open Ticket Desk
+            </Link>
+          </div>
         </div>
       </section>
 
@@ -436,7 +505,7 @@ export function OwnerConsole({
                     onChange={(event) =>
                       setReassignChoice((current) => ({
                         ...current,
-                        [flag.id]: event.target.value as (typeof VISIBLE_FACTIONS)[number],
+                        [flag.id]: event.target.value as VisibleFactionId,
                       }))
                     }
                     style={{
@@ -460,6 +529,274 @@ export function OwnerConsole({
                     onClick={() => void resolveFlag(flag.id, 'reassign')}
                   >
                     Reassign
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section
+        style={{
+          border: '1px solid var(--border)',
+          background: 'var(--card)',
+          padding: '2rem',
+        }}
+      >
+        <p className="section-eyebrow" style={{ marginBottom: '0.9rem' }}>
+          Open Registry Tickets
+        </p>
+        {supportTickets.length === 0 ? (
+          <p className="section-sub" style={{ margin: 0 }}>
+            No registry tickets are waiting for review.
+          </p>
+        ) : (
+          <div style={{ display: 'grid', gap: '1rem' }}>
+            {supportTickets.map((ticket) => (
+              <article
+                key={ticket.id}
+                style={{
+                  border: '1px solid var(--border2)',
+                  background: 'var(--surface2)',
+                  padding: '1.2rem',
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    justifyContent: 'space-between',
+                    gap: '1rem',
+                    flexWrap: 'wrap',
+                  }}
+                >
+                  <div>
+                    <h3
+                      style={{
+                        fontFamily: 'Cinzel, serif',
+                        fontSize: '1.1rem',
+                        color: 'var(--text)',
+                      }}
+                    >
+                      {ticket.subject}
+                    </h3>
+                    <p
+                      style={{
+                        marginTop: '0.4rem',
+                        fontFamily: 'Space Mono, monospace',
+                        fontSize: '0.55rem',
+                        color: 'var(--text3)',
+                      }}
+                    >
+                      @{ticket.username} · {formatFactionName(ticket.faction)} · {ticket.queue.replace(/_/g, ' ')} · {ticket.category.replace(/_/g, ' ')}
+                    </p>
+                  </div>
+                  <p
+                    style={{
+                      fontFamily: 'Space Mono, monospace',
+                      fontSize: '0.55rem',
+                      color: 'var(--text4)',
+                    }}
+                  >
+                    {new Date(ticket.created_at).toLocaleDateString()}
+                  </p>
+                </div>
+                <p
+                  style={{
+                    marginTop: '0.8rem',
+                    fontFamily: 'Cormorant Garamond, serif',
+                    fontSize: '1rem',
+                    color: 'var(--text2)',
+                    lineHeight: 1.7,
+                  }}
+                >
+                  {ticket.details}
+                </p>
+                <textarea
+                  value={ticketNotes[ticket.id] ?? ''}
+                  onChange={(event) =>
+                    setTicketNotes((current) => ({
+                      ...current,
+                      [ticket.id]: event.target.value,
+                    }))
+                  }
+                  placeholder="Optional response note for the filed ticket."
+                  style={{
+                    width: '100%',
+                    minHeight: '88px',
+                    marginTop: '0.95rem',
+                    border: '1px solid var(--border)',
+                    background: 'var(--card)',
+                    color: 'var(--text)',
+                    padding: '0.8rem 0.9rem',
+                    resize: 'vertical',
+                  }}
+                />
+                <div
+                  style={{
+                    marginTop: '1rem',
+                    display: 'flex',
+                    gap: '0.75rem',
+                    flexWrap: 'wrap',
+                  }}
+                >
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    disabled={pending}
+                    onClick={() => void resolveTicket(ticket.id, 'in_review')}
+                  >
+                    Mark In Review
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-primary"
+                    disabled={pending}
+                    onClick={() => void resolveTicket(ticket.id, 'resolved')}
+                  >
+                    Resolve
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    disabled={pending}
+                    onClick={() => void resolveTicket(ticket.id, 'dismissed')}
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section
+        style={{
+          border: '1px solid var(--border)',
+          background: 'var(--card)',
+          padding: '2rem',
+        }}
+      >
+        <p className="section-eyebrow" style={{ marginBottom: '0.9rem' }}>
+          Flagged Files
+        </p>
+        {contentFlags.length === 0 ? (
+          <p className="section-sub" style={{ margin: 0 }}>
+            No flagged files are waiting for review.
+          </p>
+        ) : (
+          <div style={{ display: 'grid', gap: '1rem' }}>
+            {contentFlags.map((flag) => (
+              <article
+                key={flag.id}
+                style={{
+                  border: '1px solid var(--border2)',
+                  background: 'var(--surface2)',
+                  padding: '1.2rem',
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    justifyContent: 'space-between',
+                    gap: '1rem',
+                    flexWrap: 'wrap',
+                  }}
+                >
+                  <div>
+                    <h3
+                      style={{
+                        fontFamily: 'Cinzel, serif',
+                        fontSize: '1.1rem',
+                        color: 'var(--text)',
+                      }}
+                    >
+                      {flag.target_label ?? 'Flagged File'}
+                    </h3>
+                    <p
+                      style={{
+                        marginTop: '0.4rem',
+                        fontFamily: 'Space Mono, monospace',
+                        fontSize: '0.55rem',
+                        color: 'var(--text3)',
+                      }}
+                    >
+                      Reported by @{flag.reporter_username} · {flag.entity_type.replace(/_/g, ' ')}
+                    </p>
+                  </div>
+                  <Link href={flag.target_path} className="btn-secondary">
+                    Open Target
+                  </Link>
+                </div>
+                <p
+                  style={{
+                    marginTop: '0.8rem',
+                    fontFamily: 'Cormorant Garamond, serif',
+                    fontSize: '1rem',
+                    color: 'var(--text2)',
+                  }}
+                >
+                  Reason: {flag.reason}
+                </p>
+                {flag.details ? (
+                  <p
+                    style={{
+                      marginTop: '0.45rem',
+                      fontFamily: 'Cormorant Garamond, serif',
+                      fontSize: '1rem',
+                      color: 'var(--text2)',
+                      lineHeight: 1.7,
+                    }}
+                  >
+                    {flag.details}
+                  </p>
+                ) : null}
+                <textarea
+                  value={flagNotes[flag.id] ?? ''}
+                  onChange={(event) =>
+                    setFlagNotes((current) => ({
+                      ...current,
+                      [flag.id]: event.target.value,
+                    }))
+                  }
+                  placeholder="Optional moderation note."
+                  style={{
+                    width: '100%',
+                    minHeight: '88px',
+                    marginTop: '0.95rem',
+                    border: '1px solid var(--border)',
+                    background: 'var(--card)',
+                    color: 'var(--text)',
+                    padding: '0.8rem 0.9rem',
+                    resize: 'vertical',
+                  }}
+                />
+                <div
+                  style={{
+                    marginTop: '1rem',
+                    display: 'flex',
+                    gap: '0.75rem',
+                    flexWrap: 'wrap',
+                  }}
+                >
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    disabled={pending}
+                    onClick={() => void resolveContentFlag(flag.id, 'dismiss')}
+                  >
+                    Dismiss
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-primary"
+                    disabled={pending}
+                    onClick={() => void resolveContentFlag(flag.id, 'take_action')}
+                  >
+                    Take Action
                   </button>
                 </div>
               </article>

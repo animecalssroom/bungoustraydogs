@@ -16,7 +16,10 @@ import {
 import { useRealtimeProfile } from '@/frontend/lib/hooks/useRealtimeProfile'
 import { FACTION_META, getCharacterReveal } from '@/frontend/lib/launch'
 import { getRankInfo } from '@/frontend/lib/rank'
+import { getSpecialDivisionProvisionalDesignation } from '@/frontend/lib/special-division'
+import { deriveAssignmentInsights } from '@/frontend/lib/assignment-rationale'
 import dynamic from 'next/dynamic'
+import { AngoUsername } from '@/frontend/components/ango/AngoUsername'
 import ObservationMeter from '@/frontend/components/ui/ObservationMeter'
 
 const CharacterReveal = dynamic(() => import('@/frontend/components/ui/CharacterReveal'), { ssr: false })
@@ -52,7 +55,7 @@ const themeLabel = (theme: Profile['theme']) =>
 
 const pendingDesignationCopy = (profile: Profile) => {
   if (profile.faction === 'special_div' && profile.role === 'member') {
-    return 'Assignment pending. Ango-san will determine your designation.'
+    return 'You have been drafted into the Special Division. Ango-san will determine your final designation.'
   }
 
   if (profile.role === 'waitlist') {
@@ -75,12 +78,21 @@ const eventLabel = (type: UserEvent['event_type']) =>
     arena_vote: 'Arena Vote Logged',
     lore_post: 'Lore Record Filed',
     registry_post: 'Registry Report Approved',
+    registry_submit: 'Registry Filing Submitted',
+    chat_message: 'Transmission Logged',
+    bulletin_post: 'Bulletin Filed',
+    feed_view: 'Faction Feed Reviewed',
+    profile_view: 'Profile Reviewed',
+    archive_view: 'Archive File Reviewed',
+    archive_read: 'Archive File Reviewed',
+    faction_checkin: 'Faction Presence Logged',
     write_lore: 'Lore Record Filed',
     save_lore: 'Archive Entry Saved',
     registry_save: 'Registry File Saved',
     registry_featured: 'Registry Feature Filed',
     daily_login: 'Daily Return Logged',
     login_streak: 'Streak Milestone',
+    special_division_designated: 'Special Division Designation',
     debate_upvote: 'Debate Support Logged',
     faction_event: 'Faction Event',
     easter_egg: 'Hidden Record Triggered',
@@ -93,6 +105,14 @@ const COUNTS_TOWARD_OBSERVATION = new Set([
   'arena_vote',
   'lore_post',
   'registry_post',
+  'registry_submit',
+  'chat_message',
+  'bulletin_post',
+  'feed_view',
+  'profile_view',
+  'archive_view',
+  'archive_read',
+  'faction_checkin',
   'write_lore',
   'save_lore',
   'registry_save',
@@ -106,6 +126,17 @@ const pane = {
   padding: '1.25rem',
   border: '1px solid var(--border2)',
   background: 'var(--surface2)',
+}
+
+type AssignmentMetadata = {
+  source?: string | null
+  confidence?: number | null
+  reasoning?: string | null
+  registry_note?: string | null
+  dominant_axis?: string | null
+  behavior_snapshot?: Record<string, number> | null
+  evidence?: string[] | null
+  recent_events?: string[] | null
 }
 
 export function ProfileExperience({
@@ -138,11 +169,28 @@ export function ProfileExperience({
     getAbilityTypeForCharacter(activeProfile.character_match_id)
   const rankInfo = getRankInfo(activeProfile.ap_total, activeProfile.rank)
   const retake = getExamRetakeStatus(activeProfile)
+  const provisionalDesignation = getSpecialDivisionProvisionalDesignation(activeProfile)
   const showObservation =
     isOwnProfile &&
     activeProfile.role === 'member' &&
     activeProfile.faction !== 'special_div' &&
     !activeProfile.character_match_id
+  const assignmentEvent = events.find((event) => event.event_type === 'character_assigned')
+  const assignmentMetadata = (assignmentEvent?.metadata as AssignmentMetadata | null) ?? null
+  const derivedAssignmentInsights = deriveAssignmentInsights(
+    activeProfile.behavior_scores,
+    assignmentMetadata?.recent_events ?? [],
+  )
+  const assignmentSourceLabel =
+    assignmentMetadata?.source === 'gemini'
+      ? 'Gemini behavior match'
+      : assignmentMetadata?.source === 'distance'
+        ? 'Trait-distance fallback'
+        : 'Registry evaluation'
+  const assignmentEvidence =
+    assignmentMetadata?.evidence?.filter(Boolean).length
+      ? assignmentMetadata.evidence.filter(Boolean)
+      : derivedAssignmentInsights.evidence
 
   useEffect(() => {
     if (!showObservation) {
@@ -179,7 +227,7 @@ export function ProfileExperience({
     let active = true
     void supabase
       .from('user_events')
-      .select('id, event_type, faction, ap_awarded, created_at')
+      .select('id, event_type, faction, ap_awarded, metadata, created_at')
       .eq('user_id', activeProfile.id)
       .order('created_at', { ascending: false })
       .limit(50)
@@ -221,7 +269,7 @@ export function ProfileExperience({
               Yokohama Registry File
             </div>
             <h1 className="font-cinzel" style={{ fontSize: 'clamp(2.2rem, 5vw, 3.7rem)', lineHeight: 1.05 }}>
-              {activeProfile.username}
+              <AngoUsername userId={activeProfile.id} username={activeProfile.username} />
             </h1>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.6rem' }}>
               <span className="ink-stamp">{roleLabel(activeProfile.role)}</span>
@@ -249,12 +297,57 @@ export function ProfileExperience({
                 <p className="font-cormorant" style={{ marginTop: '0.4rem', fontSize: '1.05rem', color: factionMeta?.color ?? 'var(--accent)', fontStyle: 'italic' }}>{activeProfile.character_ability ?? character.ability}</p>
                 {abilityType ? <div style={{ marginTop: '0.9rem', display: 'inline-flex', padding: '0.45rem 0.75rem', border: `1px solid ${ABILITY_TYPE_COLORS[abilityType]}`, color: ABILITY_TYPE_COLORS[abilityType] }}><span className="font-space-mono" style={{ fontSize: '0.52rem', letterSpacing: '0.16em', textTransform: 'uppercase' }}>{ABILITY_TYPE_LABELS[abilityType]}</span></div> : null}
                 <p className="font-cormorant" style={{ marginTop: '0.9rem', fontSize: '1rem', lineHeight: 1.7, color: 'var(--text2)', fontStyle: 'italic' }}>{activeProfile.character_description || (abilityType ? ABILITY_TYPE_DESC[abilityType] : 'The registry has not filed a formal ability classification for this signature yet.')}</p>
+                {isOwnProfile ? (
+                  <div style={{ ...pane, marginTop: '1rem', display: 'grid', gap: '0.7rem' }}>
+                    <div className="font-space-mono" style={{ fontSize: '0.5rem', letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--text4)' }}>
+                      Why This Designation
+                    </div>
+                    <div className="font-space-mono" style={{ fontSize: '0.55rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: factionMeta?.color ?? 'var(--accent)' }}>
+                      {assignmentSourceLabel}
+                      {typeof assignmentMetadata?.confidence === 'number'
+                        ? ` · ${Math.round(assignmentMetadata.confidence * 100)}% confidence`
+                        : ''}
+                    </div>
+                    <p className="font-cormorant" style={{ margin: 0, fontSize: '1rem', lineHeight: 1.7, color: 'var(--text2)', fontStyle: 'italic' }}>
+                      {assignmentMetadata?.reasoning ??
+                        `The registry matched this file through ${derivedAssignmentInsights.dominantAxis} as the dominant behavioral axis.`}
+                    </p>
+                    {assignmentEvidence.length ? (
+                      <div style={{ display: 'grid', gap: '0.45rem' }}>
+                        {assignmentEvidence.map((line) => (
+                          <div
+                            key={line}
+                            className="font-cormorant"
+                            style={{ fontSize: '0.96rem', lineHeight: 1.6, color: 'var(--text3)' }}
+                          >
+                            {line}
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
                 {abilitySignature ? <div style={{ ...pane, marginTop: '1rem' }}><div className="font-space-mono" style={{ fontSize: '0.5rem', letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--text4)', marginBottom: '0.6rem' }}>Deterministic Signature</div><div dangerouslySetInnerHTML={{ __html: abilitySignature }} /></div> : null}
               </>
             ) : (
               <>
-                <h2 className="font-cinzel" style={{ marginTop: '0.85rem', fontSize: 'clamp(1.7rem, 4vw, 2.3rem)' }}>Designation Pending</h2>
+                <h2 className="font-cinzel" style={{ marginTop: '0.85rem', fontSize: 'clamp(1.7rem, 4vw, 2.3rem)' }}>
+                  {activeProfile.faction === 'special_div' ? 'Drafted to Special Division' : 'Designation Pending'}
+                </h2>
                 <p className="font-cormorant" style={{ marginTop: '0.75rem', fontSize: '1rem', lineHeight: 1.75, color: 'var(--text2)', fontStyle: 'italic' }}>{pendingDesignationCopy(activeProfile)}</p>
+                {provisionalDesignation ? (
+                  <div style={{ ...pane, marginTop: '1rem' }}>
+                    <div className="font-space-mono" style={{ fontSize: '0.5rem', letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--text4)' }}>
+                      Provisional Registry Reading
+                    </div>
+                    <div className="font-cinzel" style={{ marginTop: '0.45rem', fontSize: '1.2rem' }}>
+                      {provisionalDesignation.name}
+                    </div>
+                    <p className="font-cormorant" style={{ marginTop: '0.45rem', fontSize: '0.98rem', lineHeight: 1.7, color: 'var(--text2)', fontStyle: 'italic' }}>
+                      {provisionalDesignation.note}
+                    </p>
+                  </div>
+                ) : null}
                 {showObservation ? <ObservationMeter eventCount={eventCount ?? 0} factionColor={factionMeta?.color ?? 'var(--accent)'} /> : null}
               </>
             )}

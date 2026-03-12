@@ -10,7 +10,6 @@ import { useRealtimeProfile } from '@/frontend/lib/hooks/useRealtimeProfile'
 import {
   FACTION_META,
   getCharacterReveal,
-  navigateToResolvedPath,
   resolvePostAuthPath,
 } from '@/frontend/lib/launch'
 import { Nav } from '@/frontend/components/ui/Nav'
@@ -33,7 +32,7 @@ export default function WaitlistPage() {
     }
     if (!profile) return
     if (profile.role !== 'waitlist' || !profile.quiz_locked) {
-      navigateToResolvedPath(profile, { replace: true })
+      router.replace(resolvePostAuthPath(profile))
       return
     }
 
@@ -87,7 +86,7 @@ export default function WaitlistPage() {
     setActivationBanner(true)
 
     const timeout = window.setTimeout(() => {
-      navigateToResolvedPath(liveProfile, { replace: true })
+      router.replace(resolvePostAuthPath(liveProfile))
     }, 3000)
 
     return () => {

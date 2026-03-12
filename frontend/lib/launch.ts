@@ -4,10 +4,7 @@ import type {
   Profile,
   VisibleFactionId,
 } from '@/backend/types'
-import {
-  CHARACTER_ASSIGNMENT_POOL,
-  type AssignmentCharacter,
-} from '@/frontend/lib/bsd-character-update'
+import { CHARACTER_ASSIGNMENT_POOL } from '@/frontend/lib/bsd-character-update'
 
 export interface FactionMeta {
   name: string
@@ -153,15 +150,6 @@ export const FACTION_META: Record<FactionId, FactionMeta> = {
   },
 }
 
-const CHARACTER_POOL_BY_FACTION: Record<VisibleFactionId, AssignmentCharacter[]> = {
-  agency: CHARACTER_ASSIGNMENT_POOL.filter((character) => character.faction === 'agency'),
-  mafia: CHARACTER_ASSIGNMENT_POOL.filter((character) => character.faction === 'mafia'),
-  guild: CHARACTER_ASSIGNMENT_POOL.filter((character) => character.faction === 'guild'),
-  hunting_dogs: CHARACTER_ASSIGNMENT_POOL.filter(
-    (character) => character.faction === 'hunting_dogs',
-  ),
-}
-
 function hashString(value: string) {
   let hash = 0
 
@@ -177,33 +165,12 @@ export function createCaseNumber(userId: string) {
   return String(numeric)
 }
 
-export function assignCharacterForFaction(
-  userId: string,
-  faction: VisibleFactionId,
-): string | null {
-  const pool = CHARACTER_POOL_BY_FACTION[faction]
-
-  if (pool.length === 0) {
-    return null
-  }
-
-  return pool[hashString(`${userId}:${faction}`) % pool.length]?.slug ?? null
-}
-
 export function getCharacterReveal(slug: string | null | undefined) {
   if (!slug) {
     return null
   }
 
   return CHARACTER_ASSIGNMENT_POOL.find((character) => character.slug === slug) ?? null
-}
-
-export function getFactionMeta(faction: FactionId | null | undefined) {
-  if (!faction) {
-    return null
-  }
-
-  return FACTION_META[faction]
 }
 
 export function normalizePrivateFactionRouteId(routeId: string): FactionId | null {
@@ -260,35 +227,4 @@ export function resolvePostAuthPath(profile: Profile | null) {
   }
 
   return '/'
-}
-
-export function navigateToResolvedPath(
-  profile: Profile | null,
-  options?: { replace?: boolean },
-) {
-  if (typeof window === 'undefined') {
-    return
-  }
-
-  const target = resolvePostAuthPath(profile)
-
-  if (options?.replace) {
-    window.location.replace(target)
-    return
-  }
-
-  window.location.assign(target)
-}
-
-export function navigateWithSession(path: string, options?: { replace?: boolean }) {
-  if (typeof window === 'undefined') {
-    return
-  }
-
-  if (options?.replace) {
-    window.location.replace(path)
-    return
-  }
-
-  window.location.assign(path)
 }

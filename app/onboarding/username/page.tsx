@@ -4,7 +4,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/frontend/lib/supabase/client'
 import { useAuth } from '@/frontend/context/AuthContext'
-import { navigateToResolvedPath, resolvePostAuthPath } from '@/frontend/lib/launch'
+import { resolvePostAuthPath } from '@/frontend/lib/launch'
+import { Nav } from '@/frontend/components/ui/Nav'
 
 function humanizeSchemaError(message: string) {
   if (
@@ -35,7 +36,7 @@ export default function UsernameSetupPage() {
     }
 
     if (profile?.username_confirmed) {
-      navigateToResolvedPath(profile, { replace: true })
+      router.replace(resolvePostAuthPath(profile))
       return
     }
 
@@ -102,24 +103,26 @@ export default function UsernameSetupPage() {
   }
 
   return (
-    <main
-      style={{
-        minHeight: '100vh',
-        display: 'grid',
-        placeItems: 'center',
-        background: 'var(--bg)',
-        padding: '96px 24px 32px',
-      }}
-    >
-      <section
+    <>
+      <Nav />
+      <main
         style={{
-          width: '100%',
-          maxWidth: '520px',
-          padding: '3rem 2.5rem',
-          border: '1px solid var(--border)',
-          background: 'var(--card)',
+          minHeight: '100vh',
+          display: 'grid',
+          placeItems: 'center',
+          background: 'var(--bg)',
+          padding: '96px 24px 32px',
         }}
       >
+        <section
+          style={{
+            width: '100%',
+            maxWidth: '520px',
+            padding: '3rem 2.5rem',
+            border: '1px solid var(--border)',
+            background: 'var(--card)',
+          }}
+        >
         <p
           style={{
             fontFamily: 'Noto Serif JP, serif',
@@ -211,7 +214,8 @@ export default function UsernameSetupPage() {
         >
           {saving ? 'Recording...' : 'Continue to Assignment'}
         </button>
-      </section>
-    </main>
+        </section>
+      </main>
+    </>
   )
 }

@@ -15,7 +15,7 @@ import {
   resolvePostAuthPath,
   toPrivateFactionRouteId,
 } from '@/frontend/lib/launch'
-import { useRealtimeProfile } from '@/frontend/lib/hooks/useRealtimeProfile'
+import { AngoUsername } from '@/frontend/components/ango/AngoUsername'
 import styles from './Nav.module.css'
 import SoundToggle from './SoundToggle'
 import NotificationBell from './NotificationBell'
@@ -31,9 +31,10 @@ export function Nav() {
   const { theme, setTheme, resetThemeToAuto, isAutoTheme, currentTimeLabel } = useTheme()
   const { user, profile, signOut } = useAuth()
   const [menuOpen, setMenuOpen] = useState(false)
-  const liveProfile = useRealtimeProfile(user?.id, profile)
-  const activeProfile = liveProfile ?? profile
+  const activeProfile = profile
   const factionMeta = activeProfile?.faction ? FACTION_META[activeProfile.faction] : null
+  const isAngoOperator =
+    user && activeProfile?.role === 'mod' && activeProfile.faction === 'special_div'
   const privateFactionHref =
     activeProfile?.faction &&
     (activeProfile.role === 'member' ||
@@ -109,7 +110,9 @@ export function Nav() {
           {user && activeProfile ? (
             <Link href={profileHref} className={styles.accountLink} style={accountStyle}>
               <span className={styles.accountSeal}>{factionMeta?.kanji ?? '文'}</span>
-              <span className={styles.accountHandle}>@{activeProfile.username}</span>
+              <span className={styles.accountHandle}>
+                <AngoUsername userId={activeProfile.id} username={activeProfile.username} />
+              </span>
             </Link>
           ) : null}
 
@@ -150,6 +153,12 @@ export function Nav() {
           {user && activeProfile?.role === 'owner' ? (
             <Link href="/owner" className={styles.ownerLink}>
               owner
+            </Link>
+          ) : null}
+
+          {isAngoOperator ? (
+            <Link href="/admin/special-division" className={styles.ownerLink}>
+              ango
             </Link>
           ) : null}
 
@@ -269,6 +278,12 @@ export function Nav() {
           {user && activeProfile?.role === 'owner' ? (
             <Link href="/owner" className={styles.mobileActionLink}>
               owner
+            </Link>
+          ) : null}
+
+          {isAngoOperator ? (
+            <Link href="/admin/special-division" className={styles.mobileActionLink}>
+              ango
             </Link>
           ) : null}
 

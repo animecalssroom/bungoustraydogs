@@ -4,13 +4,17 @@ import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import type { FactionId, RegistryDistrict, RegistryPost } from '@/backend/types'
 import { REGISTRY_DISTRICT_LABELS } from '@/backend/lib/registry'
+import { useAuth } from '@/frontend/context/AuthContext'
 import { FACTION_META } from '@/frontend/lib/launch'
+import { AngoUsername } from '@/frontend/components/ango/AngoUsername'
 import styles from './Registry.module.css'
 
 export function RegistryFeed({ initialPosts }: { initialPosts: RegistryPost[] }) {
+  const { profile } = useAuth()
   const [faction, setFaction] = useState<FactionId | 'all'>('all')
   const [district, setDistrict] = useState<RegistryDistrict | 'all'>('all')
   const [sort, setSort] = useState<'recent' | 'saved' | 'featured'>('recent')
+  const canSubmitRegistry = profile?.role === 'mod' || profile?.role === 'owner'
 
   const posts = useMemo(() => {
     const filtered = initialPosts.filter((post) => {
@@ -48,9 +52,20 @@ export function RegistryFeed({ initialPosts }: { initialPosts: RegistryPost[] })
           <option value="saved">Most Saved</option>
           <option value="featured">Featured</option>
         </select>
-        <Link href="/registry/submit" className={styles.saveButton}>
-          Submit Report
-        </Link>
+        <div className={styles.metaRow} style={{ marginTop: 0, alignItems: 'stretch' }}>
+          <Link href="/registry/saved" className={`${styles.saveButton} ${styles.saveButtonSecondary}`}>
+            Saved Files
+          </Link>
+          {canSubmitRegistry ? (
+            <Link href="/registry/submit" className={styles.saveButton}>
+              Submit Report
+            </Link>
+          ) : (
+            <Link href="/lore/submit" className={styles.saveButton}>
+              Write Lore
+            </Link>
+          )}
+        </div>
       </div>
 
       <div className={styles.grid}>
@@ -60,7 +75,13 @@ export function RegistryFeed({ initialPosts }: { initialPosts: RegistryPost[] })
             <div className={styles.meta}>{post.case_number}</div>
             <h2 className={styles.title}>{post.title}</h2>
             <div className={styles.metaRow}>
+              <span className={styles.meta}>{post.post_type.replace(/_/g, ' ')}</span>
               <span className={styles.meta}>{post.author_character ?? 'Unknown file'}</span>
+              {post.profiles?.username ? (
+                <span className={styles.meta}>
+                  <AngoUsername userId={post.author_id} username={post.profiles.username} />
+                </span>
+              ) : null}
               <span className={styles.meta}>{post.author_rank ?? 'Unfiled'}</span>
               <span className={styles.meta}>
                 {post.author_faction ? FACTION_META[post.author_faction].name : 'Unaffiliated'}

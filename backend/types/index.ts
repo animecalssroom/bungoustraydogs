@@ -84,6 +84,8 @@ export interface Profile {
   ap_total: number
   rank: number
   login_streak: number
+  guide_bot_dismissed?: boolean | null
+  guide_bot_opened_at?: string | null
   last_seen: string | null
   created_at: string
   updated_at: string
@@ -159,12 +161,14 @@ export interface Faction {
 export interface FactionMemberSummary {
   id: string
   username: string
+  character_name?: string | null
   avatar_url: string | null
   rank: number
   ap_total: number
   role: StoredRole
   faction: FactionId | null
   character_match_id: string | null
+  behavior_scores?: BehaviorScores | null
   last_seen?: string | null
 }
 
@@ -282,6 +286,11 @@ export type RegistryDistrict =
   | 'other'
 
 export type RegistryStatus = 'pending' | 'approved' | 'rejected' | 'review'
+export type RegistryPostType =
+  | 'field_note'
+  | 'incident_report'
+  | 'classified_report'
+  | 'chronicle_submission'
 
 export interface RegistryReview {
   canon_consistent: boolean
@@ -303,6 +312,11 @@ export interface RegistryPost {
   title: string
   content: string
   district: RegistryDistrict | null
+  post_type: RegistryPostType
+  parent_post_id: string | null
+  thread_id: string | null
+  thread_position: number
+  min_words: number
   status: RegistryStatus
   featured: boolean
   gemini_review: RegistryReview | null
@@ -315,11 +329,37 @@ export interface RegistryPost {
   profiles?: Pick<Profile, 'username' | 'avatar_url' | 'role' | 'rank' | 'faction'> | null
 }
 
+export interface RegistryThread {
+  id: string
+  title: string
+  author_id: string
+  faction: FactionId | null
+  district: RegistryDistrict | null
+  post_count: number
+  total_words: number
+  status: string
+  created_at: string
+  last_updated: string
+}
+
 export interface RegistrySave {
   id: string
   user_id: string
   post_id: string
   created_at: string
+}
+
+export type DiscussionEntityType = 'lore' | 'registry'
+
+export interface PostComment {
+  id: string
+  entity_type: DiscussionEntityType
+  entity_id: string
+  user_id: string
+  content: string
+  created_at: string
+  updated_at: string
+  profiles?: Pick<Profile, 'username' | 'avatar_url' | 'role' | 'rank' | 'faction'> | null
 }
 
 export type QuizAnswerKey = 'A' | 'B' | 'C' | 'D'
@@ -386,7 +426,7 @@ export interface ObserverPoolEntry {
   reviewed_at: string | null
   recommended_by: string | null
   can_recommend_again_at: string | null
-  status: 'waiting' | 'recommended' | 'approved' | 'declined'
+  status: 'waiting' | 'recommended' | 'approved' | 'declined' | 'designated'
   created_at: string
   updated_at: string
 }
@@ -401,6 +441,72 @@ export interface Notification {
   created_at: string
 }
 
+export type TicketQueue = 'owner' | 'special_division'
+
+export type TicketCategory =
+  | 'assignment'
+  | 'intake'
+  | 'faction'
+  | 'registry'
+  | 'lore'
+  | 'account'
+  | 'bug'
+  | 'special_division'
+
+export type TicketStatus = 'open' | 'in_review' | 'resolved' | 'dismissed'
+
+export interface SupportTicket {
+  id: string
+  user_id: string
+  queue: TicketQueue
+  category: TicketCategory
+  subject: string
+  details: string
+  status: TicketStatus
+  response_note: string | null
+  handled_by: string | null
+  handled_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type ContentFlagEntityType = 'lore_post' | 'registry_post' | 'comment'
+export type ContentFlagStatus = 'open' | 'reviewed' | 'dismissed' | 'actioned'
+
+export interface ContentFlag {
+  id: string
+  reporter_id: string
+  queue: TicketQueue
+  entity_type: ContentFlagEntityType
+  entity_id: string
+  target_path: string
+  target_label: string | null
+  reason: string
+  details: string | null
+  status: ContentFlagStatus
+  action_taken: string | null
+  handled_by: string | null
+  handled_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface GuideBotMessage {
+  id: string
+  user_id?: string
+  role: 'user' | 'assistant'
+  content: string
+  created_at: string
+}
+
+export interface GuideBotState {
+  isOpen: boolean
+  messages: GuideBotMessage[]
+  isLoading: boolean
+  isDismissed: boolean
+  input: string
+}
+
 export type UserEventType =
   | 'quiz_complete'
   | 'faction_assignment'
@@ -409,12 +515,21 @@ export type UserEventType =
   | 'arena_vote'
   | 'lore_post'
   | 'registry_post'
+  | 'registry_submit'
+  | 'chat_message'
+  | 'bulletin_post'
+  | 'feed_view'
+  | 'profile_view'
   | 'write_lore'
   | 'save_lore'
   | 'registry_save'
   | 'registry_featured'
+  | 'archive_view'
+  | 'archive_read'
+  | 'faction_checkin'
   | 'daily_login'
   | 'login_streak'
+  | 'special_division_designated'
   | 'debate_upvote'
   | 'faction_event'
   | 'easter_egg'
@@ -438,12 +553,21 @@ export const AP_VALUES: Record<UserEventType, number> = {
   arena_vote: 10,
   lore_post: 50,
   registry_post: 50,
+  registry_submit: 0,
+  chat_message: 2,
+  bulletin_post: 3,
+  feed_view: 0,
+  profile_view: 0,
   write_lore: 50,
   save_lore: 5,
   registry_save: 10,
   registry_featured: 100,
-  daily_login: 10,
+  archive_view: 5,
+  archive_read: 1,
+  faction_checkin: 5,
+  daily_login: 5,
   login_streak: 10,
+  special_division_designated: 0,
   debate_upvote: 5,
   faction_event: 25,
   easter_egg: 10,

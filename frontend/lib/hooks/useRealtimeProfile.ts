@@ -33,20 +33,18 @@ export function useRealtimeProfile(
     const supabase = createClient()
     let active = true
 
-    if (!initialProfile || initialProfile.id !== userId) {
-      const load = async () => {
-        const { data } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', userId)
-          .single()
+    const load = async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single()
 
-        if (!active) return
-        setProfile((data as Profile | null) ?? null)
-      }
-
-      void load()
+      if (!active) return
+      setProfile((data as Profile | null) ?? null)
     }
+
+    void load()
 
     const channel = supabase
       .channel(`profile:${userId}`)
@@ -68,7 +66,7 @@ export function useRealtimeProfile(
       active = false
       void supabase.removeChannel(channel)
     }
-  }, [initialProfile, userId])
+  }, [userId])
 
   return profile
 }

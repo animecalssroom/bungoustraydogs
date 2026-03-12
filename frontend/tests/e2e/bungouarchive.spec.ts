@@ -1,7 +1,7 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 
 // Utility for creating users and logging in
-async function registerAndLogin(page, email, password, username) {
+async function registerAndLogin(page: Page, email: string, password: string, username: string) {
   await page.goto('/auth/signup');
   await page.fill('input[name="email"]', email);
   await page.fill('input[name="password"]', password);

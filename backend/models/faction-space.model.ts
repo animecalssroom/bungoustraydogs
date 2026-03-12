@@ -14,6 +14,8 @@ type RawFactionMessage = {
   id: string
   faction_id: FactionId
   user_id: string
+  sender_character: string | null
+  sender_rank: string | null
   content: string
   created_at: string
 }
@@ -61,7 +63,7 @@ export const FactionSpaceModel = {
       FactionModel.getLeader(factionId),
       supabaseAdmin
         .from('profiles')
-        .select('id, username, avatar_url, rank, ap_total, role, faction, character_match_id, last_seen')
+        .select('id, username, avatar_url, rank, ap_total, role, faction, character_match_id, behavior_scores, last_seen')
         .eq('faction', factionId)
         .in('role', ['member', 'mod'])
         .order('ap_total', { ascending: false })
@@ -82,7 +84,7 @@ export const FactionSpaceModel = {
   ): Promise<FactionMessage[]> {
     const { data } = await supabaseAdmin
       .from('faction_messages')
-      .select('id, faction_id, user_id, content, created_at')
+      .select('id, faction_id, user_id, sender_character, sender_rank, content, created_at')
       .eq('faction_id', factionId)
       .order('created_at', { ascending: false })
       .limit(limit)
@@ -123,14 +125,22 @@ export const FactionSpaceModel = {
     factionId: FactionId,
     content: string,
   ): Promise<FactionMessage | null> {
+    const { data: profile } = await supabaseAdmin
+      .from('profiles')
+      .select('character_name, username, rank')
+      .eq('id', userId)
+      .maybeSingle()
+
     const { data, error } = await supabaseAdmin
       .from('faction_messages')
       .insert({
         user_id: userId,
         faction_id: factionId,
+        sender_character: profile?.character_name ?? profile?.username ?? 'Unknown File',
+        sender_rank: typeof profile?.rank === 'number' ? `R${profile.rank}` : null,
         content,
       })
-      .select('id, faction_id, user_id, content, created_at')
+      .select('id, faction_id, user_id, sender_character, sender_rank, content, created_at')
       .single()
 
     if (error || !data) {
@@ -139,5 +149,33 @@ export const FactionSpaceModel = {
 
     const authors = await loadAuthors([userId])
     return withAuthors([data as RawFactionMessage], authors)[0] ?? null
+  },
+
+  async createBulletin(input: {
+    userId: string
+    factionId: FactionId
+    content: string
+    pinned?: boolean
+    authorCharacter?: string | null
+    caseNumber?: string | null
+  }): Promise<FactionBulletin | null> {
+    const { data, error } = await supabaseAdmin
+      .from('faction_bulletins')
+      .insert({
+        faction_id: input.factionId,
+        author_id: input.userId,
+        author_character: input.authorCharacter ?? null,
+        case_number: input.caseNumber ?? null,
+        content: input.content,
+        pinned: input.pinned ?? false,
+      })
+      .select('*')
+      .single()
+
+    if (error || !data) {
+      return null
+    }
+
+    return data as FactionBulletin
   },
 }

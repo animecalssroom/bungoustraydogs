@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { EXAM_RETAKE_COST, getExamRetakeStatus } from '@/backend/lib/exam-retake'
 import { Nav } from '@/frontend/components/ui/Nav'
@@ -43,7 +44,7 @@ export default function ExamPage() {
     }
 
     await refreshProfile()
-    window.location.assign(json.data?.redirectTo ?? '/onboarding/quiz?retake=1')
+    router.replace(json.data?.redirectTo ?? '/onboarding/quiz?retake=1')
   }
 
   return (
@@ -150,9 +151,9 @@ export default function ExamPage() {
             }}
           >
             {retake?.retakeInProgress ? (
-              <a href="/onboarding/quiz?retake=1" className="btn-primary">
+              <Link href="/onboarding/quiz?retake=1" className="btn-primary">
                 Continue Retake
-              </a>
+              </Link>
             ) : retake?.canRetake ? (
               <button
                 type="button"
@@ -163,9 +164,9 @@ export default function ExamPage() {
                 {submitting ? 'Opening...' : 'Spend 500 AP And Begin'}
               </button>
             ) : null}
-            <a href="/" className="btn-secondary">
+            <Link href="/" className="btn-secondary">
               Return To Archive
-            </a>
+            </Link>
           </div>
         </section>
       </main>

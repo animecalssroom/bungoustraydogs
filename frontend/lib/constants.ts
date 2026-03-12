@@ -2,30 +2,6 @@ import type { Character, FactionId } from '@/backend/types'
 import { CHARACTER_ASSIGNMENT_POOL } from '@/frontend/lib/bsd-character-update'
 import { FACTION_META, PUBLIC_FACTION_ORDER } from '@/frontend/lib/launch'
 
-export const THEME_DATA = {
-  light: {
-    kanji: '文豪',
-    label: '夜明け · Dawn · Agency Hours',
-    quote:
-      '"No matter how many mistakes you make, no matter how slow your progress - you are still ahead of everyone who is not trying."',
-    attr: 'Doppo Kunikida · 国木田独歩',
-  },
-  dark: {
-    kanji: '暗黒',
-    label: '深夜 · Midnight · Mafia Hours',
-    quote:
-      '"Humans are foolish creatures. They seek strength yet shatter at the slightest blow."',
-    attr: 'Ryunosuke Akutagawa · 芥川龍之介',
-  },
-  neutral: {
-    kanji: '黄昏',
-    label: '黄昏 · Twilight · Neutral Hours',
-    quote:
-      '"The world belongs to those willing to pay the price. I simply know my worth."',
-    attr: 'F. Scott Fitzgerald · フィッツジェラルド',
-  },
-} as const
-
 export const FACTIONS = PUBLIC_FACTION_ORDER.map((id) => ({
   id,
   name: FACTION_META[id].name,
@@ -70,5 +46,7 @@ export const CHARACTERS: Character[] = CHARACTER_ASSIGNMENT_POOL.map((character)
 
 export const NAV_LINKS = [
   { href: '/archive', label: 'Archive' },
+  { href: '/lore', label: 'Lore' },
   { href: '/registry', label: 'Registry' },
+  { href: '/guide', label: 'Guide' },
 ] as const

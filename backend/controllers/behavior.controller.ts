@@ -15,6 +15,11 @@ const BehaviorEventSchema = z.object({
     'join_faction',
     'save_lore',
     'write_lore',
+    'feed_view',
+    'profile_view',
+    'archive_read',
+    'archive_view',
+    'faction_checkin',
   ]),
   metadata: z.record(z.string(), z.unknown()).optional(),
 })

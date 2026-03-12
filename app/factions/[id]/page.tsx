@@ -4,8 +4,9 @@ import type { FactionId, Profile } from '@/backend/types'
 import { FactionModel } from '@/backend/models/faction.model'
 import { Nav } from '@/frontend/components/ui/Nav'
 import { Footer } from '@/frontend/components/ui/Footer'
+import { AngoUsername } from '@/frontend/components/ango/AngoUsername'
 import { createClient } from '@/frontend/lib/supabase/server'
-import { FACTION_META, privateFactionPath } from '@/frontend/lib/launch'
+import { FACTION_META, getCharacterReveal, privateFactionPath } from '@/frontend/lib/launch'
 import styles from './page.module.css'
 
 async function getViewerProfile() {
@@ -18,11 +19,7 @@ async function getViewerProfile() {
     return null
   }
 
-  const { data } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single()
+  const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single()
 
   return (data as Profile | null) ?? null
 }
@@ -50,9 +47,12 @@ const DOSSIER_LABELS: Record<FactionId, string> = {
 }
 
 const LEADER_NOTES: Record<FactionId, string> = {
-  agency: 'Casework compounds into influence. The desk with the longest file usually holds the room.',
-  mafia: 'Inside the Port Mafia, authority is never decorative. It is visible, enforced, and remembered.',
-  guild: 'Guild leadership reads like capital allocation: whoever shapes the board shapes the city beneath it.',
+  agency:
+    'Casework compounds into influence. The desk with the longest file usually holds the room.',
+  mafia:
+    'Inside the Port Mafia, authority is never decorative. It is visible, enforced, and remembered.',
+  guild:
+    'Guild leadership reads like capital allocation: whoever shapes the board shapes the city beneath it.',
   hunting_dogs:
     'Command belongs to the member most willing to carry duty past comfort and past mercy.',
   special_div:
@@ -60,6 +60,22 @@ const LEADER_NOTES: Record<FactionId, string> = {
   rats: 'No stable leader record is distributed for this file.',
   decay: 'This file does not preserve leadership as a stable institution.',
   clock_tower: 'Command in this file appears only after it has already been exercised.',
+}
+
+function displayName(member: {
+  character_name?: string | null
+  character_match_id: string | null
+  username: string
+}) {
+  return (
+    member.character_name ??
+    (member.character_match_id ? getCharacterReveal(member.character_match_id)?.name : null) ??
+    '???'
+  )
+}
+
+function displaySlug(characterMatchId: string | null) {
+  return characterMatchId ?? 'unassigned'
 }
 
 export default async function FactionDossierPage({
@@ -84,17 +100,13 @@ export default async function FactionDossierPage({
   const canEnterHub =
     viewer &&
     (viewer.role === 'owner' ||
-      ((viewer.role === 'member' || viewer.role === 'mod') &&
-        viewer.faction === factionId))
+      ((viewer.role === 'member' || viewer.role === 'mod') && viewer.faction === factionId))
   const canInspectSpecialDivision =
     factionId !== 'special_div' ||
     viewer?.role === 'owner' ||
-    ((viewer?.role === 'member' || viewer?.role === 'mod') &&
-      viewer.faction === 'special_div')
+    ((viewer?.role === 'member' || viewer?.role === 'mod') && viewer.faction === 'special_div')
   const isQueuedHere =
-    viewer?.role === 'waitlist' &&
-    viewer.quiz_locked &&
-    viewer.faction === factionId
+    viewer?.role === 'waitlist' && viewer.quiz_locked && viewer.faction === factionId
   const isObserved = viewer?.role === 'observer'
   const heroClass = HERO_CLASSES[factionId]
   const dossierLabel = DOSSIER_LABELS[factionId]
@@ -201,12 +213,15 @@ export default async function FactionDossierPage({
                   {roster.map((member) => (
                     <div key={member.id} className={styles.rosterItem}>
                       <div>
-                        <p className={styles.rosterName}>{member.username}</p>
+                        <p className={styles.rosterName}>{displayName(member)}</p>
                         <p className={styles.rosterMeta}>
-                          {member.role} · rank {member.rank}
+                          {member.role} · rank {member.rank} · {member.ap_total} AP
+                        </p>
+                        <p className={styles.rosterMeta}>
+                          <AngoUsername userId={member.id} username={member.username} />
                         </p>
                       </div>
-                      <p className={styles.apValue}>{member.ap_total} AP</p>
+                      <p className={styles.apValue}>{displaySlug(member.character_match_id)}</p>
                     </div>
                   ))}
                 </div>
@@ -227,12 +242,15 @@ export default async function FactionDossierPage({
                 ) : leader ? (
                   <div className={styles.leaderBlock}>
                     <div>
-                      <p className={styles.leaderName}>{leader.username}</p>
+                      <p className={styles.leaderName}>{displayName(leader)}</p>
                       <p className={styles.leaderMeta}>
-                        {leader.role} · rank {leader.rank}
+                        {leader.role} · rank {leader.rank} · {leader.ap_total} AP
+                      </p>
+                      <p className={styles.leaderMeta}>
+                        <AngoUsername userId={leader.id} username={leader.username} />
                       </p>
                     </div>
-                    <p className={styles.apValue}>{leader.ap_total} AP</p>
+                    <p className={styles.apValue}>{displaySlug(leader.character_match_id)}</p>
                     <p className={styles.leaderQuote}>{LEADER_NOTES[factionId]}</p>
                   </div>
                 ) : (
@@ -251,9 +269,7 @@ export default async function FactionDossierPage({
                     No public activity feed is maintained for this division.
                   </p>
                 ) : events.length === 0 ? (
-                  <p className={styles.panelLead}>
-                    Public faction activity has not been filed yet.
-                  </p>
+                  <p className={styles.panelLead}>Public faction activity has not been filed yet.</p>
                 ) : (
                   <div className={styles.roster}>
                     {events.map((event, index) => (

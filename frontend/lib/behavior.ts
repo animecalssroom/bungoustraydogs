@@ -34,6 +34,10 @@ function safeRecord(value: unknown) {
     : {}
 }
 
+function clampScore(value: number) {
+  return Math.max(0, Math.min(10, value))
+}
+
 export function normalizeBehaviorScores(
   value: BehaviorScores | Record<string, unknown> | null | undefined,
 ): BehaviorScores {
@@ -74,6 +78,14 @@ export function calculateBehaviorDelta(
       return { control: 1, intel: 1 }
     case 'faction_assignment':
       return { loyalty: 1, control: 1 }
+    case 'chat_message':
+      return { loyalty: 1 }
+    case 'bulletin_post':
+      return { loyalty: 1, control: 1 }
+    case 'feed_view':
+      return { intel: 1 }
+    case 'profile_view':
+      return { intel: 1 }
     case 'arena_vote':
       return {
         power: 1,
@@ -82,6 +94,12 @@ export function calculateBehaviorDelta(
           typeof metadata.character_id === 'string' ? metadata.character_id : null,
       }
     case 'lore_post':
+      return {
+        intel: 1,
+        loyalty: 2,
+        loreTopic:
+          typeof metadata.category === 'string' ? metadata.category : null,
+      }
     case 'registry_post':
     case 'write_lore':
       return {
@@ -90,9 +108,28 @@ export function calculateBehaviorDelta(
         loreTopic:
           typeof metadata.category === 'string' ? metadata.category : null,
       }
+    case 'registry_submit': {
+      const postType = typeof metadata.post_type === 'string' ? metadata.post_type : 'incident_report'
+      const continuingThread = Boolean(metadata.thread_id)
+      const base =
+        postType === 'field_note'
+          ? { intel: 1, control: 1 }
+          : postType === 'classified_report'
+            ? { intel: 2, control: 2 }
+            : postType === 'chronicle_submission'
+              ? { intel: 3, control: 3 }
+              : { intel: 1, control: 2 }
+
+      return continuingThread ? { ...base, loyalty: 1 } : base
+    }
     case 'save_lore':
     case 'registry_save':
       return { intel: 1 }
+    case 'archive_view':
+    case 'archive_read':
+      return { intel: 1 }
+    case 'faction_checkin':
+      return { loyalty: 1, control: 1 }
     case 'daily_login':
       return { loyalty: 1 }
     case 'login_streak':
@@ -133,6 +170,11 @@ export function applyBehaviorDelta(
   next.intel += delta.intel ?? 0
   next.loyalty += delta.loyalty ?? 0
   next.control += delta.control ?? 0
+
+  next.power = clampScore(next.power)
+  next.intel = clampScore(next.intel)
+  next.loyalty = clampScore(next.loyalty)
+  next.control = clampScore(next.control)
 
   if (delta.arenaVoteKey) {
     next.arena_votes[delta.arenaVoteKey] =

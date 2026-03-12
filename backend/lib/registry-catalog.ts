@@ -12,6 +12,11 @@ export const REGISTRY_FALLBACK_POSTS: RegistryPost[] = [
     content:
       'At 02:13, three independent witnesses reported a low-pressure shift along the southern Kannai corridor, followed by broken signage, displaced paper stock, and a brief white flare against the tram rails. No civilian injuries were confirmed, but the street retained abnormal claw scoring inconsistent with ordinary vehicle damage. The incident appears to match the pattern of ability discharge under emotional stress rather than deliberate assault.\n\nAgency review suggests the disturbance ended when the involved file left the district on foot rather than escalating into open confrontation. Local shopkeepers described the atmosphere afterward as quieter than it should have been, as though the rain itself had paused to listen. No faction claimed responsibility. The registry therefore retains the event as unresolved but low-risk, pending future correlation with similar reports filed after midnight.\n\nRecommendation: maintain passive observation only. The district absorbed the damage without secondary spread, and the event does not currently justify inter-faction escalation.',
     district: 'kannai',
+    post_type: 'field_note',
+    parent_post_id: null,
+    thread_id: null,
+    thread_position: 1,
+    min_words: 100,
     status: 'approved',
     featured: true,
     gemini_review: null,
@@ -40,6 +45,11 @@ export const REGISTRY_FALLBACK_POSTS: RegistryPost[] = [
     content:
       'An unauthorized pursuit crossed the eastern harbor service line shortly before dawn, leaving behind two wrecked loading cages and a narrow corridor of shredded tarpaulin. Port contacts denied operational involvement, but damage signatures suggest a cloth-based cutting ability used with high efficiency and almost no wasted motion. The route taken avoided warehouses with active personnel and instead followed the rain gutters toward the sealed berth, implying either restraint or a target already in retreat.\n\nSecondary witnesses reported no gunfire, only a sequence of impacts and then complete silence. That detail matters. Most harbor conflicts produce noise long after the decisive strike. This one did not. The city therefore reads the encounter as punitive rather than chaotic. Registry recommendation remains simple: preserve the file, do not romanticize it, and note that some factions communicate with the district only through aftermath.',
     district: 'harbor',
+    post_type: 'incident_report',
+    parent_post_id: null,
+    thread_id: null,
+    thread_position: 1,
+    min_words: 200,
     status: 'approved',
     featured: false,
     gemini_review: null,

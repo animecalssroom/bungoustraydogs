@@ -3,10 +3,13 @@ import { notFound } from 'next/navigation'
 import { ArchiveModel } from '@/backend/models/archive.model'
 import { Nav } from '@/frontend/components/ui/Nav'
 import { Footer } from '@/frontend/components/ui/Footer'
+import { ArchiveBehaviorPing } from '@/frontend/components/archive/ArchiveBehaviorPing'
 import { ArchiveVisitNote } from '@/frontend/components/archive/ArchiveVisitNote'
 import styles from '@/frontend/components/archive/Archive.module.css'
 import { getArchiveCaseNumber } from '@/frontend/lib/archive'
 import { FACTION_META } from '@/frontend/lib/launch'
+
+export const revalidate = 300
 
 function renderTraitBar(label: string, value: number | null) {
   const safeValue = value ?? 0
@@ -40,6 +43,7 @@ export default async function ArchiveEntryPage({
     <>
       <Nav />
       <main style={{ paddingTop: '96px' }}>
+        <ArchiveBehaviorPing slug={entry.slug} />
         <div className={styles.caseWrap}>
           <Link href="/archive" className={styles.sidebarEyebrow}>
             Back to archive

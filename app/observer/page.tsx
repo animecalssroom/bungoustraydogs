@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/frontend/context/AuthContext'
-import { navigateToResolvedPath } from '@/frontend/lib/launch'
+import { resolvePostAuthPath } from '@/frontend/lib/launch'
 import { Nav } from '@/frontend/components/ui/Nav'
 import { Footer } from '@/frontend/components/ui/Footer'
 
@@ -19,7 +19,7 @@ export default function ObserverPage() {
       return
     }
     if (profile && profile.role !== 'observer') {
-      navigateToResolvedPath(profile, { replace: true })
+      router.replace(resolvePostAuthPath(profile))
     }
   }, [loading, user, profile, router])
 

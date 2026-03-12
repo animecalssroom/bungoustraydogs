@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState, type CSSProperties } from 'react'
+import { useDeferredValue, useMemo, useState, type CSSProperties } from 'react'
 import Link from 'next/link'
 import type { AbilityType, ArchiveEntry } from '@/backend/types'
 import {
@@ -30,6 +30,7 @@ export function ArchiveIndex({ entries }: ArchiveIndexProps) {
   const [search, setSearch] = useState('')
   const [factionFilter, setFactionFilter] = useState<ArchiveFactionFilter>('all')
   const [abilityFilter, setAbilityFilter] = useState<'all' | AbilityType>('all')
+  const deferredSearch = useDeferredValue(search)
 
   const counts = useMemo(() => {
     return ARCHIVE_FACTION_FILTERS.reduce<Record<ArchiveFactionFilter, number>>((acc, filter) => {
@@ -39,7 +40,7 @@ export function ArchiveIndex({ entries }: ArchiveIndexProps) {
   }, [entries])
 
   const filteredEntries = useMemo(() => {
-    const query = search.trim().toLowerCase()
+    const query = deferredSearch.trim().toLowerCase()
 
     return entries.filter((entry) => {
       const matchesSearch =
@@ -55,7 +56,7 @@ export function ArchiveIndex({ entries }: ArchiveIndexProps) {
 
       return matchesSearch && matchesFaction && matchesAbility
     })
-  }, [abilityFilter, entries, factionFilter, search])
+  }, [abilityFilter, deferredSearch, entries, factionFilter])
 
   return (
     <div className={styles.archiveShell}>

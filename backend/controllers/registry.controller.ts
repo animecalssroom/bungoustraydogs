@@ -4,7 +4,8 @@ import { requireAuth, isNextResponse } from '@/backend/middleware/auth'
 import { validate } from '@/backend/middleware/validate'
 import { REGISTRY_DISTRICTS } from '@/backend/lib/registry'
 import { RegistryModel } from '@/backend/models/registry.model'
-import type { FactionId, RegistryDistrict } from '@/backend/types'
+import type { FactionId, RegistryDistrict, RegistryPostType } from '@/backend/types'
+import { sanitizeMultilineText, sanitizePlainText } from '@/backend/lib/input-safety'
 
 const RegistryDistrictSchema = z.enum([
   'kannai',
@@ -19,7 +20,13 @@ const RegistryDistrictSchema = z.enum([
 const RegistryCreateSchema = z.object({
   title: z.string().min(5).max(160),
   district: RegistryDistrictSchema,
-  content: z.string().min(200),
+  content: z.string().min(10).max(12000),
+  postType: z
+    .enum(['field_note', 'incident_report', 'classified_report', 'chronicle_submission'])
+    .default('field_note'),
+  threadMode: z.enum(['new', 'continue']).default('new'),
+  threadTitle: z.string().max(160).optional(),
+  threadId: z.string().uuid().optional(),
 })
 
 const RegistryReviewSchema = z.object({
@@ -49,9 +56,9 @@ export const RegistryController = {
     const auth = await requireAuth(req)
     if (isNextResponse(auth)) return auth
 
-    if (!['member', 'mod', 'owner'].includes(auth.profile.role) || auth.profile.rank < 2) {
+    if (!['mod', 'owner'].includes(auth.profile.role)) {
       return NextResponse.json(
-        { error: 'Registry submission requires rank 2 or higher.' },
+        { error: 'Registry filing is restricted to moderators and the owner. Use Lore for public writing.' },
         { status: 403 },
       )
     }
@@ -62,7 +69,14 @@ export const RegistryController = {
 
     const result = await RegistryModel.createSubmission(auth.profile, {
       ...parsed.data,
+      title: sanitizePlainText(parsed.data.title),
+      content: sanitizeMultilineText(parsed.data.content),
+      threadTitle: parsed.data.threadTitle
+        ? sanitizePlainText(parsed.data.threadTitle)
+        : undefined,
       district: parsed.data.district as RegistryDistrict,
+      postType: parsed.data.postType as RegistryPostType,
+      threadMode: parsed.data.threadMode ?? 'new',
     })
 
     if ('error' in result) {

@@ -1,4 +1,9 @@
-import type { FactionId, RegistryDistrict, RegistryReview } from '@/backend/types'
+import type {
+  FactionId,
+  RegistryDistrict,
+  RegistryPostType,
+  RegistryReview,
+} from '@/backend/types'
 
 export const REGISTRY_DISTRICTS: RegistryDistrict[] = [
   'kannai',
@@ -24,7 +29,69 @@ export function countWords(value: string) {
   return value.trim().split(/\s+/).filter(Boolean).length
 }
 
-export function generateRegistryCaseNumber(faction: FactionId | null, seed: number) {
+export const REGISTRY_POST_TYPE_META: Record<
+  RegistryPostType,
+  {
+    label: string
+    description: string
+    minRank: number
+    minWords: number
+    approvalAp: number
+    autoFeatured: boolean
+    routeToAngo: boolean
+  }
+> = {
+  field_note: {
+    label: 'Field Note',
+    description: 'A brief observation from the field',
+    minRank: 1,
+    minWords: 100,
+    approvalAp: 25,
+    autoFeatured: false,
+    routeToAngo: false,
+  },
+  incident_report: {
+    label: 'Incident Report',
+    description: 'A formal account of an ability incident',
+    minRank: 2,
+    minWords: 200,
+    approvalAp: 50,
+    autoFeatured: false,
+    routeToAngo: false,
+  },
+  classified_report: {
+    label: 'Classified Report',
+    description: 'A detailed classified filing',
+    minRank: 3,
+    minWords: 400,
+    approvalAp: 100,
+    autoFeatured: true,
+    routeToAngo: false,
+  },
+  chronicle_submission: {
+    label: 'Chronicle Submission',
+    description: 'A submission for the city Chronicle',
+    minRank: 5,
+    minWords: 600,
+    approvalAp: 150,
+    autoFeatured: false,
+    routeToAngo: true,
+  },
+}
+
+export function getAvailableRegistryPostTypes(rank: number) {
+  return (Object.entries(REGISTRY_POST_TYPE_META) as Array<
+    [RegistryPostType, (typeof REGISTRY_POST_TYPE_META)[RegistryPostType]]
+  >)
+    .filter(([, meta]) => rank >= meta.minRank)
+    .map(([type]) => type)
+}
+
+export function generateRegistryCaseNumber(
+  faction: FactionId | null,
+  seed: number,
+  postType: RegistryPostType,
+) {
   const initial =
     faction === 'agency'
       ? 'A'
@@ -38,7 +105,8 @@ export function generateRegistryCaseNumber(faction: FactionId | null, seed: numb
               ? 'S'
               : 'X'
 
-  return `YKH-${initial}-${new Date().getUTCFullYear()}-${String(seed).padStart(4, '0')}`
+  const suffix = postType === 'field_note' ? '-FN' : ''
+  return `YKH-${initial}-${new Date().getUTCFullYear()}${suffix}-${String(seed).padStart(4, '0')}`
 }
 
 export async function reviewRegistryPostWithGemini(input: {
@@ -46,6 +114,8 @@ export async function reviewRegistryPostWithGemini(input: {
   content: string
   authorFaction: string | null
   wordCount: number
+  postType: RegistryPostType
+  threadSummary?: string | null
 }): Promise<RegistryReview | null> {
   const apiKey = process.env.GEMINI_API_KEY
   const model = process.env.GEMINI_MODEL ?? 'gemini-1.5-flash'
@@ -55,13 +125,16 @@ export async function reviewRegistryPostWithGemini(input: {
   }
 
   const prompt = [
-    'You are reviewing a Bungou Stray Dogs incident report for a fan archive.',
+    'You are reviewing a Bungou Stray Dogs registry filing for a fan archive.',
     'Return JSON only with these keys:',
     'canon_consistent, canon_notes, character_accurate, character_notes, quality_score, recommendation, recommendation_reason.',
     'Quality score must be 0 to 1.',
     'Recommendation must be approve, review, or reject.',
     `Faction: ${input.authorFaction ?? 'unknown'}`,
+    `Post type: ${input.postType}`,
+    `Post type: ${input.postType}. Field notes require only basic canon consistency. Incident reports require full canon and character accuracy. Classified reports require full review plus consistency with author's previous posts.`,
     `Word count: ${input.wordCount}`,
+    input.threadSummary ? `Existing thread context: ${input.threadSummary}` : 'Existing thread context: none',
     `Title: ${input.title}`,
     'Content:',
     input.content,

@@ -10,6 +10,7 @@ import {
   applyBehaviorDelta,
   normalizeBehaviorScores,
 } from '@/frontend/lib/behavior'
+import { deriveAssignmentInsights } from '@/frontend/lib/assignment-rationale'
 import { getAbilityTypeForCharacter } from '@/frontend/lib/ability-types'
 import { FACTION_META, VISIBLE_FACTIONS, getCharacterReveal } from '@/frontend/lib/launch'
 
@@ -107,7 +108,6 @@ type CharacterCandidate = {
 type AssignmentEligibility = {
   qualifyingEventCount: number
   activeSignalCount: number
-  hasArenaSignal: boolean
   hasLoreSignal: boolean
   hasTransmissionSignal: boolean
 }
@@ -118,9 +118,17 @@ const QUALIFYING_EVENT_TYPES = new Set([
   'arena_vote',
   'lore_post',
   'registry_post',
+  'registry_submit',
+  'chat_message',
+  'bulletin_post',
+  'feed_view',
+  'profile_view',
   'write_lore',
   'save_lore',
   'registry_save',
+  'archive_view',
+  'archive_read',
+  'faction_checkin',
   'debate_upvote',
   'faction_event',
   'easter_egg',
@@ -131,9 +139,17 @@ const ACTIVE_SIGNAL_EVENT_TYPES = new Set([
   'arena_vote',
   'lore_post',
   'registry_post',
+  'registry_submit',
+  'chat_message',
+  'bulletin_post',
+  'feed_view',
+  'profile_view',
   'write_lore',
   'save_lore',
   'registry_save',
+  'archive_view',
+  'archive_read',
+  'faction_checkin',
   'debate_upvote',
   'faction_event',
   'easter_egg',
@@ -195,6 +211,8 @@ function parseGeminiJson(text: string) {
   const cleaned = text.replace(/```json|```/g, '').trim()
   return JSON.parse(cleaned) as {
     character_slug?: string
+    character_name?: string
+    ability_type?: AbilityType
     confidence?: number
     reasoning?: string
     registry_note?: string
@@ -286,7 +304,7 @@ async function loadRecentEventTypes(userId: string) {
     .select('event_type')
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
-    .limit(20)
+    .limit(10)
 
   return (data ?? []).map((row) => row.event_type)
 }
@@ -311,13 +329,10 @@ async function getAssignmentEligibility(userId: string): Promise<AssignmentEligi
         summary.activeSignalCount += 1
       }
 
-      if (event.event_type === 'arena_vote') {
-        summary.hasArenaSignal = true
-      }
-
       if (
         event.event_type === 'lore_post' ||
         event.event_type === 'registry_post' ||
+        event.event_type === 'registry_submit' ||
         event.event_type === 'write_lore' ||
         event.event_type === 'save_lore' ||
         event.event_type === 'registry_save'
@@ -326,8 +341,9 @@ async function getAssignmentEligibility(userId: string): Promise<AssignmentEligi
       }
 
       if (
-        event.event_type === 'faction_event' &&
-        event.metadata?.source === 'transmission'
+        event.event_type === 'chat_message' ||
+        (event.event_type === 'faction_event' &&
+          event.metadata?.source === 'transmission')
       ) {
         summary.hasTransmissionSignal = true
       }
@@ -337,7 +353,6 @@ async function getAssignmentEligibility(userId: string): Promise<AssignmentEligi
     {
       qualifyingEventCount: 0,
       activeSignalCount: 0,
-      hasArenaSignal: false,
       hasLoreSignal: false,
       hasTransmissionSignal: false,
     },
@@ -369,7 +384,10 @@ async function selectByGemini(
   const apiKey = process.env.GEMINI_API_KEY
 
   if (!apiKey || candidates.length === 0) {
-    return null
+    return {
+      match: null,
+      fallbackReason: !apiKey ? 'Gemini API key missing.' : 'No eligible candidates available.',
+    }
   }
 
   const prompt = [
@@ -382,6 +400,7 @@ async function selectByGemini(
     `Lore topics: ${JSON.stringify(behaviorScores.lore_topics)}.`,
     `Recent events: ${recentEvents.join(', ') || 'none recorded'}.`,
     '',
+    `Only consider characters from the ${faction} faction. Reserved characters have already been removed and must never be chosen.`,
     'Assignable characters:',
     ...candidates.map(
       (candidate) =>
@@ -389,7 +408,7 @@ async function selectByGemini(
     ),
     '',
     'Return strict JSON only with these keys:',
-    '{"character_slug":"slug","confidence":0.0,"reasoning":"one sentence","registry_note":"two short sentences"}',
+    '{"character_slug":"slug","character_name":"name","ability_type":"special-type","confidence":0.0,"reasoning":"one sentence","registry_note":"two short sentences"}',
   ].join('\n')
 
   try {
@@ -410,7 +429,10 @@ async function selectByGemini(
     )
 
     if (!response.ok) {
-      return null
+      return {
+        match: null,
+        fallbackReason: `Gemini API request failed with status ${response.status}.`,
+      }
     }
 
     const json = await response.json()
@@ -420,24 +442,41 @@ async function selectByGemini(
       .trim()
 
     if (!text) {
-      return null
+      return {
+        match: null,
+        fallbackReason: 'Gemini returned no candidate text.',
+      }
     }
 
     const parsed = parseGeminiJson(text)
     const candidate = candidates.find((entry) => entry.slug === parsed.character_slug)
 
-    if (!candidate) {
-      return null
+    if (
+      !candidate ||
+      parsed.character_name !== candidate.name ||
+      parsed.ability_type !== candidate.abilityType
+    ) {
+      return {
+        match: null,
+        fallbackReason: 'Gemini returned invalid or mismatched assignment JSON.',
+      }
     }
 
     return {
-      candidate,
-      confidence: typeof parsed.confidence === 'number' ? parsed.confidence : 0.5,
-      reasoning: parsed.reasoning ?? null,
-      registryNote: parsed.registry_note ?? null,
+      match: {
+        candidate,
+        confidence: typeof parsed.confidence === 'number' ? parsed.confidence : 0.5,
+        reasoning: parsed.reasoning ?? null,
+        registryNote: parsed.registry_note ?? null,
+      },
+      fallbackReason: null,
     }
-  } catch {
-    return null
+  } catch (error) {
+    return {
+      match: null,
+      fallbackReason:
+        error instanceof Error ? `Gemini parse failure: ${error.message}` : 'Gemini parse failure.',
+    }
   }
 }
 
@@ -481,7 +520,6 @@ export const CharacterAssignmentModel = {
     if (
       eligibility.qualifyingEventCount < 10 ||
       eligibility.activeSignalCount < 3 ||
-      !eligibility.hasArenaSignal ||
       (!eligibility.hasLoreSignal && !eligibility.hasTransmissionSignal) ||
       !isVisibleFaction(profile.faction)
     ) {
@@ -498,15 +536,22 @@ export const CharacterAssignmentModel = {
     }
 
     const behaviorScores = normalizeBehaviorScores(profile.behavior_scores)
-    const geminiMatch = await selectByGemini(
+    const assignmentInsights = deriveAssignmentInsights(behaviorScores, recentEvents)
+    const geminiResult = await selectByGemini(
       behaviorScores,
       candidates,
       recentEvents,
       profile.faction,
     )
+    const geminiMatch = geminiResult.match
+
+    if (!geminiMatch && geminiResult.fallbackReason) {
+      console.error('[character-assignment] Falling back to distance assignment:', geminiResult.fallbackReason)
+    }
+
     const assigned = geminiMatch?.candidate ?? selectByDistance(behaviorScores, candidates)
 
-    if (!assigned) {
+    if (!assigned || assigned.faction !== profile.faction) {
       return null
     }
 
@@ -540,8 +585,17 @@ export const CharacterAssignmentModel = {
       message: 'The city has updated your registry file.',
       payload: {
         character_slug: assigned.slug,
+        character_name: assigned.name,
+        ability_type: assigned.abilityType,
         faction: profile.faction,
         source: geminiMatch ? 'gemini' : 'distance',
+        confidence: geminiMatch?.confidence ?? null,
+        reasoning: geminiMatch?.reasoning ?? null,
+        registry_note: nextDescription,
+        dominant_axis: assignmentInsights.dominantAxis,
+        behavior_snapshot: assignmentInsights.behaviorSnapshot,
+        evidence: assignmentInsights.evidence,
+        recent_events: recentEvents,
       },
     })
 
@@ -559,8 +613,17 @@ export const CharacterAssignmentModel = {
       faction: profile.faction,
       metadata: {
         character_slug: assigned.slug,
+        character_name: assigned.name,
+        ability_type: assigned.abilityType,
         faction: profile.faction,
         source: geminiMatch ? 'gemini' : 'distance',
+        confidence: geminiMatch?.confidence ?? null,
+        reasoning: geminiMatch?.reasoning ?? null,
+        registry_note: nextDescription,
+        dominant_axis: assignmentInsights.dominantAxis,
+        behavior_snapshot: assignmentInsights.behaviorSnapshot,
+        evidence: assignmentInsights.evidence,
+        recent_events: recentEvents,
       },
     })
 

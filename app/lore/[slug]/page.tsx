@@ -1,7 +1,11 @@
 import { notFound } from 'next/navigation'
 import { Nav } from '@/frontend/components/ui/Nav'
 import { Footer } from '@/frontend/components/ui/Footer'
+import { AngoUsername } from '@/frontend/components/ango/AngoUsername'
 import { LoreModel } from '@/backend/models/lore.model'
+import { DiscussionModel } from '@/backend/models/discussion.model'
+import { CommentThread } from '@/frontend/components/discussion/CommentThread'
+import { FlagFileButton } from '@/frontend/components/support/FlagFileButton'
 
 export const dynamic = 'force-dynamic'
 
@@ -11,6 +15,7 @@ export default async function LorePostPage({
   params: { slug: string }
 }) {
   const post = await LoreModel.getBySlug(params.slug)
+  const comments = await DiscussionModel.getLoreComments(params.slug)
 
   if (!post) {
     notFound()
@@ -65,7 +70,12 @@ export default async function LorePostPage({
                   fontSize: '0.95rem',
                 }}
               >
-                {post.profiles?.username ?? 'Anonymous'} · {post.read_time} min read
+                {post.profiles?.username ? (
+                  <AngoUsername userId={post.author_id} username={post.profiles.username} />
+                ) : (
+                  'Anonymous'
+                )}{' '}
+                · {post.read_time} min read
               </p>
             </div>
 
@@ -85,6 +95,22 @@ export default async function LorePostPage({
                 {post.excerpt}
               </p>
             ) : null}
+
+            <div
+              style={{
+                marginBottom: '1.5rem',
+                padding: '1rem 1.1rem',
+                border: '1px solid var(--border)',
+                background: 'color-mix(in srgb, var(--card) 88%, transparent)',
+                fontFamily: 'Cormorant Garamond, serif',
+                color: 'var(--text2)',
+                lineHeight: 1.7,
+              }}
+            >
+              Lore is essay space: interpretation, theory, literary context, and character
+              analysis. If a piece is written like an in-world incident filing with a case
+              number and district, it belongs in the staff Registry desk instead.
+            </div>
 
             <div
               style={{
@@ -127,6 +153,28 @@ export default async function LorePostPage({
                 ))}
               </div>
             ) : null}
+
+            <div
+              style={{
+                marginTop: '2rem',
+                paddingTop: '1.5rem',
+                borderTop: '1px solid var(--border)',
+              }}
+            >
+              <FlagFileButton
+                entityType="lore_post"
+                entityId={post.id}
+                targetPath={`/lore/${encodeURIComponent(post.slug)}`}
+                targetLabel={post.title}
+              />
+            </div>
+
+            <CommentThread
+              title="Reader Thread"
+              description="Use this space for counter-readings, theory replies, author context, or a cleaner argument than the one in the main essay."
+              endpoint={`/api/lore/${encodeURIComponent(post.slug)}/comments`}
+              initialComments={comments}
+            />
           </article>
         </div>
       </main>

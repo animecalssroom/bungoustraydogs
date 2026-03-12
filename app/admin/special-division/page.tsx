@@ -46,6 +46,8 @@ export default async function Page() {
           <SpecialDivisionConsole
             unplaceable={dashboard.unplaceable}
             longTermWaitlist={dashboard.longTermWaitlist}
+            tickets={dashboard.tickets}
+            contentFlags={dashboard.contentFlags}
           />
         </section>
       </main>

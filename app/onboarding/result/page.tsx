@@ -6,9 +6,9 @@ import { gsap } from 'gsap'
 import { useAuth } from '@/frontend/context/AuthContext'
 import {
   privateFactionPath,
-  navigateToResolvedPath,
-  navigateWithSession,
+  resolvePostAuthPath,
 } from '@/frontend/lib/launch'
+import { Nav } from '@/frontend/components/ui/Nav'
 
 interface ResultPayload {
   caseNumber: string
@@ -75,11 +75,11 @@ export default function QuizResultPage() {
       return
     }
     if (profile && !profile.quiz_completed) {
-      navigateWithSession('/onboarding/quiz', { replace: true })
+      router.replace('/onboarding/quiz')
       return
     }
     if (profile?.quiz_locked && profile.quiz_completed) {
-      navigateToResolvedPath(profile, { replace: true })
+      router.replace(resolvePostAuthPath(profile))
       return
     }
 
@@ -108,7 +108,7 @@ export default function QuizResultPage() {
           error: '',
           payload: json.data ?? null,
         })
-      }, 2000)
+      }, 180)
     }
 
     void load()
@@ -155,43 +155,45 @@ export default function QuizResultPage() {
     }
 
     if (json.data?.outcome === 'waitlist') {
-      navigateWithSession('/waitlist')
+      router.push('/waitlist')
       return
     }
 
     if (json.data?.outcome === 'observer') {
-      navigateWithSession('/observer')
+      router.push('/observer')
       return
     }
 
     if (json.data?.factionId) {
-      navigateWithSession(privateFactionPath(json.data.factionId))
+      router.push(privateFactionPath(json.data.factionId))
       return
     }
 
-    navigateWithSession('/')
+    router.push('/')
   }
 
   return (
-    <main
-      style={{
-        minHeight: '100vh',
-        display: 'grid',
-        placeItems: 'center',
-        background: 'var(--bg)',
-        padding: '96px 24px 32px',
-      }}
-    >
-      <section
+    <>
+      <Nav />
+      <main
         style={{
-          width: '100%',
-          maxWidth: '700px',
-          padding: '3.5rem 3rem',
-          border: '1px solid var(--border)',
-          background: 'var(--card)',
-          textAlign: 'center',
+          minHeight: '100vh',
+          display: 'grid',
+          placeItems: 'center',
+          background: 'var(--bg)',
+          padding: '96px 24px 32px',
         }}
       >
+        <section
+          style={{
+            width: '100%',
+            maxWidth: '700px',
+            padding: '3.5rem 3rem',
+            border: '1px solid var(--border)',
+            background: 'var(--card)',
+            textAlign: 'center',
+          }}
+        >
         {state.loading ? (
           <>
             <p
@@ -414,7 +416,8 @@ export default function QuizResultPage() {
             </p>
           </>
         )}
-      </section>
-    </main>
+        </section>
+      </main>
+    </>
   )
 }

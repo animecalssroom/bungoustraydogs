@@ -1,4 +1,9 @@
 import { supabaseAdmin } from '@/backend/lib/supabase'
+import {
+  SupportModel,
+  type ContentFlagQueueItem,
+  type TicketQueueItem,
+} from '@/backend/models/support.model'
 import type {
   FactionId,
   ObserverPoolEntry,
@@ -29,6 +34,10 @@ export interface SpecialDivisionRecommendation {
   recommended_at: string | null
   recommended_by_username: string
 }
+
+export interface SpecialDivisionTicket extends TicketQueueItem {}
+
+export interface SpecialDivisionContentFlag extends ContentFlagQueueItem {}
 
 type ProfileLookup = Pick<
   Profile,
@@ -230,9 +239,16 @@ export const SpecialDivisionModel = {
         }
       })
 
+    const [tickets, contentFlags] = await Promise.all([
+      SupportModel.getQueueTickets('special_division'),
+      SupportModel.getQueueFlags('special_division'),
+    ])
+
     return {
       unplaceable,
       longTermWaitlist,
+      tickets,
+      contentFlags,
     }
   },
 

@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import type { CSSProperties } from 'react'
 import Link from 'next/link'
@@ -7,6 +7,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createClient } from '@/frontend/lib/supabase/client'
 import { FACTION_META, getCharacterReveal } from '@/frontend/lib/launch'
 import { playSound } from '@/frontend/lib/sounds'
+import { getSpecialDivisionProvisionalDesignation } from '@/frontend/lib/special-division'
 import type {
   FactionActivity,
   FactionBulletin,
@@ -21,13 +22,16 @@ import { getRankTitle } from '@/backend/types'
 import styles from './FactionPrivateSpace.module.css'
 import registryStyles from '@/frontend/components/registry/Registry.module.css'
 import { RegistryModQueue } from '@/frontend/components/registry/RegistryModQueue'
+import { FactionFeedPing } from '@/frontend/components/ui/FactionFeedPing'
+import { AngoUsername } from '@/frontend/components/ango/AngoUsername'
 
 type PrivateTab = 'bulletin' | 'feed' | 'roster' | 'chat'
 
 type RosterEntry = Pick<
   Profile,
-  'id' | 'username' | 'role' | 'rank' | 'ap_total' | 'character_match_id'
+  'id' | 'username' | 'role' | 'rank' | 'ap_total' | 'character_match_id' | 'faction'
 > & {
+  behavior_scores?: Profile['behavior_scores']
   last_seen?: string | null
 }
 
@@ -73,17 +77,6 @@ const BANNER_BASE_VARS: Record<FactionId, string> = {
   rats: 'var(--color-bg-dark)',
   decay: 'var(--color-bg-dark)',
   clock_tower: 'var(--color-bg-dark)',
-}
-
-const CASE_INITIALS: Record<FactionId, string> = {
-  agency: 'A',
-  mafia: 'M',
-  guild: 'G',
-  hunting_dogs: 'D',
-  special_div: 'S',
-  rats: 'R',
-  decay: 'X',
-  clock_tower: 'C',
 }
 
 function formatStamp(value: string) {
@@ -242,7 +235,7 @@ export function FactionPrivateSpace({
   const loadRoster = useCallback(async () => {
     const { data, error: requestError } = await supabase
       .from('profiles')
-      .select('id, username, role, rank, ap_total, character_match_id, last_seen')
+      .select('id, username, role, rank, ap_total, character_match_id, faction, behavior_scores, last_seen')
       .eq('faction', factionId)
       .in('role', ['member', 'mod'])
       .order('ap_total', { ascending: false })
@@ -439,65 +432,31 @@ export function FactionPrivateSpace({
     }
   }, [factionId, loadRoster, loadWarStrip, supabase])
 
-  const createCaseNumber = useCallback(async () => {
-    const year = new Date().getFullYear()
-    const { count, error: requestError } = await supabase
-      .from('faction_bulletins')
-      .select('id', { count: 'exact', head: true })
-      .eq('faction_id', factionId)
-
-    if (requestError) {
-      throw requestError
-    }
-
-    return `YKH-${CASE_INITIALS[factionId]}-${year}-${String((count ?? 0) + 1).padStart(3, '0')}`
-  }, [factionId, supabase])
-
   const postBulletin = useCallback(
-    async (content: string, options?: { pinned?: boolean; authorCharacter?: string | null; authorId?: string | null }) => {
-      const caseNumber = await createCaseNumber()
-
-      const { data, error: insertError } = await supabase
-        .from('faction_bulletins')
-        .insert({
-          faction_id: factionId,
-          author_id: options?.authorId ?? profile.id,
-          author_character: options?.authorCharacter ?? currentCharacter,
-          case_number: caseNumber,
+    async (content: string, options?: { pinned?: boolean }) => {
+      const response = await fetch(`/api/faction/${factionId}/bulletins`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           content,
           pinned: options?.pinned ?? false,
-        })
-        .select('*')
-        .single()
-
-      if (insertError) {
-        throw insertError
+        }),
+      })
+      const json = (await response.json().catch(() => ({}))) as {
+        error?: string
+        data?: FactionBulletin
       }
 
-      const bulletin = data as FactionBulletin
+      if (!response.ok || !json.data) {
+        throw new Error(json.error ?? 'Unable to post bulletin.')
+      }
+
+      const bulletin = json.data
       setBulletins((current) => [bulletin, ...current].slice(0, 10))
-
-      const description = `${options?.authorCharacter ?? currentCharacter} posted a bulletin`
-      const { data: activityRow } = await supabase
-        .from('faction_activity')
-        .insert({
-          faction_id: factionId,
-          event_type: 'bulletin_posted',
-          description,
-          actor_id: profile.id,
-        })
-        .select('*')
-        .single()
-
-      if (activityRow) {
-        setActivity((current) =>
-          trimActivity([activityRow as FactionActivity, ...current]),
-        )
-      }
 
       await playSound('stamp')
     },
-    [createCaseNumber, currentCharacter, factionId, profile.id, supabase],
+    [factionId],
   )
 
   const handleBulletinSubmit = async () => {
@@ -533,25 +492,23 @@ export function FactionPrivateSpace({
     setSendingMessage(true)
     setError(null)
 
-    const { data, error: insertError } = await supabase
-      .from('faction_messages')
-      .insert({
-        faction_id: factionId,
-        user_id: profile.id,
-        sender_character: currentCharacter,
-        sender_rank: currentRank,
-        content,
-      })
-      .select('id, faction_id, user_id, sender_character, sender_rank, content, created_at')
-      .single()
+    const response = await fetch(`/api/faction/${factionId}/messages`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content }),
+    })
+    const json = (await response.json().catch(() => ({}))) as {
+      error?: string
+      data?: FactionMessage
+    }
 
-    if (insertError) {
-      setError(insertError.message)
+    if (!response.ok || !json.data) {
+      setError(json.error ?? 'Unable to send transmission.')
       setSendingMessage(false)
       return
     }
 
-    const nextMessage = normalizeMessage(data as Record<string, unknown>)
+    const nextMessage = json.data
 
     setMessages((current) => {
       if (current.some((message) => message.id === nextMessage.id)) {
@@ -573,11 +530,7 @@ export function FactionPrivateSpace({
     setError(null)
 
     try {
-      await postBulletin(message.content, {
-        pinned: true,
-        authorCharacter: message.sender_character ?? '???',
-        authorId: message.user_id,
-      })
+      await postBulletin(message.content, { pinned: true })
     } catch (requestError) {
       const messageText =
         requestError instanceof Error ? requestError.message : 'Unable to pin message.'
@@ -603,6 +556,7 @@ export function FactionPrivateSpace({
 
   return (
     <section className={styles.shell} style={pageStyle}>
+      <FactionFeedPing factionId={factionId} />
       <div className={styles.wrap}>
         <section className={styles.banner}>
           <div className={styles.bannerInner}>
@@ -657,7 +611,7 @@ export function FactionPrivateSpace({
                     <div className={styles.bulletinHead}>
                       <span className={styles.caseLine}>
                         <span>{bulletin.case_number}</span>
-                        {bulletin.pinned ? <span className={styles.pinStamp}>📌</span> : null}
+                        {bulletin.pinned ? <span className={styles.pinStamp}>ðŸ“Œ</span> : null}
                       </span>
                       <span className={styles.sectionMeta}>{formatStamp(bulletin.created_at)}</span>
                     </div>
@@ -758,17 +712,29 @@ export function FactionPrivateSpace({
                         <div className={styles.nameStack}>
                           <div className={styles.rosterNameLine}>
                             {leaderId === member.id ? (
-                              <span className={styles.leaderSeal}>金</span>
+                              <span className={styles.leaderSeal}>é‡‘</span>
                             ) : null}
                             <span className={styles.rosterName}>
-                              {characterNameFromProfile(member)}
+                              {factionId === 'special_div' &&
+                              characterNameFromProfile(member) === '???' ? (
+                                <AngoUsername userId={member.id} username={member.username} />
+                              ) : (
+                                characterNameFromProfile(member)
+                              )}
                             </span>
                             {member.role === 'mod' ? (
                               <span className={styles.modBadge}>MOD</span>
                             ) : null}
                           </div>
                           <div className={styles.rosterMeta}>
-                            {getRankTitle(member.rank)}
+                            {factionId === 'special_div' && characterNameFromProfile(member) === '???'
+                              ? getSpecialDivisionProvisionalDesignation(member)?.name
+                                ? `special division draft · provisional reading: ${getSpecialDivisionProvisionalDesignation(member)?.name}`
+: 'special division draft'
+                              : `${getRankTitle(member.rank)} · `}
+                            {!(factionId === 'special_div' && characterNameFromProfile(member) === '???') ? (
+                              <AngoUsername userId={member.id} username={member.username} />
+                            ) : null}
                           </div>
                         </div>
                       </div>
@@ -806,6 +772,12 @@ export function FactionPrivateSpace({
                           <span className={styles.messageRank}>
                             {message.sender_rank ?? 'Unfiled'}
                           </span>
+                          {message.author ? (
+                            <>
+                              {' · '}
+                              <AngoUsername userId={message.author.id} username={message.author.username} />
+                            </>
+                          ) : null}
                         </div>
                       </div>
                       <div className={styles.messageActions}>
@@ -816,7 +788,7 @@ export function FactionPrivateSpace({
                             onClick={() => void handlePinMessage(message)}
                             title="Pin to bulletin"
                           >
-                            📌
+                            ðŸ“Œ
                           </button>
                         ) : null}
                         <span className={styles.messageTime}>{formatTime(message.created_at)}</span>
@@ -917,3 +889,5 @@ export function FactionPrivateSpace({
     </section>
   )
 }
+
+

@@ -16,6 +16,7 @@ type SlotRow = {
 type PublicRosterRow = {
   id: string
   username: string
+  character_name: string | null
   avatar_url: string | null
   rank: number
   ap_total: number
@@ -87,9 +88,10 @@ export const FactionModel = {
   async getLeader(id: FactionId): Promise<FactionMemberSummary | null> {
     const { data } = await supabaseAdmin
       .from('profiles')
-      .select('id, username, avatar_url, rank, ap_total, role, faction, character_match_id, last_seen')
+      .select('id, username, character_name, avatar_url, rank, ap_total, role, faction, character_match_id, last_seen')
       .eq('faction', id)
       .in('role', ['member', 'mod'])
+      .order('role', { ascending: false })
       .order('ap_total', { ascending: false })
       .order('updated_at', { ascending: true })
       .limit(1)
@@ -101,15 +103,17 @@ export const FactionModel = {
   async getPublicRoster(id: FactionId, limit = 6): Promise<FactionMemberSummary[]> {
     const { data } = await supabaseAdmin
       .from('profiles')
-      .select('id, username, avatar_url, rank, ap_total, role, faction, character_match_id, last_seen')
+      .select('id, username, character_name, avatar_url, rank, ap_total, role, faction, character_match_id, last_seen')
       .eq('faction', id)
       .in('role', ['member', 'mod'])
+      .order('role', { ascending: false })
       .order('ap_total', { ascending: false })
       .limit(limit)
 
     return ((data ?? []) as PublicRosterRow[]).map((member) => ({
       id: member.id,
       username: member.username,
+      character_name: member.character_name,
       avatar_url: member.avatar_url,
       rank: member.rank,
       ap_total: member.ap_total,

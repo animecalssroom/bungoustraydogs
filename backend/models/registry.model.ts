@@ -2,6 +2,8 @@ import { REGISTRY_FALLBACK_POSTS } from '@/backend/lib/registry-catalog'
 import {
   countWords,
   generateRegistryCaseNumber,
+  getAvailableRegistryPostTypes,
+  REGISTRY_POST_TYPE_META,
   reviewRegistryPostWithGemini,
 } from '@/backend/lib/registry'
 import { supabaseAdmin } from '@/backend/lib/supabase'
@@ -11,7 +13,9 @@ import type {
   Profile,
   RegistryDistrict,
   RegistryPost,
+  RegistryPostType,
   RegistryStatus,
+  RegistryThread,
 } from '@/backend/types'
 import { AP_VALUES, getRankTitle } from '@/backend/types'
 
@@ -22,9 +26,24 @@ type RegistryListOptions = {
   viewerId?: string | null
 }
 
+const REGISTRY_SELECT =
+  'id, case_number, author_id, author_character, author_faction, author_rank, title, content, district, post_type, parent_post_id, thread_id, thread_position, min_words, status, featured, gemini_review, mod_note, reviewed_by, word_count, save_count, created_at, approved_at, profiles:profiles!registry_posts_author_id_fkey(username, avatar_url, role, rank, faction)'
+
+type RegistryAuthorProfile = Pick<Profile, 'username' | 'avatar_url' | 'role' | 'rank' | 'faction'>
+
+type RawRegistryPost = Omit<Partial<RegistryPost>, 'profiles'> & {
+  id: string
+  title: string
+  content: string
+  profiles?: RegistryAuthorProfile | RegistryAuthorProfile[] | null
+}
+
 function normalizeRegistryPost(
-  row: Partial<RegistryPost> & { id: string; title: string; content: string },
+  row: RawRegistryPost,
 ): RegistryPost {
+  const profile =
+    Array.isArray(row.profiles) ? (row.profiles[0] ?? null) : (row.profiles ?? null)
+
   return {
     id: row.id,
     case_number: row.case_number ?? 'UNFILED',
@@ -35,6 +54,11 @@ function normalizeRegistryPost(
     title: row.title,
     content: row.content,
     district: (row.district as RegistryDistrict | null) ?? null,
+    post_type: (row.post_type as RegistryPostType | null) ?? 'field_note',
+    parent_post_id: row.parent_post_id ?? null,
+    thread_id: row.thread_id ?? null,
+    thread_position: row.thread_position ?? 1,
+    min_words: row.min_words ?? 100,
     status: (row.status as RegistryStatus) ?? 'pending',
     featured: Boolean(row.featured),
     gemini_review: row.gemini_review ?? null,
@@ -44,7 +68,24 @@ function normalizeRegistryPost(
     save_count: row.save_count ?? 0,
     created_at: row.created_at ?? new Date().toISOString(),
     approved_at: row.approved_at ?? null,
-    profiles: row.profiles ?? null,
+    profiles: profile,
+  }
+}
+
+function normalizeRegistryThread(
+  row: Partial<RegistryThread> & { id: string; title: string; author_id: string },
+): RegistryThread {
+  return {
+    id: row.id,
+    title: row.title,
+    author_id: row.author_id,
+    faction: (row.faction as FactionId | null) ?? null,
+    district: (row.district as RegistryDistrict | null) ?? null,
+    post_count: row.post_count ?? 1,
+    total_words: row.total_words ?? 0,
+    status: row.status ?? 'active',
+    created_at: row.created_at ?? new Date().toISOString(),
+    last_updated: row.last_updated ?? new Date().toISOString(),
   }
 }
 
@@ -75,14 +116,68 @@ function applyRegistryFilters(posts: RegistryPost[], options: RegistryListOption
   )
 }
 
+async function getThreadSummary(threadId: string) {
+  const { data } = await supabaseAdmin
+    .from('registry_posts')
+    .select('title, content, thread_position')
+    .eq('thread_id', threadId)
+    .eq('status', 'approved')
+    .order('thread_position', { ascending: true })
+    .limit(5)
+
+  if (!data?.length) {
+    return null
+  }
+
+  return data
+    .map((row) => `#${row.thread_position}: ${row.title} - ${String(row.content).slice(0, 180)}`)
+    .join('\n')
+}
+
 export const RegistryModel = {
+  async getOwnThreads(authorId: string) {
+    try {
+      const { data, error } = await supabaseAdmin
+        .from('registry_threads')
+        .select('*')
+        .eq('author_id', authorId)
+        .order('last_updated', { ascending: false })
+
+      if (error || !data) {
+        return []
+      }
+
+      return (data as RegistryThread[]).map((row) => normalizeRegistryThread(row))
+    } catch {
+      return []
+    }
+  },
+
+  async getThreadPosts(threadId: string, viewerId?: string | null) {
+    try {
+      const { data, error } = await supabaseAdmin
+        .from('registry_posts')
+        .select(REGISTRY_SELECT)
+        .eq('thread_id', threadId)
+        .order('thread_position', { ascending: true })
+
+      if (error || !data) {
+        return []
+      }
+
+      return (data as RawRegistryPost[])
+        .map((row) => normalizeRegistryPost(row))
+        .filter((post) => post.status === 'approved' || (viewerId && post.author_id === viewerId))
+    } catch {
+      return []
+    }
+  },
+
   async getPublic(options: RegistryListOptions = {}) {
     try {
-      let query = supabaseAdmin
+        let query = supabaseAdmin
         .from('registry_posts')
-        .select(
-          'id, case_number, author_id, author_character, author_faction, author_rank, title, content, district, status, featured, gemini_review, mod_note, reviewed_by, word_count, save_count, created_at, approved_at',
-        )
+        .select(REGISTRY_SELECT)
         .eq('status', 'approved')
         .limit(100)
 
@@ -107,7 +202,7 @@ export const RegistryModel = {
         return applyRegistryFilters(REGISTRY_FALLBACK_POSTS, options)
       }
 
-      return (data as RegistryPost[]).map((row) => normalizeRegistryPost(row))
+      return (data as RawRegistryPost[]).map((row) => normalizeRegistryPost(row))
     } catch {
       return applyRegistryFilters(REGISTRY_FALLBACK_POSTS, options)
     }
@@ -117,13 +212,11 @@ export const RegistryModel = {
     try {
       const { data } = await supabaseAdmin
         .from('registry_posts')
-        .select(
-          'id, case_number, author_id, author_character, author_faction, author_rank, title, content, district, status, featured, gemini_review, mod_note, reviewed_by, word_count, save_count, created_at, approved_at',
-        )
+        .select(REGISTRY_SELECT)
         .eq('case_number', caseNumber)
         .maybeSingle()
 
-      const post = data ? normalizeRegistryPost(data as RegistryPost) : null
+      const post = data ? normalizeRegistryPost(data as RawRegistryPost) : null
 
       if (!post) {
         return REGISTRY_FALLBACK_POSTS.find((entry) => entry.case_number === caseNumber) ?? null
@@ -148,9 +241,7 @@ export const RegistryModel = {
       const queryFaction = viewer.role === 'owner' ? faction : viewer.faction
       const { data, error } = await supabaseAdmin
         .from('registry_posts')
-        .select(
-          'id, case_number, author_id, author_character, author_faction, author_rank, title, content, district, status, featured, gemini_review, mod_note, reviewed_by, word_count, save_count, created_at, approved_at',
-        )
+        .select(REGISTRY_SELECT)
         .in('status', ['pending', 'review'])
         .eq('author_faction', queryFaction)
         .order('created_at', { ascending: true })
@@ -160,7 +251,7 @@ export const RegistryModel = {
         return []
       }
 
-      return (data as RegistryPost[]).map((row) => normalizeRegistryPost(row))
+      return (data as RawRegistryPost[]).map((row) => normalizeRegistryPost(row))
     } catch {
       return []
     }
@@ -170,18 +261,100 @@ export const RegistryModel = {
     title: string
     content: string
     district: RegistryDistrict
+    postType: RegistryPostType
+    threadMode: 'new' | 'continue'
+    threadTitle?: string
+    threadId?: string | null
   }) {
     const wordCount = countWords(input.content)
+    const availableTypes = getAvailableRegistryPostTypes(profile.rank)
 
-    if (wordCount < 200) {
-      return { error: 'Incident reports require at least 200 words.' }
+    if (!availableTypes.includes(input.postType)) {
+      return { error: 'Your rank does not permit this filing type yet.' }
+    }
+
+    const postMeta = REGISTRY_POST_TYPE_META[input.postType]
+
+    if (wordCount < postMeta.minWords) {
+      return { error: `${postMeta.label} requires at least ${postMeta.minWords} words.` }
+    }
+
+    let threadId: string | null = null
+    let parentPostId: string | null = null
+    let threadPosition = 1
+
+    if (input.threadMode === 'continue') {
+      if (!input.threadId) {
+        return { error: 'Select one of your approved threads to continue.' }
+      }
+
+      const { data: thread } = await supabaseAdmin
+        .from('registry_threads')
+        .select('*')
+        .eq('id', input.threadId)
+        .eq('author_id', profile.id)
+        .eq('status', 'active')
+        .maybeSingle()
+
+      if (!thread) {
+        return { error: 'That thread is not available for continuation.' }
+      }
+
+      threadId = thread.id
+      threadPosition = (thread.post_count ?? 0) + 1
+
+      const { data: latestThreadPost } = await supabaseAdmin
+        .from('registry_posts')
+        .select('id')
+        .eq('thread_id', thread.id)
+        .in('status', ['approved', 'pending', 'review'])
+        .order('thread_position', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      parentPostId = latestThreadPost?.id ?? null
+    } else {
+      const nextThreadTitle = input.threadTitle?.trim() || input.title.trim()
+
+      const { data: createdThread, error: threadError } = await supabaseAdmin
+        .from('registry_threads')
+        .insert({
+          title: nextThreadTitle,
+          author_id: profile.id,
+          faction: profile.faction,
+          district: input.district,
+          post_count: 1,
+          total_words: wordCount,
+          status: 'active',
+        })
+        .select('*')
+        .single()
+
+      if (threadError || !createdThread) {
+        return { error: 'Registry thread storage is not ready yet. Apply the continuation SQL first.' }
+      }
+
+      threadId = createdThread.id
     }
 
     const { count } = await supabaseAdmin
       .from('registry_posts')
       .select('id', { count: 'exact', head: true })
 
-    const caseNumber = generateRegistryCaseNumber(profile.faction, (count ?? 0) + 1)
+    const sequenceCount =
+      input.postType === 'field_note'
+        ? await supabaseAdmin
+            .from('registry_posts')
+            .select('id', { count: 'exact', head: true })
+            .eq('post_type', 'field_note')
+            .then(({ count: fieldCount }) => fieldCount ?? 0)
+        : (count ?? 0) + 1
+
+    const caseNumber = generateRegistryCaseNumber(
+      profile.faction,
+      input.postType === 'field_note' ? sequenceCount + 1 : sequenceCount,
+      input.postType,
+    )
     const authorCharacter = profile.character_name ?? profile.character_match_id ?? profile.username
     const authorRank = getRankTitle(profile.rank)
 
@@ -194,8 +367,13 @@ export const RegistryModel = {
       title: input.title,
       content: input.content,
       district: input.district,
+      post_type: input.postType,
+      parent_post_id: parentPostId,
+      thread_id: threadId,
+      thread_position: threadPosition,
+      min_words: postMeta.minWords,
       status: 'pending',
-      featured: false,
+      featured: postMeta.autoFeatured,
       word_count: wordCount,
       save_count: 0,
     }
@@ -204,9 +382,7 @@ export const RegistryModel = {
       const { data, error } = await supabaseAdmin
         .from('registry_posts')
         .insert(payload)
-        .select(
-          'id, case_number, author_id, author_character, author_faction, author_rank, title, content, district, status, featured, gemini_review, mod_note, reviewed_by, word_count, save_count, created_at, approved_at',
-        )
+        .select(REGISTRY_SELECT)
         .single()
 
       if (error || !data) {
@@ -218,6 +394,8 @@ export const RegistryModel = {
         content: input.content,
         authorFaction: profile.faction,
         wordCount,
+        postType: input.postType,
+        threadSummary: threadId ? await getThreadSummary(threadId) : null,
       })
 
       if (geminiReview) {
@@ -227,7 +405,30 @@ export const RegistryModel = {
           .eq('id', data.id)
       }
 
-      return { data: normalizeRegistryPost({ ...(data as RegistryPost), gemini_review: geminiReview ?? null }) }
+      await UserModel.addAp(profile.id, 'registry_submit', AP_VALUES.registry_submit, {
+        case_number: caseNumber,
+        district: input.district,
+        post_type: input.postType,
+        thread_id: threadId,
+      })
+
+      if (threadId && input.threadMode === 'continue') {
+        await supabaseAdmin
+          .from('registry_threads')
+          .update({
+            post_count: threadPosition,
+            total_words: wordCount,
+            last_updated: new Date().toISOString(),
+          })
+          .eq('id', threadId)
+      }
+
+      return {
+        data: normalizeRegistryPost({
+          ...(data as RawRegistryPost),
+          gemini_review: geminiReview ?? null,
+        }),
+      }
     } catch {
       return { error: 'Registry storage is not ready yet. Apply the phase 5 SQL first.' }
     }
@@ -260,14 +461,40 @@ export const RegistryModel = {
         .update({ save_count: (post.save_count ?? 0) + 1 })
         .eq('id', post.id)
 
-      await UserModel.addAp(post.author_id, 'registry_save', AP_VALUES.registry_save, {
+      await UserModel.addAp(saverId, 'registry_save', AP_VALUES.registry_save, {
         case_number: post.case_number,
-        saved_by: saverId,
+        post_id: post.id,
+        saved_author_id: post.author_id,
       })
 
       return { data: { case_number: post.case_number, save_count: (post.save_count ?? 0) + 1 } }
     } catch {
       return { error: 'Registry save failed.' }
+    }
+  },
+
+  async getSavedByUser(userId: string) {
+    try {
+      const { data, error } = await supabaseAdmin
+        .from('registry_saves')
+        .select(`created_at, post:registry_posts!registry_saves_post_id_fkey(${REGISTRY_SELECT})`)
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+
+      if (error || !data) {
+        return []
+      }
+
+      return (data as Array<{ post: RawRegistryPost | RawRegistryPost[] | null }>)
+        .map((row) =>
+          Array.isArray(row.post)
+            ? (row.post[0] ?? null)
+            : (row.post ?? null),
+        )
+        .filter((row): row is RawRegistryPost => Boolean(row))
+        .map((row) => normalizeRegistryPost(row))
+    } catch {
+      return []
     }
   },
 
@@ -282,13 +509,11 @@ export const RegistryModel = {
 
     const { data: row } = await supabaseAdmin
       .from('registry_posts')
-      .select(
-        'id, case_number, author_id, author_character, author_faction, author_rank, title, content, district, status, featured, gemini_review, mod_note, reviewed_by, word_count, save_count, created_at, approved_at',
-      )
+      .select(REGISTRY_SELECT)
       .eq('id', postId)
       .maybeSingle()
 
-    const post = row ? normalizeRegistryPost(row as RegistryPost) : null
+    const post = row ? normalizeRegistryPost(row as RawRegistryPost) : null
 
     if (!post) {
       return { error: 'Registry post not found.' }
@@ -322,9 +547,10 @@ export const RegistryModel = {
     await supabaseAdmin.from('registry_posts').update(updates).eq('id', post.id)
 
     if (input.action === 'approve') {
-      await UserModel.addAp(post.author_id, 'registry_post', AP_VALUES.registry_post, {
+      await UserModel.addAp(post.author_id, 'lore_post', AP_VALUES.lore_post, {
         case_number: post.case_number,
         district: post.district,
+        post_type: post.post_type,
       })
 
       if (input.feature && !post.featured) {

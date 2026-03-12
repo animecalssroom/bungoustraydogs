@@ -2,10 +2,13 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/frontend/lib/supabase/client'
 import type { Notification } from '@/backend/types'
 
 export default function NotificationBell({ userId }: { userId: string }) {
+  const pathname = usePathname()
+  const router = useRouter()
   const supabase = useMemo(() => createClient(), [])
   const [open, setOpen] = useState(false)
   const [notifications, setNotifications] = useState<Notification[]>([])
@@ -53,6 +56,40 @@ export default function NotificationBell({ userId }: { userId: string }) {
   }, [supabase, userId])
 
   const unreadCount = notifications.filter((item) => !item.read_at).length
+  const unreadSpecialInvite = notifications.find(
+    (item) => item.type === 'special_division_invite' && !item.read_at,
+  )
+  const specialInvitePath =
+    typeof unreadSpecialInvite?.payload?.redirect_to === 'string'
+      ? unreadSpecialInvite.payload.redirect_to
+      : '/faction/special_div'
+
+  const markSingleRead = async (notificationId: string) => {
+    const now = new Date().toISOString()
+    const response = await fetch(`/api/notifications/${notificationId}/acknowledge`, {
+      method: 'POST',
+    })
+
+    if (!response.ok) {
+      return
+    }
+
+    setNotifications((current) =>
+      current.map((item) => (item.id === notificationId ? { ...item, read_at: now } : item)),
+    )
+  }
+
+  useEffect(() => {
+    if (!unreadSpecialInvite) {
+      return
+    }
+
+    if (pathname !== specialInvitePath && pathname !== '/faction/special_div' && pathname !== '/faction/special') {
+      return
+    }
+
+    void markSingleRead(unreadSpecialInvite.id)
+  }, [pathname, specialInvitePath, unreadSpecialInvite])
 
   const markRead = async () => {
     const unreadIds = notifications.filter((item) => !item.read_at).map((item) => item.id)
@@ -61,13 +98,7 @@ export default function NotificationBell({ userId }: { userId: string }) {
       return
     }
 
-    const now = new Date().toISOString()
-
-    await supabase.from('notifications').update({ read_at: now }).in('id', unreadIds)
-
-    setNotifications((current) =>
-      current.map((item) => (item.read_at ? item : { ...item, read_at: now })),
-    )
+    await Promise.all(unreadIds.map((notificationId) => markSingleRead(notificationId)))
   }
 
   const toggle = () => {
@@ -77,6 +108,25 @@ export default function NotificationBell({ userId }: { userId: string }) {
     if (next && unreadCount > 0) {
       void markRead()
     }
+  }
+
+  const isSpecialInvite = (item: Notification) => item.type === 'special_division_invite'
+
+  const openDraftNotice = async () => {
+    if (unreadSpecialInvite) {
+      await markSingleRead(unreadSpecialInvite.id)
+    }
+
+    setOpen(true)
+  }
+
+  const reportToRegistry = async () => {
+    if (unreadSpecialInvite) {
+      await markSingleRead(unreadSpecialInvite.id)
+    }
+
+    setOpen(false)
+    router.push(specialInvitePath)
   }
 
   return (
@@ -101,6 +151,87 @@ export default function NotificationBell({ userId }: { userId: string }) {
       </button>
 
       <AnimatePresence>
+        {unreadSpecialInvite && !open ? (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.18 }}
+            style={{
+              position: 'absolute',
+              top: 'calc(100% + 0.5rem)',
+              right: 0,
+              width: '320px',
+              maxWidth: 'calc(100vw - 2rem)',
+              border: '1px solid #3f0f12',
+              background: 'color-mix(in srgb, var(--card) 86%, #120708)',
+              boxShadow: '0 18px 36px rgba(0, 0, 0, 0.18)',
+              zIndex: 699,
+              padding: '0.9rem 1rem',
+            }}
+          >
+            <div
+              className="font-space-mono"
+              style={{
+                fontSize: '0.52rem',
+                letterSpacing: '0.18em',
+                textTransform: 'uppercase',
+                color: '#8B0000',
+              }}
+            >
+              Special Division Draft
+            </div>
+            <div
+              className="font-cormorant"
+              style={{
+                marginTop: '0.45rem',
+                fontSize: '1.02rem',
+                lineHeight: 1.5,
+                color: 'var(--text2)',
+                fontStyle: 'italic',
+              }}
+            >
+              {unreadSpecialInvite.message}
+            </div>
+            <div style={{ marginTop: '0.8rem', display: 'flex', justifyContent: 'space-between', gap: '0.75rem', alignItems: 'center' }}>
+              <button
+                type="button"
+                onClick={() => void reportToRegistry()}
+                className="font-space-mono"
+                style={{
+                  border: 0,
+                  background: 'transparent',
+                  fontSize: '0.52rem',
+                  letterSpacing: '0.14em',
+                  textTransform: 'uppercase',
+                  color: '#8B0000',
+                  textDecoration: 'none',
+                  cursor: 'pointer',
+                  padding: 0,
+                }}
+              >
+                Report To Registry
+              </button>
+              <button
+                type="button"
+                onClick={() => void openDraftNotice()}
+                className="font-space-mono"
+                style={{
+                  border: 0,
+                  background: 'transparent',
+                  color: 'var(--text3)',
+                  cursor: 'pointer',
+                  fontSize: '0.52rem',
+                  letterSpacing: '0.12em',
+                  textTransform: 'uppercase',
+                }}
+              >
+                Open Notice
+              </button>
+            </div>
+          </motion.div>
+        ) : null}
+
         {open ? (
           <motion.div
             initial={{ opacity: 0, y: -8 }}
@@ -156,12 +287,28 @@ export default function NotificationBell({ userId }: { userId: string }) {
                   <div
                     className="font-cormorant"
                     style={{
-                      fontSize: '0.95rem',
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: '0.55rem',
+                      fontSize: isSpecialInvite(item) ? '1.05rem' : '0.95rem',
                       color: 'var(--text2)',
                       lineHeight: 1.5,
+                      fontStyle: isSpecialInvite(item) ? 'italic' : 'normal',
                     }}
                   >
-                    {item.message}
+                    {isSpecialInvite(item) ? (
+                      <span
+                        style={{
+                          width: '8px',
+                          height: '8px',
+                          borderRadius: '999px',
+                          background: '#8B0000',
+                          marginTop: '0.45rem',
+                          flex: '0 0 auto',
+                        }}
+                      />
+                    ) : null}
+                    <span>{item.message}</span>
                   </div>
                   <div
                     className="font-space-mono"
