@@ -178,7 +178,11 @@ export default function QuizResultPage() {
           profileReady = true
           break
         }
-      } catch {}
+      } catch (err) {
+        console.error('Polling error in result page', err)
+        // Optionally, you could set an error state here:
+        // setState((current) => ({ ...current, error: 'Polling error: ' + (err?.message || err) }))
+      }
       await new Promise((resolve) => setTimeout(resolve, 300))
       pollCount++
     }
