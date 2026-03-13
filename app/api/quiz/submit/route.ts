@@ -35,18 +35,9 @@ function deriveBehaviorQuizScores(scores: QuizScores) {
 }
 
 export async function POST(request: NextRequest) {
-  // --- Rate limit: max 3 per hour per IP ---
-  const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || ''
-  const rlKey = `quiz_submit_${ip}`
-  const nowMs = Date.now()
-  const windowMs = 60 * 60 * 1000
-  const maxReq = 3
-  const rlStore = (globalThis as any).__quizSubmitRL || ((globalThis as any).__quizSubmitRL = {})
-  rlStore[rlKey] = (rlStore[rlKey] || []).filter((t: number) => nowMs - t < windowMs)
-  if (rlStore[rlKey].length >= maxReq) {
-    return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 })
-  }
-  rlStore[rlKey].push(nowMs)
+
+  // Rate limit: 1 successful submission per user (enforced by quiz_completed check below)
+  // IP rate limit removed — unreliable on serverless + breaks shared networks
 
   const supabase = createClient()
   const {
