@@ -5,7 +5,7 @@ import { narrateDuelRound } from '@/backend/lib/duel-narrative'
 
 export const DUEL_MAX_ROUNDS = 7
 export const DUEL_SUDDEN_DEATH_ROUND = 8
-export const DUEL_ROUND_DURATION_MS = 2 * 60 * 1000
+export const DUEL_ROUND_DURATION_MS = 20 * 60 * 1000
 
 function duelSelect() {
   return 'id, challenger_id, defender_id, challenger_character, defender_character, challenger_character_slug, defender_character_slug, status, current_round, challenger_hp, defender_hp, challenger_max_hp, defender_max_hp, challenger_came_back, defender_came_back'
@@ -79,7 +79,7 @@ export async function resolveDuelRoundWithAdmin(duelId: string) {
   const [roundResult, previousRoundsResult, cooldownsResult] = await Promise.all([
     supabaseAdmin
       .from('duel_rounds')
-      .select('id, duel_id, round_number, challenger_move, defender_move, resolved_at')
+      .select('id, duel_id, round_number, challenger_move, defender_move, challenger_move_submitted_at, defender_move_submitted_at, round_started_at, round_deadline, resolved_at')
       .eq('duel_id', duelId)
       .eq('round_number', duel.current_round)
       .maybeSingle(),
@@ -97,11 +97,93 @@ export async function resolveDuelRoundWithAdmin(duelId: string) {
       .limit(20),
   ])
 
-  const round = roundResult.data as Pick<DuelRound, 'id' | 'duel_id' | 'round_number' | 'challenger_move' | 'defender_move' | 'resolved_at'> | null
+  const round = roundResult.data as Pick<
+    DuelRound,
+    | 'id'
+    | 'duel_id'
+    | 'round_number'
+    | 'challenger_move'
+    | 'defender_move'
+    | 'challenger_move_submitted_at'
+    | 'defender_move_submitted_at'
+    | 'round_started_at'
+    | 'round_deadline'
+    | 'resolved_at'
+  > | null
   const previousRounds = ((previousRoundsResult.data as DuelRound[] | null) ?? [])
   const cooldowns = ((cooldownsResult.data as DuelCooldown[] | null) ?? [])
 
-  if (!round || round.resolved_at || !round.challenger_move || !round.defender_move) {
+  if (!round || round.resolved_at) {
+    return false
+  }
+
+  // If one or both players haven't submitted and the deadline passed, handle misses/forfeits
+  if (!round.challenger_move || !round.defender_move) {
+    const deadline = round.round_deadline ? new Date(round.round_deadline).getTime() : null
+    if (!deadline || deadline > Date.now()) {
+      // Not yet due
+      return false
+    }
+
+    // Count missed submissions up to and including the current round
+    const [{ data: challengerMisses }, { data: defenderMisses }] = await Promise.all([
+      supabaseAdmin
+        .from('duel_rounds')
+        .select('id')
+        .eq('duel_id', duelId)
+        .lte('round_number', duel.current_round)
+        .is('challenger_move', null),
+      supabaseAdmin
+        .from('duel_rounds')
+        .select('id')
+        .eq('duel_id', duelId)
+        .lte('round_number', duel.current_round)
+        .is('defender_move', null),
+    ])
+
+    const challengerMissCount = (challengerMisses ?? []).length
+    const defenderMissCount = (defenderMisses ?? []).length
+
+    // If either player missed 2 or more rounds, mark duel complete and forfeit that player
+    if (challengerMissCount >= 2 || defenderMissCount >= 2) {
+      const nowIso = new Date().toISOString()
+      let winner: string | null = null
+      let loser: string | null = null
+
+      if (challengerMissCount >= 2 && defenderMissCount < challengerMissCount) {
+        winner = duel.defender_id
+        loser = duel.challenger_id
+      } else if (defenderMissCount >= 2 && challengerMissCount < defenderMissCount) {
+        winner = duel.challenger_id
+        loser = duel.defender_id
+      }
+
+      await supabaseAdmin
+        .from('duels')
+        .update({
+          status: 'complete',
+          winner_id: winner,
+          loser_id: loser,
+          completed_at: nowIso,
+        })
+        .eq('id', duel.id)
+
+      await triggerAftermathIfPossible(duel.id)
+      return true
+    }
+
+    // If both missed this deadline but neither has 2 misses yet, end duel as a draw
+    if (!round.challenger_move && !round.defender_move) {
+      await supabaseAdmin
+        .from('duels')
+        .update({ status: 'complete', completed_at: new Date().toISOString() })
+        .eq('id', duel.id)
+
+      await triggerAftermathIfPossible(duel.id)
+      return true
+    }
+
+    // If only one player missed this round but hasn't reached 2 misses overall, wait (no-op)
     return false
   }
 

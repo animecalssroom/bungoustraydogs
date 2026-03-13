@@ -204,8 +204,32 @@ export async function POST(request: NextRequest) {
     if (cooldown) {
       return NextResponse.json({ error: 'ON_COOLDOWN' }, { status: 400 })
     }
+    // Enforce max 2 uses of `special` per player in a duel
+    const { data: specialRows } = await supabaseAdmin
+      .from('duel_rounds')
+      .select('id')
+      .eq('duel_id', duel.id)
+      .eq(isChallenger ? 'challenger_move' : 'defender_move', 'special')
+      .limit(1000)
+
+    if ((specialRows ?? []).length >= 2) {
+      return NextResponse.json({ error: 'SPECIAL_LIMIT_EXCEEDED' }, { status: 400 })
+    }
   }
 
+  // Enforce max 2 uses of `gambit` per player in a duel
+  if (parsed.data.move === 'gambit') {
+    const { data: gambitRows } = await supabaseAdmin
+      .from('duel_rounds')
+      .select('id')
+      .eq('duel_id', duel.id)
+      .eq(isChallenger ? 'challenger_move' : 'defender_move', 'gambit')
+      .limit(1000)
+
+    if ((gambitRows ?? []).length >= 2) {
+      return NextResponse.json({ error: 'GAMBIT_LIMIT_EXCEEDED' }, { status: 400 })
+    }
+  }
   if (parsed.data.move === 'recover' && duel.current_round > 1) {
     const { data: previousRound } = await supabaseAdmin
       .from('duel_rounds')
