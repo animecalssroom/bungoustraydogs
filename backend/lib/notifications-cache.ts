@@ -7,7 +7,8 @@ export async function getNotificationsCache(userId: string, limit: number) {
     const key = makeKey(userId, limit)
     const raw = await redis.get(key)
     if (!raw) return null
-    return JSON.parse(raw) as unknown[]
+    if (typeof raw === 'string') return JSON.parse(raw) as unknown[]
+    return raw as unknown[]
   } catch (err) {
     console.error('[notifications-cache] get error', err)
     return null

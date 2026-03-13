@@ -1,5 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Increase timeout for static page generation during `next build`
+  staticPageGenerationTimeout: 120,
   images: {
     domains: [
       'your-project.supabase.co',
