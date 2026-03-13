@@ -164,11 +164,28 @@ export default function QuizResultPage() {
       return
     }
 
-    if (json.data?.factionId) {
-      router.push(privateFactionPath(json.data.factionId))
+    // Poll for updated profile before redirecting to faction/private area
+    let pollCount = 0
+    const maxPolls = 18 // ~5 seconds
+    let profileReady = false
+    let lastProfile = null
+    while (pollCount < maxPolls && !profileReady) {
+      try {
+        const resp = await fetch('/api/auth/me', { cache: 'no-store' })
+        const data = await resp.json()
+        lastProfile = data?.data
+        if (lastProfile?.quiz_completed && lastProfile?.quiz_locked && lastProfile?.faction) {
+          profileReady = true
+          break
+        }
+      } catch {}
+      await new Promise((resolve) => setTimeout(resolve, 300))
+      pollCount++
+    }
+    if (lastProfile?.faction) {
+      router.push(privateFactionPath(lastProfile.faction))
       return
     }
-
     router.push('/')
   }
 

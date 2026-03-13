@@ -37,6 +37,7 @@ export default function DailyLoginRitual() {
     awardedAp: number
     bonusAwarded: number
   } | null>(null)
+  const [manualClosed, setManualClosed] = useState(false)
 
   useEffect(() => {
     if (loading || !user || !profile) {
@@ -104,6 +105,9 @@ export default function DailyLoginRitual() {
     }
   }, [loading, profile, refreshProfile, user])
 
+  // Hide if manually closed
+  if (manualClosed) return null
+
   return (
     <AnimatePresence>
       {ritual ? (
@@ -128,8 +132,30 @@ export default function DailyLoginRitual() {
               width: 'min(520px, 100%)',
               padding: '2rem',
               textAlign: 'center',
+              position: 'relative',
             }}
           >
+            {/* Close button */}
+            <button
+              aria-label="Close"
+              onClick={() => {
+                setManualClosed(true)
+                setRitual(null)
+              }}
+              style={{
+                position: 'absolute',
+                top: 12,
+                right: 12,
+                background: 'none',
+                border: 'none',
+                color: 'var(--text2)',
+                fontSize: '1.5rem',
+                cursor: 'pointer',
+                zIndex: 2,
+              }}
+            >
+              ×
+            </button>
             <div
               className="font-space-mono"
               style={{

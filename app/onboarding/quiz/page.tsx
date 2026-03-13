@@ -216,6 +216,22 @@ export default function QuizPage() {
       return
     }
 
+    // Poll for updated profile before redirecting
+    let pollCount = 0
+    const maxPolls = 18 // ~5 seconds
+    let profileReady = false
+    while (pollCount < maxPolls && !profileReady) {
+      try {
+        const resp = await fetch('/api/auth/me', { cache: 'no-store' })
+        const data = await resp.json()
+        if (data?.data?.quiz_completed && data?.data?.faction) {
+          profileReady = true
+          break
+        }
+      } catch {}
+      await new Promise((resolve) => setTimeout(resolve, 300))
+      pollCount++
+    }
     router.push('/onboarding/result')
   }
 
