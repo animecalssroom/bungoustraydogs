@@ -9,12 +9,13 @@ export async function POST(
   const auth = await requireAuth(request)
   if (isNextResponse(auth)) return auth
 
+  const timestamp = new Date().toISOString()
+
   const { data, error } = await supabaseAdmin
     .from('notifications')
-    .update({ read_at: new Date().toISOString() })
+    .update({ read_at: timestamp })
     .eq('id', params.id)
     .eq('user_id', auth.user.id)
-    .is('read_at', null)
     .select('id')
     .maybeSingle()
 
@@ -26,5 +27,5 @@ export async function POST(
     return NextResponse.json({ error: 'Notification not found.' }, { status: 404 })
   }
 
-  return NextResponse.json({ data })
+  return NextResponse.json({ data: { ...data, read_at: timestamp } })
 }

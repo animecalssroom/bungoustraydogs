@@ -17,14 +17,19 @@ import { FACTION_META, VISIBLE_FACTIONS, getCharacterReveal } from '@/frontend/l
 const DEFAULT_RESERVED_CHARACTER_SLUGS = new Set([
   'mori-ogai',
   'fukuzawa-yukichi',
+  'francis-fitzgerald',
   'fitzgerald',
   'fukuchi-ouchi',
   'fyodor-dostoevsky',
   'nikolai-gogol',
   'ango-sakaguchi',
+  'sakunosuke-oda',
 ])
 
 const GEMINI_MODEL = process.env.GEMINI_MODEL ?? 'gemini-1.5-flash'
+const ASSIGNMENT_THRESHOLD = 20
+const FAST_TRACK_THRESHOLD = 10
+const GEMINI_TIMEOUT_MS = 5000
 
 const CHARACTER_SCORE_SEED: Record<
   string,
@@ -112,9 +117,28 @@ type AssignmentEligibility = {
   hasTransmissionSignal: boolean
 }
 
+type PromptContext = {
+  factionLabel: string
+  dominantQuizTrait: string
+  behavioralDrift: string
+  combatStyle: string
+  archiveInterest: string
+  activityPattern: string
+  moveSpeed: string
+  writingSample: string
+}
+
+type GeminiMatch = {
+  candidate: CharacterCandidate
+  confidence: number
+  reasoning: string | null
+  registryNote: string | null
+}
+
 const QUALIFYING_EVENT_TYPES = new Set([
   'quiz_complete',
   'faction_assignment',
+  'duel_complete',
   'arena_vote',
   'lore_post',
   'registry_post',
@@ -136,6 +160,7 @@ const QUALIFYING_EVENT_TYPES = new Set([
 ])
 
 const ACTIVE_SIGNAL_EVENT_TYPES = new Set([
+  'duel_complete',
   'arena_vote',
   'lore_post',
   'registry_post',
@@ -195,10 +220,7 @@ function registryNote(name: string, scores: BehaviorScores, reasoning?: string |
   return `Ability signature confirms designation as ${name}. ${line}${closing}`.trim()
 }
 
-function candidateDistance(
-  behaviorScores: BehaviorScores,
-  candidate: CharacterCandidate,
-) {
+function candidateDistance(behaviorScores: BehaviorScores, candidate: CharacterCandidate) {
   return (
     Math.abs(behaviorScores.power - candidate.scoreProfile.power) +
     Math.abs(behaviorScores.intel - candidate.scoreProfile.intel) +
@@ -207,22 +229,24 @@ function candidateDistance(
   )
 }
 
-function parseGeminiJson(text: string) {
-  const cleaned = text.replace(/```json|```/g, '').trim()
-  return JSON.parse(cleaned) as {
-    character_slug?: string
-    character_name?: string
-    ability_type?: AbilityType
-    confidence?: number
-    reasoning?: string
-    registry_note?: string
-  }
+function rankCandidates(behaviorScores: BehaviorScores, candidates: CharacterCandidate[]) {
+  return [...candidates].sort((left, right) => {
+    const leftDistance = candidateDistance(behaviorScores, left)
+    const rightDistance = candidateDistance(behaviorScores, right)
+
+    if (leftDistance !== rightDistance) {
+      return leftDistance - rightDistance
+    }
+
+    return left.name.localeCompare(right.name)
+  })
 }
 
-function getFallbackCandidates(
-  faction: VisibleFactionId,
-  reservedSlugs: Set<string>,
-) {
+function parseGeminiSlug(text: string) {
+  return text.replace(/```/g, '').trim().replace(/^"|"$/g, '')
+}
+
+function getFallbackCandidates(faction: VisibleFactionId, reservedSlugs: Set<string>) {
   return CHARACTER_ASSIGNMENT_POOL.filter(
     (character) =>
       character.faction === faction &&
@@ -243,19 +267,16 @@ function getFallbackCandidates(
 }
 
 async function loadReservedCharacterSlugs() {
-  const { data, error } = await supabaseAdmin
-    .from('reserved_characters')
-    .select('slug')
+  const { data, error } = await supabaseAdmin.from('reserved_characters').select('slug')
 
   if (error || !data?.length) {
     return new Set(DEFAULT_RESERVED_CHARACTER_SLUGS)
   }
 
-  return new Set(data.map((row) => row.slug))
+  return new Set([...DEFAULT_RESERVED_CHARACTER_SLUGS, ...data.map((row) => row.slug)])
 }
 
-async function loadCandidatesForFaction(faction: VisibleFactionId) {
-  const reservedSlugs = await loadReservedCharacterSlugs()
+async function loadCandidatesForFaction(faction: VisibleFactionId, reservedSlugs: Set<string>) {
   const { data, error } = await supabaseAdmin
     .from('character_profiles')
     .select('*')
@@ -298,15 +319,41 @@ async function loadCandidatesForFaction(faction: VisibleFactionId) {
   return rows.length ? rows : getFallbackCandidates(faction, reservedSlugs)
 }
 
-async function loadRecentEventTypes(userId: string) {
+async function loadRecentEvents(userId: string, limit = 25) {
   const { data } = await supabaseAdmin
     .from('user_events')
-    .select('event_type')
+    .select('event_type, metadata, created_at')
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
-    .limit(10)
+    .limit(limit)
 
-  return (data ?? []).map((row) => row.event_type)
+  return (
+    (data as Array<{
+      event_type: string
+      metadata: Record<string, unknown> | null
+      created_at: string
+    }> | null) ?? []
+  )
+}
+
+function isFastTrackDominant(scores: BehaviorScores) {
+  const values = [scores.power, scores.intel, scores.loyalty, scores.control]
+  const max = Math.max(...values)
+  const maxIndex = values.indexOf(max)
+  return values.every((value, index) => (index === maxIndex ? true : max >= value * 2))
+}
+
+function isDuelStyleDominant(scores: BehaviorScores) {
+  const values = [scores.duel_style.gambit, scores.duel_style.strike, scores.duel_style.stance]
+  const total = values.reduce((sum, value) => sum + value, 0)
+
+  if (total < 5) {
+    return false
+  }
+
+  const max = Math.max(...values)
+  const maxIndex = values.indexOf(max)
+  return values.every((value, index) => (index === maxIndex ? true : max >= value * 2))
 }
 
 async function getAssignmentEligibility(userId: string): Promise<AssignmentEligibility> {
@@ -342,8 +389,7 @@ async function getAssignmentEligibility(userId: string): Promise<AssignmentEligi
 
       if (
         event.event_type === 'chat_message' ||
-        (event.event_type === 'faction_event' &&
-          event.metadata?.source === 'transmission')
+        (event.event_type === 'faction_event' && event.metadata?.source === 'transmission')
       ) {
         summary.hasTransmissionSignal = true
       }
@@ -359,27 +405,173 @@ async function getAssignmentEligibility(userId: string): Promise<AssignmentEligi
   )
 }
 
-function selectByDistance(
+function getTraitLabel(trait: string) {
+  return trait.charAt(0).toUpperCase() + trait.slice(1)
+}
+
+function getDominantQuizTrait(
+  quizScores: Record<string, number> | null | undefined,
   behaviorScores: BehaviorScores,
-  candidates: CharacterCandidate[],
 ) {
-  return [...candidates].sort((left, right) => {
-    const leftDistance = candidateDistance(behaviorScores, left)
-    const rightDistance = candidateDistance(behaviorScores, right)
+  const source = quizScores ?? {
+    power: behaviorScores.power,
+    intel: behaviorScores.intel,
+    loyalty: behaviorScores.loyalty,
+    control: behaviorScores.control,
+  }
 
-    if (leftDistance !== rightDistance) {
-      return leftDistance - rightDistance
-    }
+  const ranked = ['power', 'intel', 'loyalty', 'control'].sort(
+    (left, right) => (source[right] ?? 0) - (source[left] ?? 0),
+  )
 
-    return left.name.localeCompare(right.name)
-  })[0]
+  return getTraitLabel(ranked[0] ?? 'control')
+}
+
+function getBehavioralDrift(
+  behaviorScores: BehaviorScores,
+  quizScores: Record<string, number> | null | undefined,
+) {
+  const drifts = ['power', 'intel', 'loyalty', 'control']
+    .map((trait) => ({
+      trait,
+      delta: (behaviorScores[trait as keyof BehaviorScores] as number) - (quizScores?.[trait] ?? 0),
+    }))
+    .sort((left, right) => right.delta - left.delta)
+    .filter((entry) => entry.delta > 0)
+
+  if (!drifts.length) {
+    return 'little visible drift from the quiz baseline yet'
+  }
+
+  return drifts
+    .slice(0, 2)
+    .map((entry) => `${getTraitLabel(entry.trait)} +${entry.delta}`)
+    .join(', ')
+}
+
+function describeCombatStyle(behaviorScores: BehaviorScores) {
+  const duelStyle = behaviorScores.duel_style
+  const total = duelStyle.gambit + duelStyle.strike + duelStyle.stance
+
+  if (!total) {
+    return 'no combat record yet'
+  }
+
+  const stanceFrequency =
+    duelStyle.stance === 0
+      ? 'never defends'
+      : duelStyle.stance >= Math.max(duelStyle.gambit, duelStyle.strike)
+        ? 'often defends'
+        : 'rarely defends'
+
+  if (duelStyle.gambit === duelStyle.strike) {
+    return `balanced between Gambit (${duelStyle.gambit}) and Strike (${duelStyle.strike}), ${stanceFrequency}`
+  }
+
+  const favored = duelStyle.gambit > duelStyle.strike ? 'Gambit' : 'Strike'
+  return `favors ${favored} (${favored === 'Gambit' ? duelStyle.gambit : duelStyle.strike} uses) over ${favored === 'Gambit' ? `Strike (${duelStyle.strike})` : `Gambit (${duelStyle.gambit})`}, ${stanceFrequency}`
+}
+
+function describeArchiveInterest(behaviorScores: BehaviorScores) {
+  const topTopics = Object.entries(behaviorScores.lore_topics)
+    .sort((left, right) => right[1] - left[1])
+    .slice(0, 3)
+
+  if (!topTopics.length) {
+    return 'no archive reading recorded yet'
+  }
+
+  return topTopics.map(([slug, count]) => `has read ${slug} ${count}x`).join(', ')
+}
+
+function describeActivityPattern(
+  events: Array<{ event_type: string; created_at: string }>,
+) {
+  if (!events.length) {
+    return 'low recorded activity so far'
+  }
+
+  const chatCount = events.filter((event) => event.event_type === 'chat_message').length
+  const registryCount = events.filter((event) =>
+    ['registry_post', 'registry_submit', 'registry_save'].includes(event.event_type),
+  ).length
+  const days = new Set(events.map((event) => event.created_at.slice(0, 10))).size
+
+  const cadence = days >= 4 ? 'consistent daily logins' : days >= 2 ? 'intermittent activity' : 'sporadic logins'
+  const social = chatCount >= 3 ? 'heavy chat presence' : chatCount > 0 ? 'light chat presence' : 'minimal chat'
+  const registry =
+    registryCount >= 3 ? 'Registry-focused' : registryCount > 0 ? 'some Registry engagement' : 'low Registry engagement'
+
+  return `${cadence}, ${social}, ${registry}`
+}
+
+function describeMoveSpeed(avgMoveSpeedMinutes: number | null | undefined) {
+  if (typeof avgMoveSpeedMinutes !== 'number' || !Number.isFinite(avgMoveSpeedMinutes)) {
+    return 'no duel data yet'
+  }
+
+  const rounded = Math.round(avgMoveSpeedMinutes * 10) / 10
+
+  if (avgMoveSpeedMinutes < 3) {
+    return `fast submitter (avg ${rounded} min) - impulsive`
+  }
+
+  if (avgMoveSpeedMinutes > 15) {
+    return `slow submitter (avg ${rounded} min) - deliberate`
+  }
+
+  return `considered submitter (avg ${rounded} min)`
+}
+
+function dominantTraitHint(candidate: CharacterCandidate) {
+  const pairs = [
+    ['power', candidate.scoreProfile.power],
+    ['intel', candidate.scoreProfile.intel],
+    ['loyalty', candidate.scoreProfile.loyalty],
+    ['control', candidate.scoreProfile.control],
+  ] as const
+  const top = [...pairs].sort((left, right) => right[1] - left[1]).slice(0, 2)
+  return top.map(([trait]) => trait).join('/')
+}
+
+async function loadPromptContext(
+  userId: string,
+  profile: Pick<Profile, 'faction' | 'quiz_scores' | 'avg_move_speed_minutes'>,
+  behaviorScores: BehaviorScores,
+  recentEvents: Array<{ event_type: string; created_at: string }>,
+): Promise<PromptContext> {
+  const [{ data: earliestPost }] = await Promise.all([
+    supabaseAdmin
+      .from('registry_posts')
+      .select('content')
+      .eq('author_id', userId)
+      .order('created_at', { ascending: true })
+      .limit(1)
+      .maybeSingle(),
+  ])
+
+  return {
+    factionLabel: profile.faction ? FACTION_META[profile.faction].name : 'Unknown faction',
+    dominantQuizTrait: getDominantQuizTrait(profile.quiz_scores, behaviorScores),
+    behavioralDrift: getBehavioralDrift(behaviorScores, profile.quiz_scores),
+    combatStyle: describeCombatStyle(behaviorScores),
+    archiveInterest: describeArchiveInterest(behaviorScores),
+    activityPattern: describeActivityPattern(recentEvents),
+    moveSpeed: describeMoveSpeed(profile.avg_move_speed_minutes),
+    writingSample:
+      typeof earliestPost?.content === 'string' && earliestPost.content.trim()
+        ? earliestPost.content.trim().slice(0, 200)
+        : 'none yet',
+  }
 }
 
 async function selectByGemini(
   behaviorScores: BehaviorScores,
   candidates: CharacterCandidate[],
-  recentEvents: string[],
   faction: VisibleFactionId,
+  fallback: CharacterCandidate,
+  reservedSlugs: Set<string>,
+  promptContext: PromptContext,
 ) {
   const apiKey = process.env.GEMINI_API_KEY
 
@@ -391,25 +583,29 @@ async function selectByGemini(
   }
 
   const prompt = [
-    'You are the Yokohama ability registry for Bungou Stray Dogs.',
-    `Select exactly one best character match for a ${faction} faction member.`,
+    `You are assigning a Bungo Stray Dogs ability user to their character within ${promptContext.factionLabel}.`,
     '',
-    `Behavior scores: power ${behaviorScores.power}, intel ${behaviorScores.intel}, loyalty ${behaviorScores.loyalty}, control ${behaviorScores.control}.`,
-    `Arena votes: ${JSON.stringify(behaviorScores.arena_votes)}.`,
-    `Duel style: ${JSON.stringify(behaviorScores.duel_style)}.`,
-    `Lore topics: ${JSON.stringify(behaviorScores.lore_topics)}.`,
-    `Recent events: ${recentEvents.join(', ') || 'none recorded'}.`,
+    'Available characters in this faction (not reserved):',
+    ...candidates.map((candidate) => `- ${candidate.slug}: ${dominantTraitHint(candidate)}`),
     '',
-    `Only consider characters from the ${faction} faction. Reserved characters have already been removed and must never be chosen.`,
-    'Assignable characters:',
-    ...candidates.map(
-      (candidate) =>
-        `- ${candidate.slug}: ${candidate.name} | ability type ${candidate.abilityType} | power ${candidate.scoreProfile.power} | intel ${candidate.scoreProfile.intel} | loyalty ${candidate.scoreProfile.loyalty} | control ${candidate.scoreProfile.control}`,
-    ),
+    'This user\'s behavioral profile:',
     '',
-    'Return strict JSON only with these keys:',
-    '{"character_slug":"slug","character_name":"name","ability_type":"special-type","confidence":0.0,"reasoning":"one sentence","registry_note":"two short sentences"}',
+    `Combat style: ${promptContext.combatStyle}`,
+    `Archive interest: ${promptContext.archiveInterest}`,
+    `Activity pattern: ${promptContext.activityPattern}`,
+    'Trait profile from quiz + behavior:',
+    `- Dominant trait from quiz: ${promptContext.dominantQuizTrait}`,
+    `- Behavioral drift since quiz: ${promptContext.behavioralDrift}`,
+    `- Current scores: Power ${behaviorScores.power} / Intel ${behaviorScores.intel} / Loyalty ${behaviorScores.loyalty} / Control ${behaviorScores.control}`,
+    `Move speed: ${promptContext.moveSpeed}`,
+    `Writing sample: ${promptContext.writingSample}`,
+    '',
+    `Based on this behavioral profile, which character in ${promptContext.factionLabel} fits them most?`,
+    'Reason from their actual behavior patterns. Return ONLY the character slug. No explanation.',
   ].join('\n')
+
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), GEMINI_TIMEOUT_MS)
 
   try {
     const response = await fetch(
@@ -421,10 +617,8 @@ async function selectByGemini(
         },
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: {
-            responseMimeType: 'application/json',
-          },
         }),
+        signal: controller.signal,
       },
     )
 
@@ -441,42 +635,39 @@ async function selectByGemini(
       .join('')
       .trim()
 
-    if (!text) {
-      return {
-        match: null,
-        fallbackReason: 'Gemini returned no candidate text.',
-      }
+    const slug = text ? parseGeminiSlug(text) : ''
+
+    if (!slug) {
+      return { match: null, fallbackReason: 'Gemini returned no candidate text.' }
     }
 
-    const parsed = parseGeminiJson(text)
-    const candidate = candidates.find((entry) => entry.slug === parsed.character_slug)
+    if (reservedSlugs.has(slug)) {
+      return { match: null, fallbackReason: `Gemini returned reserved slug "${slug}".` }
+    }
 
-    if (
-      !candidate ||
-      parsed.character_name !== candidate.name ||
-      parsed.ability_type !== candidate.abilityType
-    ) {
-      return {
-        match: null,
-        fallbackReason: 'Gemini returned invalid or mismatched assignment JSON.',
-      }
+    const candidate = candidates.find((entry) => entry.slug === slug)
+
+    if (!candidate || candidate.faction !== faction) {
+      return { match: null, fallbackReason: 'Gemini returned an invalid candidate slug.' }
     }
 
     return {
       match: {
         candidate,
-        confidence: typeof parsed.confidence === 'number' ? parsed.confidence : 0.5,
-        reasoning: parsed.reasoning ?? null,
-        registryNote: parsed.registry_note ?? null,
-      },
+        confidence: 0.5,
+        reasoning: null,
+        registryNote: null,
+      } satisfies GeminiMatch,
       fallbackReason: null,
     }
   } catch (error) {
     return {
       match: null,
       fallbackReason:
-        error instanceof Error ? `Gemini parse failure: ${error.message}` : 'Gemini parse failure.',
+        error instanceof Error ? `Gemini request failed: ${error.message}` : 'Gemini request failed.',
     }
+  } finally {
+    clearTimeout(timeout)
   }
 }
 
@@ -497,7 +688,7 @@ export const CharacterAssignmentModel = {
   async assignIfEligible(userId: string) {
     const { data } = await supabaseAdmin
       .from('profiles')
-      .select('id, username, role, faction, character_match_id, behavior_scores')
+      .select('id, username, role, faction, character_match_id, behavior_scores, quiz_scores, avg_move_speed_minutes')
       .eq('id', userId)
       .maybeSingle()
 
@@ -509,6 +700,8 @@ export const CharacterAssignmentModel = {
       | 'faction'
       | 'character_match_id'
       | 'behavior_scores'
+      | 'quiz_scores'
+      | 'avg_move_speed_minutes'
     > | null) ?? null
 
     if (!profile || !profileCanAutoAssign(profile)) {
@@ -516,9 +709,14 @@ export const CharacterAssignmentModel = {
     }
 
     const eligibility = await getAssignmentEligibility(userId)
+    const behaviorScores = normalizeBehaviorScores(profile.behavior_scores)
+    const reachedFastTrack =
+      eligibility.qualifyingEventCount >= FAST_TRACK_THRESHOLD &&
+      (isFastTrackDominant(behaviorScores) || isDuelStyleDominant(behaviorScores))
 
     if (
-      eligibility.qualifyingEventCount < 10 ||
+      eligibility.qualifyingEventCount < FAST_TRACK_THRESHOLD ||
+      (!reachedFastTrack && eligibility.qualifyingEventCount < ASSIGNMENT_THRESHOLD) ||
       eligibility.activeSignalCount < 3 ||
       (!eligibility.hasLoreSignal && !eligibility.hasTransmissionSignal) ||
       !isVisibleFaction(profile.faction)
@@ -526,22 +724,34 @@ export const CharacterAssignmentModel = {
       return null
     }
 
+    const reservedSlugs = await loadReservedCharacterSlugs()
     const [candidates, recentEvents] = await Promise.all([
-      loadCandidatesForFaction(profile.faction),
-      loadRecentEventTypes(userId),
+      loadCandidatesForFaction(profile.faction, reservedSlugs),
+      loadRecentEvents(userId),
     ])
 
     if (candidates.length === 0) {
       return null
     }
 
-    const behaviorScores = normalizeBehaviorScores(profile.behavior_scores)
-    const assignmentInsights = deriveAssignmentInsights(behaviorScores, recentEvents)
+    const rankedCandidates = rankCandidates(behaviorScores, candidates)
+    const fallback = rankedCandidates[0]
+    const secondary = rankedCandidates[1] ?? null
+
+    if (!fallback || reservedSlugs.has(fallback.slug)) {
+      return null
+    }
+
+    const promptContext = await loadPromptContext(userId, profile, behaviorScores, recentEvents)
+    const recentEventTypes = recentEvents.slice(0, 10).map((event) => event.event_type)
+    const assignmentInsights = deriveAssignmentInsights(behaviorScores, recentEventTypes)
     const geminiResult = await selectByGemini(
       behaviorScores,
       candidates,
-      recentEvents,
       profile.faction,
+      fallback,
+      reservedSlugs,
+      promptContext,
     )
     const geminiMatch = geminiResult.match
 
@@ -549,9 +759,9 @@ export const CharacterAssignmentModel = {
       console.error('[character-assignment] Falling back to distance assignment:', geminiResult.fallbackReason)
     }
 
-    const assigned = geminiMatch?.candidate ?? selectByDistance(behaviorScores, candidates)
+    const assigned = geminiMatch?.candidate ?? fallback
 
-    if (!assigned || assigned.faction !== profile.faction) {
+    if (!assigned || assigned.faction !== profile.faction || reservedSlugs.has(assigned.slug)) {
       return null
     }
 
@@ -574,29 +784,38 @@ export const CharacterAssignmentModel = {
         character_description: nextDescription,
         character_type: assigned.abilityType,
         character_assigned_at: assignedAt,
+        secondary_character_slug: secondary?.slug ?? null,
+        secondary_character_name: secondary?.name ?? null,
         behavior_scores: behaviorScores,
         updated_at: assignedAt,
       })
       .eq('id', userId)
 
+    const assignmentPayload = {
+      character_slug: assigned.slug,
+      character_name: assigned.name,
+      secondary_character_slug: secondary?.slug ?? null,
+      secondary_character_name: secondary?.name ?? null,
+      ability_type: assigned.abilityType,
+      faction: profile.faction,
+      source: geminiMatch ? 'gemini' : 'distance',
+      confidence: geminiMatch?.confidence ?? null,
+      reasoning: geminiMatch?.reasoning ?? null,
+      registry_note: nextDescription,
+      dominant_axis: assignmentInsights.dominantAxis,
+      behavior_snapshot: assignmentInsights.behaviorSnapshot,
+      evidence: assignmentInsights.evidence,
+      recent_events: recentEventTypes,
+      prompt_context: promptContext,
+      fast_tracked: reachedFastTrack,
+      event_threshold: reachedFastTrack ? FAST_TRACK_THRESHOLD : ASSIGNMENT_THRESHOLD,
+    }
+
     await supabaseAdmin.from('notifications').insert({
       user_id: userId,
       type: 'character_assigned',
       message: 'The city has updated your registry file.',
-      payload: {
-        character_slug: assigned.slug,
-        character_name: assigned.name,
-        ability_type: assigned.abilityType,
-        faction: profile.faction,
-        source: geminiMatch ? 'gemini' : 'distance',
-        confidence: geminiMatch?.confidence ?? null,
-        reasoning: geminiMatch?.reasoning ?? null,
-        registry_note: nextDescription,
-        dominant_axis: assignmentInsights.dominantAxis,
-        behavior_snapshot: assignmentInsights.behaviorSnapshot,
-        evidence: assignmentInsights.evidence,
-        recent_events: recentEvents,
-      },
+      payload: assignmentPayload,
     })
 
     await supabaseAdmin.from('faction_activity').insert({
@@ -611,20 +830,7 @@ export const CharacterAssignmentModel = {
       event_type: 'character_assigned',
       ap_awarded: 0,
       faction: profile.faction,
-      metadata: {
-        character_slug: assigned.slug,
-        character_name: assigned.name,
-        ability_type: assigned.abilityType,
-        faction: profile.faction,
-        source: geminiMatch ? 'gemini' : 'distance',
-        confidence: geminiMatch?.confidence ?? null,
-        reasoning: geminiMatch?.reasoning ?? null,
-        registry_note: nextDescription,
-        dominant_axis: assignmentInsights.dominantAxis,
-        behavior_snapshot: assignmentInsights.behaviorSnapshot,
-        evidence: assignmentInsights.evidence,
-        recent_events: recentEvents,
-      },
+      metadata: assignmentPayload,
     })
 
     return {

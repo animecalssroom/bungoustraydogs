@@ -25,7 +25,7 @@ export const UserModel = {
   async getById(id: string): Promise<Profile | null> {
     const { data } = await supabaseAdmin
       .from('profiles')
-      .select('id, username, username_confirmed, email, avatar_url, bio, theme, role, faction, character_name, character_match_id, character_ability, character_ability_jp, character_description, character_type, character_assigned_at, exam_completed, exam_taken_at, exam_answers, exam_scores, exam_status, quiz_completed, quiz_locked, assignment_flag_used, trait_scores, behavior_scores, exam_retake_eligible_at, exam_retake_used, ap_total, rank, login_streak, last_seen, created_at, updated_at')
+      .select('*')
       .eq('id', id)
       .single()
 
@@ -33,13 +33,34 @@ export const UserModel = {
   },
 
   async getByUsername(username: string): Promise<Profile | null> {
-    const { data } = await supabaseAdmin
-      .from('profiles')
-      .select('id, username, username_confirmed, email, avatar_url, bio, theme, role, faction, character_name, character_match_id, character_ability, character_ability_jp, character_description, character_type, character_assigned_at, exam_completed, exam_taken_at, exam_answers, exam_scores, exam_status, quiz_completed, quiz_locked, assignment_flag_used, trait_scores, behavior_scores, exam_retake_eligible_at, exam_retake_used, ap_total, rank, login_streak, last_seen, created_at, updated_at')
-      .eq('username', username)
-      .single()
+    const normalizedUsername = username.trim().replace(/^@+/, '')
 
-    return (data as Profile | null) ?? null
+    const { data, error } = await supabaseAdmin
+      .from('profiles')
+      .select('*')
+      .eq('username', normalizedUsername)
+      .maybeSingle()
+
+    if (data) {
+      return data as Profile
+    }
+
+    if (error && !error.message.toLowerCase().includes('multiple')) {
+      return null
+    }
+
+    const fallback = await supabaseAdmin
+      .from('profiles')
+      .select('*')
+      .ilike('username', normalizedUsername)
+      .limit(5)
+
+    const exactMatch =
+      ((fallback.data as Profile[] | null) ?? []).find(
+        (profile) => profile.username.trim().toLowerCase() === normalizedUsername.toLowerCase(),
+      ) ?? null
+
+    return exactMatch
   },
 
   async update(id: string, updates: Partial<Profile>): Promise<Profile | null> {
@@ -47,7 +68,7 @@ export const UserModel = {
       .from('profiles')
       .update({ ...updates, updated_at: new Date().toISOString() })
       .eq('id', id)
-      .select('id, username, username_confirmed, email, avatar_url, bio, theme, role, faction, character_name, character_match_id, character_ability, character_ability_jp, character_description, character_type, character_assigned_at, exam_completed, exam_taken_at, exam_answers, exam_scores, exam_status, quiz_completed, quiz_locked, assignment_flag_used, trait_scores, behavior_scores, exam_retake_eligible_at, exam_retake_used, ap_total, rank, login_streak, last_seen, created_at, updated_at')
+      .select('*')
       .single()
 
     return (data as Profile | null) ?? null

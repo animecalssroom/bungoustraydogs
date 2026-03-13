@@ -82,16 +82,16 @@ export function GuideBotWidget() {
   }, [awaitingDismissConfirm, dismissStatus, isLoading, isOpen, messages])
 
   const suggestions = useMemo(() => getSuggestions(profile), [profile])
-  const displayedMessages = messages.length
-    ? messages
-    : [
-        {
-          id: 'guide-bot-intro',
-          role: 'assistant' as const,
-          content: FIRST_MESSAGE,
-          created_at: new Date().toISOString(),
-        },
-      ]
+  const introMessage = useMemo(
+    () => ({
+      id: 'guide-bot-intro',
+      role: 'assistant' as const,
+      content: FIRST_MESSAGE,
+      created_at: 'guide-bot-intro',
+    }),
+    [],
+  )
+  const displayedMessages = messages.length ? messages : [introMessage]
 
   const showSuggestions = messages.length === 0
   const pulse = !profile?.exam_completed || !profile?.faction
@@ -106,24 +106,67 @@ export function GuideBotWidget() {
   return (
     <>
       {isOpen ? (
-        <aside className={styles.panel}>
-          <header className={styles.header}>
+        <aside
+          className={styles.panel}
+          style={{
+            boxShadow: '0 8px 40px 0 rgba(0,0,0,0.55)',
+            borderRadius: '1.1rem',
+            background: 'linear-gradient(135deg, #18181b 80%, #23232b 100%)',
+            border: '2px solid #3f3f46',
+            maxWidth: '95vw',
+            width: 'min(420px, 95vw)',
+            height: 'min(600px, 80vh)',
+          }}
+        >
+          <header
+            className={styles.header}
+            style={{
+              borderRadius: '1.1rem 1.1rem 0 0',
+              background: 'rgba(24,24,27,0.96)',
+              borderBottom: '1.5px solid #27272a',
+              padding: '1.1rem 1.2rem',
+            }}
+          >
             <div>
-              <div className={styles.title}>YOKOHAMA REGISTRY TERMINAL</div>
-              <div className={styles.subtitle}>Yokohama Ability Registry Terminal</div>
+              <div className={styles.title} style={{ fontSize: '0.82rem', color: '#e4e4e7' }}>
+                YOKOHAMA REGISTRY TERMINAL
+              </div>
+              <div className={styles.subtitle} style={{ fontSize: '0.68rem', color: '#a1a1aa' }}>
+                Yokohama Ability Registry Terminal
+              </div>
             </div>
-            <button type="button" className={styles.close} onClick={() => setIsOpen(false)}>
+            <button
+              type="button"
+              className={styles.close}
+              onClick={() => setIsOpen(false)}
+              style={{ fontSize: '1.2rem', color: '#a1a1aa' }}
+            >
               X
             </button>
           </header>
 
-          <div className={styles.messages} ref={scrollRef}>
+          <div className={styles.messages} ref={scrollRef} style={{ padding: '1.2rem', fontSize: '1.04rem' }}>
             {displayedMessages.map((message) => (
               <div
                 key={message.id}
                 className={message.role === 'user' ? styles.messageUser : styles.messageBot}
+                style={
+                  message.role === 'user'
+                    ? {
+                        background: 'linear-gradient(90deg, #23232b 60%, #18181b 100%)',
+                        color: '#fafafc',
+                        border: '1.5px solid #3f3f46',
+                        marginLeft: '2.5rem',
+                      }
+                    : {
+                        background: 'linear-gradient(90deg, #18181b 80%, #23232b 100%)',
+                        color: '#d4d4d8',
+                        border: '1.5px solid #27272a',
+                        marginRight: '2.5rem',
+                      }
+                }
               >
-                {message.role === 'assistant' ? <span className={styles.prefix}>▸</span> : null}
+                {message.role === 'assistant' ? <span className={styles.prefix}>{'>'}</span> : null}
                 {message.content}
               </div>
             ))}
@@ -143,22 +186,25 @@ export function GuideBotWidget() {
               </div>
             ) : null}
 
-            {isLoading ? <div className={styles.loading}>▸ . . .</div> : null}
+            {isLoading ? <div className={styles.loading}>{'> ...'}</div> : null}
             {awaitingDismissConfirm ? (
               <div className={styles.messageBot}>
-                <span className={styles.prefix}>▸</span>
+                <span className={styles.prefix}>{'>'}</span>
                 Confirming dismissal. This terminal will not appear again. Type CONFIRM to proceed.
               </div>
             ) : null}
             {dismissStatus ? (
               <div className={styles.messageBot}>
-                <span className={styles.prefix}>▸</span>
+                <span className={styles.prefix}>{'>'}</span>
                 {dismissStatus}
               </div>
             ) : null}
           </div>
 
-          <div className={styles.composer}>
+          <div
+            className={styles.composer}
+            style={{ background: '#23232b', borderTop: '1.5px solid #27272a', borderRadius: '0 0 1.1rem 1.1rem' }}
+          >
             <textarea
               value={input}
               onChange={(event) => setInput(event.target.value)}
@@ -185,6 +231,14 @@ export function GuideBotWidget() {
               }}
               placeholder="Query the registry..."
               className={styles.input}
+              style={{
+                fontSize: '1.04rem',
+                background: '#18181b',
+                color: '#fafafc',
+                borderRadius: '0.5rem',
+                border: '1.5px solid #27272a',
+                padding: '0.7rem 1rem',
+              }}
             />
             <div className={styles.hintRow}>
               <span className={styles.hint}>Enter to transmit</span>
@@ -212,7 +266,7 @@ export function GuideBotWidget() {
           aria-label="City Registry Terminal"
         >
           <span className={styles.triggerLabel}>City Registry Terminal</span>
-          {'>_'}
+          <span className={styles.triggerGlyph}>{'>_'}</span>
           {pulse || subtleIndicator ? (
             <span className={`${styles.indicator} ${pulse ? styles.indicatorAlert : ''}`} />
           ) : null}

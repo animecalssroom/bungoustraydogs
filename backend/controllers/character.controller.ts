@@ -28,12 +28,12 @@ export const CharacterController = {
 
       return NextResponse.json(
         {
-          error: 'Character assignment is not available yet.',
+            error: 'Character assignment is not available yet.',
           data: {
             eventCount,
-            threshold: 10,
+            threshold: 20,
             requirements: [
-              '10 qualifying non-login events',
+              '20 qualifying non-login events, or 10 with overwhelming trait dominance',
               'At least 1 arena vote',
               'At least 1 lore or transmission signal',
               'At least 3 active participation events total',

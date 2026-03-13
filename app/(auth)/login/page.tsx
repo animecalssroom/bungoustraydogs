@@ -68,23 +68,8 @@ export default function LoginPage() {
     }
   }, [])
 
-  const handleGoogle = async () => {
-    setLoading(true)
-    setError('')
-    setNotice('')
 
-    const { error: authError } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-      },
-    })
-
-    if (authError) {
-      setError(authError.message)
-      setLoading(false)
-    }
-  }
+  // Google OAuth removed
 
   const handleLogin = async () => {
     setLoading(true)
@@ -223,33 +208,8 @@ export default function LoginPage() {
         </div>
 
         <div style={{ display: 'grid', gap: '0.9rem' }}>
-          <button
-            type="button"
-            onClick={() => void handleGoogle()}
-            disabled={loading}
-            className="btn-secondary"
-            style={{ width: '100%' }}
-          >
-            Continue with Google
-          </button>
 
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr auto 1fr',
-              alignItems: 'center',
-              gap: '12px',
-              color: 'var(--text4)',
-              fontFamily: 'Space Mono, monospace',
-              fontSize: '0.55rem',
-              letterSpacing: '0.2em',
-              textTransform: 'uppercase',
-            }}
-          >
-            <span style={{ height: '1px', background: 'var(--border)' }} />
-            <span>or</span>
-            <span style={{ height: '1px', background: 'var(--border)' }} />
-          </div>
+          {/* Google OAuth button and divider removed */}
 
           <input
             value={email}

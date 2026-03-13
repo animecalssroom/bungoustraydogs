@@ -127,7 +127,6 @@ export function useGuideBot(profile: Profile | null) {
           created_at: new Date().toISOString(),
         },
       ]
-      console.log('[guide-bot] messages before POST', historySnapshot)
       return {
         ...current,
         input: '',
