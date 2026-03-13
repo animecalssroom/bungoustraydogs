@@ -1,4 +1,5 @@
 import { supabaseAdmin } from '@/backend/lib/supabase'
+import { redis } from '@/lib/redis'
 import { buildExamRetakeEligibleAtIso } from '@/backend/lib/exam-retake'
 import { FACTION_META, VISIBLE_FACTIONS, getCharacterReveal } from '@/frontend/lib/launch'
 import { getAbilityTypeForCharacter } from '@/frontend/lib/ability-types'
@@ -10,6 +11,7 @@ import type {
   VisibleFactionId,
 } from '@/backend/types'
 import { WaitlistModel } from '@/backend/models/waitlist.model'
+import { invalidateNotificationsCache } from '@/backend/lib/notifications-cache'
 import {
   SpecialDivisionModel,
   type SpecialDivisionRecommendation,
@@ -92,6 +94,7 @@ async function createNotification(
     message,
     payload,
   })
+  try { await invalidateNotificationsCache(userId) } catch (err) { console.error('[notifications] invalidate error', err) }
 }
 
 async function getFlagUserMap(flags: AssignmentFlag[]) {
@@ -664,6 +667,12 @@ export const OwnerModel = {
         source: 'owner',
       },
     })
+
+    try {
+      await redis.del(`event_summary:${userId}`)
+    } catch (e) {
+      /* ignore cache-bust error */
+    }
 
     return {
       data: {

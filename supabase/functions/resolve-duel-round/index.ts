@@ -190,11 +190,11 @@ async function resolveSingleDuel(duelId: string) {
     await fetch(`${supabaseUrl}/rest/v1/duel_rounds`, {
       method: 'POST',
       headers,
-      body: JSON.stringify({
+        body: JSON.stringify({
         duel_id: duel.id,
         round_number: nextRoundNumber,
         round_started_at: new Date().toISOString(),
-        round_deadline: new Date(Date.now() + 2 * 60 * 1000).toISOString(),
+        round_deadline: new Date(Date.now() + 20 * 60 * 1000).toISOString(),
         is_sudden_death: goToSuddenDeath || isSuddenDeath,
       }),
     })
@@ -203,11 +203,11 @@ async function resolveSingleDuel(duelId: string) {
     await fetch(`${supabaseUrl}/rest/v1/duel_rounds`, {
       method: 'POST',
       headers,
-      body: JSON.stringify({
+        body: JSON.stringify({
         duel_id: duel.id,
         round_number: nextRoundNumber,
         round_started_at: new Date().toISOString(),
-        round_deadline: new Date(Date.now() + 2 * 60 * 1000).toISOString(),
+        round_deadline: new Date(Date.now() + 20 * 60 * 1000).toISOString(),
       }),
     })
   }

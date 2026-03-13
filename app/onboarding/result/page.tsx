@@ -117,6 +117,14 @@ export default function QuizResultPage() {
     }
   }, [loading, user, profile, router])
 
+  // Redirect users who already have a faction to their profile
+  useEffect(() => {
+    if (!profile) return
+    if (profile?.faction && profile?.role === 'member') {
+      router.replace(`/profile/${profile.username}`)
+    }
+  }, [profile, router])
+
   useEffect(() => {
     if (state.loading || !state.payload?.faction) {
       return
@@ -132,6 +140,8 @@ export default function QuizResultPage() {
       { opacity: 1, y: 0, scale: 1, duration: 0.3, ease: 'back.out(1.6)' },
       3.0,
     )
+    // Fade in city assessment after faction philosophy
+    timeline.to('.city-assessment', { opacity: 1, y: 0, duration: 0.5 }, 4.0)
 
     return () => {
       timeline.kill()
@@ -313,6 +323,67 @@ export default function QuizResultPage() {
                 ? FACTION_PHILOSOPHIES[state.payload.factionId]
                 : state.payload.faction.philosophy}
             </p>
+            {/* CITY ASSESSMENT block */}
+            <div
+              className="city-assessment"
+              style={{
+                opacity: 0,
+                transform: 'translateY(6px)',
+                transition: 'opacity 200ms ease, transform 200ms ease',
+                marginTop: '1.25rem',
+                color: 'var(--muted)',
+                textAlign: 'left',
+                maxWidth: '520px',
+                marginLeft: 'auto',
+                marginRight: 'auto',
+                fontFamily: 'var(--font-body)',
+              }}
+            >
+              {profile?.faction === 'special_div' ? (
+                <p
+                  className="font-cormorant"
+                  style={{ fontStyle: 'italic', color: 'var(--text2)' }}
+                >
+                  Special Division does not follow standard assessment protocol.
+                  Your designation will be determined by Ango Sakaguchi directly.
+                  You will be notified.
+                </p>
+              ) : (
+                <div>
+                  <div style={{ borderTop: '1px solid var(--border)', paddingTop: '0.85rem', marginBottom: '0.5rem' }} />
+                  <div style={{ fontFamily: 'Space Mono, monospace', color: 'var(--foreground)', marginBottom: '0.5rem' }}>CITY ASSESSMENT</div>
+                  <p className="font-cormorant" style={{ fontStyle: 'italic', color: 'var(--text2)', marginBottom: '0.8rem' }}>
+                    &ldquo;Faction placement is filed. Character designation follows.
+
+                    The city does not assign ability signatures on arrival.
+                    It observes. It records. It waits until the pattern is clear.
+
+                    Engage with Yokohama. Your file will update itself.&rdquo;
+                  </p>
+
+                  <div style={{ fontFamily: 'Space Mono, monospace', marginBottom: '0.6rem', color: 'var(--foreground)' }}>── HOW ASSIGNMENT WORKS ──────────────</div>
+                  <div style={{ display: 'grid', gap: '0.45rem', color: 'var(--muted)' }}>
+                    <div>◈ USE THE CITY → Daily login, read the Archive, post in your faction feed</div>
+                    <div>◈ BUILD YOUR RECORD → The city tracks 7 types of activity. Twenty recorded events trigger analysis.</div>
+                    <div>◈ THE CITY DECIDES → Gemini analyses your behavior pattern and assigns the character whose traits match yours most closely.</div>
+                  </div>
+
+                  <div style={{ marginTop: '0.8rem', fontFamily: 'Space Mono, monospace', color: 'var(--foreground)' }}>── WHAT COUNTS ───────────────────────</div>
+                  <div style={{ marginTop: '0.45rem', color: 'var(--muted)', fontFamily: 'var(--font-literary)' }}>
+                    <div style={{ fontFamily: 'Space Mono, monospace', fontSize: '0.84rem' }}>
+                      Daily login &nbsp;&nbsp; ×1 per day<br />
+                      Faction chat post &nbsp;&nbsp; ×3 per day max<br />
+                      Archive read &nbsp;&nbsp; ×5 per day max<br />
+                      Profile views &nbsp;&nbsp; ×1 per unique profile per day<br />
+                      Registry post &nbsp;&nbsp; counts on approval<br />
+                      Duel completion &nbsp;&nbsp; win or loss, both count<br />
+                      Arena vote &nbsp;&nbsp; ×1 per vote
+                    </div>
+                    <div style={{ marginTop: '0.6rem', fontFamily: 'Space Mono, monospace' }}>Twenty events → analysis fires → character assigned.</div>
+                  </div>
+                </div>
+              )}
+            </div>
             <p
               style={{
                 marginTop: '1.5rem',

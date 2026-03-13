@@ -565,6 +565,7 @@ export const RegistryModel = {
         message: `Your incident report ${post.case_number} has been accepted into the Registry. The city remembers.`,
         payload: { case_number: post.case_number },
       })
+      try { await import('@/backend/lib/notifications-cache').then(m=>m.invalidateNotificationsCache(post.author_id)) } catch (err) { console.error('[notifications] invalidate error', err) }
 
       if (post.author_faction) {
         await supabaseAdmin.from('faction_activity').insert({
@@ -584,6 +585,7 @@ export const RegistryModel = {
             : `Your incident report ${post.case_number} needs revision. ${input.note?.trim()}`,
         payload: { case_number: post.case_number },
       })
+      try { await import('@/backend/lib/notifications-cache').then(m=>m.invalidateNotificationsCache(post.author_id)) } catch (err) { console.error('[notifications] invalidate error', err) }
     }
 
     return { data: { id: post.id, status: nextStatus } }

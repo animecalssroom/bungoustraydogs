@@ -77,26 +77,40 @@ async function clearExistingOutcome(
 }
 
 export const OnboardingModel = {
+  
+  // --- UPDATED: Dynamic count that ignores bots and auto-heals state drift ---
   async factionHasSpace(faction: VisibleFactionId) {
-    const { data, error } = await supabaseAdmin.rpc('faction_has_space', {
-      p_faction: faction,
-    })
-
-    if (!error && typeof data === 'boolean') {
-      return data
-    }
-
-    const { data: row } = await supabaseAdmin
+    const { data: slotRow } = await supabaseAdmin
       .from('faction_slots')
-      .select('active_count, max_slots')
+      .select('max_slots')
       .eq('faction', faction)
       .single()
 
-    if (!row) {
+    if (!slotRow) {
       return false
     }
 
-    return row.active_count < row.max_slots
+    const { count, error } = await supabaseAdmin
+      .from('profiles')
+      .select('id', { count: 'exact', head: true })
+      .eq('faction', faction)
+      .in('role', ['member', 'mod'])
+      .eq('is_bot', false)
+
+    if (error) {
+      console.error(`[Faction Capacity] Error counting members for ${faction}:`, error)
+      return false 
+    }
+
+    const currentHumanCount = count ?? 0
+
+    // Auto-Heal the database: update the broken counter so the frontend is accurate
+    await supabaseAdmin
+      .from('faction_slots')
+      .update({ active_count: currentHumanCount })
+      .eq('faction', faction)
+
+    return currentHumanCount < slotRow.max_slots
   },
 
   async accept(userId: string) {
@@ -181,13 +195,13 @@ export const OnboardingModel = {
       character_match_id: null,
       character_ability: null,
       character_ability_jp: null,
-        character_description: null,
-        character_type: null,
-        character_assigned_at: null,
-        exam_completed: true,
-        quiz_completed: true,
-        quiz_locked: true,
-      })
+      character_description: null,
+      character_type: null,
+      character_assigned_at: null,
+      exam_completed: true,
+      quiz_completed: true,
+      quiz_locked: true,
+    })
 
     const entry = await WaitlistModel.enqueue(
       userId,

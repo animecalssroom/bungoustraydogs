@@ -53,6 +53,7 @@ export function GuideBotWidget() {
     setIsOpen,
   } = useGuideBot(profile)
   const [visitCount, setVisitCount] = useState(0)
+  const [isForceMinimized, setIsForceMinimized] = useState(false)
   const [awaitingDismissConfirm, setAwaitingDismissConfirm] = useState(false)
   const [dismissStatus, setDismissStatus] = useState<string | null>(null)
   const scrollRef = useRef<HTMLDivElement | null>(null)
@@ -73,6 +74,18 @@ export function GuideBotWidget() {
       setIsOpen(true)
     }
   }, [isDismissed, profile, setIsOpen])
+
+  // Minimize/hide the widget on specific pages for mobile viewports
+  useEffect(() => {
+    const HIDE_BOT_PAGES = ['/faction', '/registry/submit', '/duels/']
+    const shouldHide = HIDE_BOT_PAGES.some((p) => pathname?.startsWith(p))
+    if (shouldHide && typeof window !== 'undefined' && window.innerWidth < 768) {
+      setIsForceMinimized(true)
+      setIsOpen(false)
+    } else {
+      setIsForceMinimized(false)
+    }
+  }, [pathname, setIsOpen])
 
   useEffect(() => {
     scrollRef.current?.scrollTo({
@@ -105,7 +118,7 @@ export function GuideBotWidget() {
 
   return (
     <>
-      {isOpen ? (
+      {isOpen && !isForceMinimized ? (
         <aside
           className={styles.panel}
           style={{
@@ -262,7 +275,13 @@ export function GuideBotWidget() {
         <button
           type="button"
           className={`${styles.trigger} ${pulse ? styles.triggerPulse : ''}`}
-          onClick={() => setIsOpen(true)}
+          onClick={() => {
+            if (isForceMinimized) {
+              // only show toggle button
+              return
+            }
+            setIsOpen(true)
+          }}
           aria-label="City Registry Terminal"
         >
           <span className={styles.triggerLabel}>City Registry Terminal</span>

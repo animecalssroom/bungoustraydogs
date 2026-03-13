@@ -16,7 +16,7 @@ export const DUEL_PUBLIC_FACTIONS = new Set<FactionId>([
 ])
 export const DUEL_MOVES: DuelMove[] = ['strike', 'stance', 'gambit', 'special', 'recover']
 export const PENDING_DUEL_LIMIT = 3
-export const DUEL_ROUND_DURATION_MS = 15 * 60 * 1000
+export const DUEL_ROUND_DURATION_MS = 20 * 60 * 1000
 export const DUEL_MAX_ROUNDS = 7
 export const DUEL_SUDDEN_DEATH_ROUND = 8
 

@@ -4,18 +4,58 @@ const JST_OFFSET = 9 * 60 // minutes
 
 export function isWithinJSTQuietHours(): boolean {
   const now = new Date()
-  const jstHour = (now.getUTCHours() + JST_OFFSET / 60) % 24
-  return jstHour >= 23 || jstHour < 7
+  const jstNow = new Date(now.getTime() + JST_OFFSET * 60 * 1000)
+  const hour = jstNow.getHours()
+  const quiet = hour >= 23 || hour < 7
+  try {
+    // debug info useful in server logs when investigating bot silence
+    // eslint-disable-next-line no-console
+    console.debug('bot-utils:isWithinJSTQuietHours', { utc: now.toISOString(), jst: jstNow.toISOString(), hour, quiet })
+  } catch (e) {
+    // ignore logging failures
+  }
+
+  return quiet
 }
 
 export async function getBotProfile(username: string) {
-  const { data } = await supabaseAdmin
-    .from('profiles')
-    .select('id, username, faction, character_name, character_match_id, duel_wins, duel_losses, is_bot_paused, last_bot_post_at, bot_config')
-    .eq('username', username)
-    .eq('is_bot', true)
-    .maybeSingle()
-  return data
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('profiles')
+      .select('id, username, faction, character_name, character_match_id, duel_wins, duel_losses, is_bot_paused, last_bot_post_at, bot_config')
+      .eq('username', username)
+      .eq('is_bot', true)
+      .maybeSingle()
+
+    if (error) {
+      // eslint-disable-next-line no-console
+      console.error('getBotProfile supabase error', username, error.message)
+      return null
+    }
+
+    if (!data) {
+      // eslint-disable-next-line no-console
+      console.warn('getBotProfile no profile found', username)
+      return null
+    }
+
+    // normalize bot_config if stored as JSON string
+    try {
+      if (data.bot_config && typeof data.bot_config === 'string') {
+        // eslint-disable-next-line no-param-reassign
+        data.bot_config = JSON.parse(data.bot_config)
+      }
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.warn('getBotProfile failed to parse bot_config', username)
+    }
+
+    return data
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('getBotProfile unexpected error', username, err)
+    return null
+  }
 }
 
 export async function updateLastBotPostAt(userId: string) {

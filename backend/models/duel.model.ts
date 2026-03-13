@@ -1,4 +1,5 @@
 import { supabaseAdmin } from '@/backend/lib/supabase'
+import { invalidateNotificationsCache } from '@/backend/lib/notifications-cache'
 import type { Duel, OpenChallenge, Profile } from '@/backend/types'
 import {
   canIssueFactionChallenge,
@@ -185,6 +186,76 @@ export const DuelModel = {
         expires_at: challengeExpiresAt,
       },
     })
+    try {
+      await invalidateNotificationsCache(defender.id)
+    } catch (err) {
+      console.error('[notifications] invalidate error', err)
+    }
+
+    return { data: normalizeDuel(data as Duel) }
+  },
+
+  async createBotChallenge(challenger: DuelParticipant, defender: DuelParticipant, message?: string) {
+    // Lightweight challenge creation for bot defenders. Skips role/faction checks.
+    await this.expirePendingChallengesForUsers([challenger.id, defender.id])
+
+    const existing = await this.getExistingPairDuel(challenger.id, defender.id)
+    if (existing) {
+      return { error: 'A registry duel already exists between these operatives.' as const }
+    }
+
+    const challengerPendingCount = await this.getPendingOrActiveCount(challenger.id)
+    if (challengerPendingCount >= PENDING_DUEL_LIMIT) {
+      return { error: 'You already have too many active or pending duels on file.' as const }
+    }
+
+    const challengeExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+    const { data, error } = await supabaseAdmin
+      .from('duels')
+      .insert({
+        challenger_id: challenger.id,
+        defender_id: defender.id,
+        challenger_character: challenger.character_name,
+        defender_character: defender.character_name,
+        challenger_character_slug: challenger.character_match_id,
+        defender_character_slug: defender.character_match_id,
+        challenger_faction: challenger.faction,
+        defender_faction: defender.faction,
+        challenge_message: message?.trim() || null,
+        status: 'pending',
+        current_round: 0,
+        challenger_max_hp: computeDuelMaxHp(challenger.character_match_id),
+        defender_max_hp: computeDuelMaxHp(defender.character_match_id),
+        challenger_hp: computeDuelMaxHp(challenger.character_match_id),
+        defender_hp: computeDuelMaxHp(defender.character_match_id),
+        challenge_expires_at: challengeExpiresAt,
+      })
+      .select(DUEL_SELECT)
+      .single()
+
+    if (error || !data) {
+      return { error: error?.message ?? 'Unable to file the duel challenge.' as const }
+    }
+
+    await supabaseAdmin.from('notifications').insert({
+      user_id: defender.id,
+      type: 'duel_challenge',
+      message: `${duelIdentityLabel(challenger)} has issued a challenge. You have 24 hours to respond.`,
+      reference_id: data.id,
+      action_url: '/duels/inbox',
+      payload: {
+        duel_id: data.id,
+        challenger_id: challenger.id,
+        challenger_name: challenger.username,
+        challenger_character: challenger.character_name,
+        expires_at: challengeExpiresAt,
+      },
+    })
+    try {
+      await invalidateNotificationsCache(defender.id)
+    } catch (err) {
+      console.error('[notifications] invalidate error', err)
+    }
 
     return { data: normalizeDuel(data as Duel) }
   },
@@ -232,6 +303,7 @@ export const DuelModel = {
         round_number: 1,
       },
     })
+    try { await invalidateNotificationsCache(duel.challenger_id) } catch (err) { console.error('[notifications] invalidate error', err) }
 
     return { data: normalizeDuel(data as Duel) }
   },
@@ -262,6 +334,7 @@ export const DuelModel = {
         duel_id: data.id,
       },
     })
+    try { await invalidateNotificationsCache(data.challenger_id) } catch (err) { console.error('[notifications] invalidate error', err) }
 
     return { data: normalizeDuel(data as Duel) }
   },

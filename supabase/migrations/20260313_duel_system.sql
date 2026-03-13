@@ -164,3 +164,8 @@ create policy "cooldowns_participants" on duel_cooldowns for select
     where duels.id = duel_id
       and (challenger_id = auth.uid() or defender_id = auth.uid())
   ));
+
+-- Helpful indexes to reduce heavy read/scan patterns observed in guide-bot and bot schedules
+create index if not exists idx_guide_bot_messages_user_created on guide_bot_messages(user_id, created_at);
+create index if not exists idx_transmission_logs_user_created on transmission_logs(user_id, created_at);
+create index if not exists idx_user_events_user_type on user_events(user_id, event_type);

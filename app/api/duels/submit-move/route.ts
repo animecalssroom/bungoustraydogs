@@ -319,6 +319,7 @@ export async function POST(request: NextRequest) {
       round_number: duel.current_round,
     },
   })
+  try { await import('@/backend/lib/notifications-cache').then(m=>m.invalidateNotificationsCache(opponentId)) } catch (err) { console.error('[notifications] invalidate error', err) }
 
   if (bothSubmitted) {
     await triggerResolverOrFallback(duel.id)

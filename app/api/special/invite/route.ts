@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { requireAuth, isNextResponse } from '@/backend/middleware/auth'
 import { supabaseAdmin } from '@/backend/lib/supabase'
+import { invalidateNotificationsCache } from '@/backend/lib/notifications-cache'
 import { validate } from '@/backend/middleware/validate'
 
 const InviteSchema = z.object({
@@ -86,6 +87,8 @@ export async function POST(req: NextRequest) {
     },
   })
 
+  try { await invalidateNotificationsCache(target.id) } catch (err) { console.error('[notifications] invalidate error', err) }
+
   await supabaseAdmin.from('notifications').insert({
     user_id: auth.user.id,
     message: `${target.username} has been entered into the Special Division registry.`,
@@ -95,6 +98,8 @@ export async function POST(req: NextRequest) {
       target_username: target.username,
     },
   })
+
+  try { await invalidateNotificationsCache(auth.user.id) } catch (err) { console.error('[notifications] invalidate error', err) }
 
   await supabaseAdmin.from('faction_activity').insert({
     faction_id: 'special_div',

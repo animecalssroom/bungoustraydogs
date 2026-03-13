@@ -392,10 +392,10 @@
 }
 
 .chatLog {
-  height: 400px;
   margin-top: 1rem;
   overflow-y: auto;
   scroll-behavior: smooth;
+  max-height: calc(100vh - 280px);
 }
 
 .chatLogInner {
@@ -598,6 +598,25 @@
 
   .chatVisible {
     display: block;
+  }
+
+  .chatLog {
+    max-height: calc(100vh - 220px);
+  }
+
+  .rosterRow {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .rosterRow .apValue {
+    font-size: 13px;
+  }
+
+  .warStrip {
+    height: 48px;
+    overflow-x: auto;
+    white-space: nowrap;
   }
 }
 

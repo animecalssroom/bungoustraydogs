@@ -3,11 +3,11 @@
 import { motion } from 'framer-motion'
 
 const STAGES = [
-  { max: 2, label: 'Presence noted', pulse: false },
-  { max: 5, label: 'Patterns emerging', pulse: false },
-  { max: 7, label: 'Signature forming', pulse: false },
-  { max: 8, label: 'Behavioral analysis in progress', pulse: false },
-  { max: 9, label: 'Assignment imminent', pulse: true },
+  { label: 'Presence noted', pulse: false },
+  { label: 'Patterns emerging', pulse: false },
+  { label: 'Signature forming', pulse: false },
+  { label: 'Behavioral analysis in progress', pulse: false },
+  { label: 'Assignment imminent', pulse: true },
 ] as const
 
 export default function ObservationMeter({
@@ -17,12 +17,18 @@ export default function ObservationMeter({
   eventCount: number
   factionColor: string
 }) {
+  // Preserve existing hide behavior — do not change
   if (eventCount >= 10) {
     return null
   }
 
-  const stage = STAGES.find((entry) => eventCount <= entry.max) ?? STAGES[STAGES.length - 1]
-  const progress = Math.min((eventCount / 9) * 100, 100)
+  // Map eventCount to stages proportionally across 20-event threshold
+  const stageIndex = Math.min(
+    Math.floor(((eventCount ?? 0) / 20) * STAGES.length),
+    STAGES.length - 1,
+  )
+  const stage = STAGES[stageIndex]
+  const progress = Math.min(((eventCount ?? 0) / 20) * 100, 100)
 
   return (
     <div style={{ marginTop: '1.5rem' }}>
@@ -61,20 +67,14 @@ export default function ObservationMeter({
         ) : null}
       </div>
 
-      <div
-        style={{
-          height: '4px',
-          background: 'var(--border2)',
-          overflow: 'hidden',
-        }}
-      >
+      <div style={{ height: '2px', background: 'var(--border2)', overflow: 'hidden' }}>
         <motion.div
           initial={{ width: 0 }}
           animate={{ width: `${progress}%` }}
           transition={{ duration: 0.9, ease: 'easeOut' }}
           style={{
             height: '100%',
-            background: factionColor,
+            background: `color-mix(in srgb, ${factionColor} 30%, transparent)`,
           }}
         />
       </div>

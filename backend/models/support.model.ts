@@ -87,6 +87,7 @@ async function createNotification(
     message,
     payload,
   })
+  try { await import('@/backend/lib/notifications-cache').then(m=>m.invalidateNotificationsCache(userId)) } catch (err) { console.error('[notifications] invalidate error', err) }
 }
 
 async function getOwnerIds() {

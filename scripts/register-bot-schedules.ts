@@ -75,7 +75,9 @@ async function main() {
     },
   }
   console.log('Registering (check-replies):', repliesUrl)
-  console.log(await register(repliesTarget, '*/5 * * * *', 'bot-check-replies'))
+  const repliesCron = process.env.BOT_CHECK_REPLIES_CRON ?? '*/5 * * * *'
+  console.log('Using cron for check-replies:', repliesCron)
+  console.log(await register(repliesTarget, repliesCron, 'bot-check-replies'))
 
   // resolve-duel-round (Supabase Edge Function) — requires service role auth and a cron trigger body
   if (resolveFunctionUrl) {
@@ -88,8 +90,10 @@ async function main() {
       },
       body: JSON.stringify({ trigger: 'cron' }),
     }
+    const resolveCron = process.env.RESOLVE_DUEL_CRON ?? '* * * * *'
+    console.log('Using cron for resolve-duel-round:', resolveCron)
     console.log('Registering (resolve-duel-round):', resolveFunctionUrl)
-    console.log(await register(resolveTarget, '* * * * *', 'resolve-duel-round'))
+    console.log(await register(resolveTarget, resolveCron, 'resolve-duel-round'))
   } else {
     console.warn('Skipping resolve-duel-round: SUPABASE_URL not set')
   }
@@ -103,8 +107,10 @@ async function main() {
       ...(process.env.BOT_DUEL_SECRET ? { 'x-bot-duel-secret': process.env.BOT_DUEL_SECRET } : {}),
     },
   }
+  const submitCron = process.env.BOT_SUBMIT_CRON ?? '* * * * *'
+  console.log('Using cron for bot-submit-moves:', submitCron)
   console.log('Registering (bot-submit-moves):', botSubmitUrl)
-  console.log(await register(submitTarget, '* * * * *', 'bot-submit-moves'))
+  console.log(await register(submitTarget, submitCron, 'bot-submit-moves'))
 }
 
 void main()

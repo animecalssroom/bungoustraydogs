@@ -4,6 +4,8 @@ import { sanitizeMultilineText } from '@/backend/lib/input-safety'
 import { supabaseAdmin } from '@/backend/lib/supabase'
 
 import { getRankTitle, type GuideBotMessage, type Profile } from '@/backend/types'
+import { allowFixedWindow, userCommonAnswerKey } from '@/backend/lib/upstash'
+import { redis } from '@/lib/redis'
 import { loadKnowledgeFiles, getKnowledgeCache, searchKnowledge, searchRelationship } from '@/backend/lib/guidebot-knowledge'
 import fs from 'fs/promises'
 import path from 'path'
@@ -197,13 +199,15 @@ function withActivation(text: string, firstTurn: boolean) {
 }
 
 async function getUserEventSummary(userId: string) {
-  const { data } = await supabaseAdmin
-    .from('user_events')
-    .select('event_type')
-    .eq('user_id', userId)
+  const cacheKey = `event_summary:${userId}`
+  try {
+    const cached = await redis.get(cacheKey)
+    if (cached) return cached as { totalCount: number; qualifyingCount: number }
+  } catch (e) {
+    // ignore redis failures
+  }
 
-  const events = (data ?? []) as Array<{ event_type: string }>
-  const qualifyingTypes = new Set([
+  const qualifyingTypes = [
     'daily_login',
     'chat_message',
     'feed_view',
@@ -219,13 +223,28 @@ async function getUserEventSummary(userId: string) {
     'join_faction',
     'quiz_complete',
     'faction_assignment',
+  ]
+
+  const [totalRes, qualifyingRes] = await Promise.all([
+    supabaseAdmin
+      .from('user_events')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId),
+    supabaseAdmin
+      .from('user_events')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .in('event_type', qualifyingTypes),
   ])
 
-  const qualifyingCount = events.filter((event) => qualifyingTypes.has(event.event_type)).length
-  return {
-    totalCount: events.length,
-    qualifyingCount,
+  const result = { totalCount: totalRes.count ?? 0, qualifyingCount: qualifyingRes.count ?? 0 }
+  try {
+    await redis.set(cacheKey, result, { ex: 300 })
+  } catch (e) {
+    // ignore redis failures
   }
+
+  return result
 }
 
 function getCommonAnswer(
@@ -385,53 +404,73 @@ export async function POST(req: NextRequest) {
   const startOfDayIso = getStartOfDayIso()
   const eventSummary = await getUserEventSummary(auth.user.id)
   const eventCount = eventSummary?.qualifyingCount ?? 0
+  // Quick-check for common/hardcoded answers before running an expensive count query.
+  // This avoids a full table count on trivial requests and reduces disk/compute cost.
+  const commonAnswerEarly = getCommonAnswer(message, profile, firstTurn, eventSummary)
+  if (commonAnswerEarly) {
+    // Rate-limit quick, hardcoded replies via Upstash (free tier).
+    try {
+      const allowed = await allowFixedWindow(userCommonAnswerKey(auth.user.id), 60, 5)
+      if (allowed) {
+        const repliesLeft = 'You have unlimited quick replies for this short window.'
+        void supabaseAdmin.from('guide_bot_messages').insert([
+          {
+            user_id: auth.user.id,
+            role: 'user',
+            content: message,
+          },
+          {
+            user_id: auth.user.id,
+            role: 'assistant',
+            content: `${commonAnswerEarly}\n\n${repliesLeft}`,
+          },
+        ])
 
-  const { count: dailyQueryCount, error: countError } = await supabaseAdmin
-    .from('guide_bot_messages')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', auth.user.id)
-    .eq('role', 'user')
-    .gte('created_at', startOfDayIso)
+        return new Response(streamText(`${commonAnswerEarly}\n\n${repliesLeft}`), {
+          headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+        })
+      }
+      // If not allowed, fall through to normal quota/count path.
+    } catch (err) {
+      // If Redis is unavailable or misconfigured, fall back to existing behavior.
+      console.error('[guide-bot] Upstash rate limiter failed:', err)
+    }
+  }
 
-  if (countError) {
-    console.error('[guide-bot] daily quota count failed:', countError)
+  // QUOTA: use Redis-backed quota key to avoid repeated DB counts
+  const today = new Date().toISOString().slice(0, 10)
+  const quotaKey = `guide_bot_quota:${auth.user.id}:${today}`
+
+  let dailyQueryCount = (await redis.get(quotaKey)) as number | null
+  if (dailyQueryCount === null) {
+    const { count, error: countError } = await supabaseAdmin
+      .from('guide_bot_messages')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', auth.user.id)
+      .eq('role', 'user')
+      .gte('created_at', startOfDayIso)
+
+    if (countError) {
+      console.error('[guide-bot] daily quota count failed:', countError)
+    }
+
+    dailyQueryCount = (count ?? 0) as number
+    try {
+      await redis.set(quotaKey, dailyQueryCount, { ex: 3600 })
+    } catch (e) {
+      // ignore redis failures
+    }
   }
 
   if ((dailyQueryCount ?? 0) >= DAILY_QUERY_LIMIT) {
     return new Response(
-      streamText(
-        withActivation(
-          `Daily terminal quota exhausted. Ten queries have already been filed today. Return after local midnight.`,
-          firstTurn,
-        ),
-      ),
-      {
-        headers: { 'Content-Type': 'text/plain; charset=utf-8' },
-      },
+      streamText(withActivation(`Daily terminal quota exhausted. Ten queries have already been filed today. Return after local midnight.`, firstTurn)),
+      { headers: { 'Content-Type': 'text/plain; charset=utf-8' } },
     )
   }
 
-
   const repliesLeft = DAILY_QUERY_LIMIT - (dailyQueryCount ?? 0)
   const replyNotice = `You have ${repliesLeft} guide bot replies left today.`
-  const commonAnswer = getCommonAnswer(message, profile, firstTurn, eventSummary)
-  if (commonAnswer) {
-    void supabaseAdmin.from('guide_bot_messages').insert([
-      {
-        user_id: auth.user.id,
-        role: 'user',
-        content: message,
-      },
-      {
-        user_id: auth.user.id,
-        role: 'assistant',
-        content: `${commonAnswer}\n\n${replyNotice}`,
-      },
-    ])
-    return new Response(streamText(`${commonAnswer}\n\n${replyNotice}`), {
-      headers: { 'Content-Type': 'text/plain; charset=utf-8' },
-    })
-  }
 
   // Improved relationship query detection and fuzzy matching
   let knowledgeExcerpts: string[] = []

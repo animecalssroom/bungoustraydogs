@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth, isNextResponse } from '@/backend/middleware/auth'
 import { supabaseAdmin } from '@/backend/lib/supabase'
+import { invalidateNotificationsCache } from '@/backend/lib/notifications-cache'
 
 export async function POST(
   request: NextRequest,
@@ -26,6 +27,8 @@ export async function POST(
   if (!data) {
     return NextResponse.json({ error: 'Notification not found.' }, { status: 404 })
   }
+
+  try { await invalidateNotificationsCache(auth.user.id) } catch (err) { console.error('[notifications] invalidate error', err) }
 
   return NextResponse.json({ data: { ...data, read_at: timestamp } })
 }

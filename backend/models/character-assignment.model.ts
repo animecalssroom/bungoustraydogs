@@ -1,4 +1,5 @@
 import { supabaseAdmin } from '@/backend/lib/supabase'
+import { redis } from '@/lib/redis'
 import type {
   AbilityType,
   BehaviorScores,
@@ -817,6 +818,7 @@ export const CharacterAssignmentModel = {
       message: 'The city has updated your registry file.',
       payload: assignmentPayload,
     })
+    try { await import('@/backend/lib/notifications-cache').then(m=>m.invalidateNotificationsCache(userId)) } catch (err) { console.error('[notifications] invalidate error', err) }
 
     await supabaseAdmin.from('faction_activity').insert({
       faction_id: profile.faction,
@@ -832,6 +834,12 @@ export const CharacterAssignmentModel = {
       faction: profile.faction,
       metadata: assignmentPayload,
     })
+
+    try {
+      await redis.del(`event_summary:${userId}`)
+    } catch (e) {
+      /* ignore cache-bust error */
+    }
 
     return {
       eventCount: eligibility.qualifyingEventCount,

@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { requireAuth, isNextResponse } from '@/backend/middleware/auth'
 import { DuelModel } from '@/backend/models/duel.model'
 import { supabaseAdmin } from '@/backend/lib/supabase'
+import { invalidateNotificationsCache } from '@/backend/lib/notifications-cache'
 
 const ChallengeSchema = z.object({
   defender_id: z.string().uuid(),
@@ -27,7 +28,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Defender not found in the registry.' }, { status: 400 })
   }
 
-  const created = await DuelModel.createChallenge(challenger, defender, parsed.data.message)
+  let created
+  if (defender.is_bot) {
+    created = await DuelModel.createBotChallenge(challenger, defender, parsed.data.message)
+  } else {
+    created = await DuelModel.createChallenge(challenger, defender, parsed.data.message)
+  }
   if ('error' in created) {
     const errorText = created.error ?? 'Unable to file the duel challenge.'
     const message =
@@ -54,6 +60,7 @@ export async function POST(request: NextRequest) {
           bot_auto_accept: true,
         },
       })
+      try { await invalidateNotificationsCache(challenger.id) } catch (err) { console.error('[notifications] invalidate error', err) }
 
       await supabaseAdmin.from('user_events').insert({
         user_id: defender.id,

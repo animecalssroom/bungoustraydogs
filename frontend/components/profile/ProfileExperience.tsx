@@ -374,7 +374,32 @@ export function ProfileExperience({
                     </p>
                   </div>
                 ) : null}
-                {showObservation ? <ObservationMeter eventCount={eventCount ?? 0} factionColor={factionMeta?.color ?? 'var(--accent)'} /> : null}
+                {showObservation ? (
+                  <div style={{ display: 'grid', gap: '0.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <div style={{ flex: 1 }}>
+                        <ObservationMeter eventCount={eventCount ?? 0} factionColor={factionMeta?.color ?? 'var(--accent)'} />
+                      </div>
+                      {isOwnProfile && !activeProfile.character_match_id ? (
+                        <div>
+                          <button
+                            type="button"
+                            onClick={() => setShowReveal((s) => !s)}
+                            className="font-space-mono"
+                            style={{ fontSize: '0.72rem', padding: '0.35rem 0.6rem', border: '1px solid var(--border)', background: 'var(--surface2)' }}
+                          >
+                            HOW THIS WORKS
+                          </button>
+                        </div>
+                      ) : null}
+                    </div>
+                    {showReveal ? (
+                      <div style={{ fontFamily: 'var(--font-literary)', color: 'var(--muted)', fontStyle: 'italic', padding: '0.6rem', border: '1px solid var(--border2)', background: 'var(--surface2)' }}>
+                        "The city assigns your character after 20 recorded events. Daily login, archive reads, faction chat, duels, registry posts — all count. Your behavior determines which character the city files you as."
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
               </>
             )}
           </section>

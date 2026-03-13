@@ -136,7 +136,7 @@ function buildPips(currentStep: number) {
 
 export default function QuizPage() {
   const router = useRouter()
-  const { user, profile, loading } = useAuth()
+  const { user, profile, loading, refreshProfile } = useAuth()
   const [started, setStarted] = useState(false)
   const [stepIndex, setStepIndex] = useState(0)
   const [answers, setAnswers] = useState<Record<string, 'a' | 'b' | 'c' | 'd'>>({})
@@ -219,6 +219,14 @@ export default function QuizPage() {
 
     // If server returned the updated profile, we can proceed immediately.
     if (json?.profile) {
+      try {
+        if (typeof refreshProfile === 'function') {
+          await refreshProfile()
+        }
+      } catch (err) {
+        // ignore refresh errors — we'll still navigate to result which will poll
+      }
+
       router.push('/onboarding/result')
       return
     }

@@ -82,6 +82,9 @@ export function HomeShowcase() {
   const [activeFilter, setActiveFilter] = useState<HomeCharacterFilter>('all')
   const [showIntro, setShowIntro] = useState(false)
   const [introReady, setIntroReady] = useState(false)
+  
+  // --- ADDED: State to hold our live faction data ---
+  const [liveFactions, setLiveFactions] = useState<Array<typeof HOME_FACTIONS[0] & { rawAp?: number }>>(HOME_FACTIONS)
   const rootRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -136,6 +139,47 @@ export function HomeShowcase() {
       document.body.style.overflow = previousOverflow
     }
   }, [introReady, showIntro])
+
+  // --- ADDED: Fetch live faction stats on mount ---
+  useEffect(() => {
+    async function fetchLiveFactions() {
+      try {
+        const res = await fetch('/api/faction')
+        const json = await res.json()
+        
+        if (json.data && Array.isArray(json.data)) {
+          const realData = json.data
+
+          // Find the highest AP to calculate the bar percentages correctly
+          const maxAp = Math.max(
+            ...realData.map((r: any) => r.ap || 0),
+            1 // prevent division by zero
+          )
+
+          setLiveFactions(current =>
+            current.map(hf => {
+              // Match the hardcoded faction with the real database faction
+              const real = realData.find((r: any) => r.id === hf.id)
+              if (!real) return hf
+
+              return {
+                ...hf,
+                apDisplay: `${real.ap.toLocaleString()} AP`,
+                memberDisplay: `${real.member_count.toLocaleString()} members`,
+                // Calculate real percentage for the visual bars (minimum 2% so it's visible)
+                barPercent: Math.max(2, Math.round((real.ap / maxAp) * 100)),
+                // Store raw AP so we can format it for the small top strip
+                rawAp: real.ap
+              }
+            })
+          )
+        }
+      } catch (err) {
+        console.error('Failed to load live factions:', err)
+      }
+    }
+    fetchLiveFactions()
+  }, [])
 
   const totalVotes = HOME_ARENA_DEBATE.votesA + HOME_ARENA_DEBATE.votesB
   const percentA = Math.round((HOME_ARENA_DEBATE.votesA / totalVotes) * 100)
@@ -434,7 +478,8 @@ export function HomeShowcase() {
         <div className={styles.strip}>
           <span className={styles.stripLabel}>Faction War · Live</span>
           <div className={styles.stripItems}>
-            {HOME_FACTIONS.filter((faction) => faction.joinable).map((faction) => (
+            {/* --- UPDATED: Use liveFactions here --- */}
+            {liveFactions.filter((faction) => faction.joinable).map((faction) => (
               <div key={faction.id} className={styles.stripItem}>
                 <span className={styles.stripName}>{faction.name}</span>
                 <span className={styles.stripBarTrack}>
@@ -447,7 +492,10 @@ export function HomeShowcase() {
                     }}
                   />
                 </span>
-                <span className={styles.stripScore}>{faction.barPercent}k AP</span>
+                {/* --- UPDATED: Format AP efficiently for the top strip --- */}
+                <span className={styles.stripScore}>
+                  {faction.rawAp ? `${(faction.rawAp / 1000).toFixed(1)}k AP` : faction.apDisplay}
+                </span>
               </div>
             ))}
           </div>
@@ -469,7 +517,8 @@ export function HomeShowcase() {
           </div>
 
           <div className={styles.factionGrid}>
-            {HOME_FACTIONS.map((faction, index) => (
+            {/* --- UPDATED: Use liveFactions here to drive the grid stats --- */}
+            {liveFactions.map((faction, index) => (
               <Link
                 key={faction.id}
                 href="/factions"

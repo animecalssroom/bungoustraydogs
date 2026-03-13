@@ -1,4 +1,5 @@
 import { supabaseAdmin } from '@/backend/lib/supabase'
+import { invalidateNotificationsCache } from '@/backend/lib/notifications-cache'
 import type { AssignmentFlag, Profile, StoredRole } from '@/backend/types'
 
 async function findOwnerUserId() {
@@ -91,6 +92,14 @@ export const AssignmentModel = {
         status: 'pending',
       },
     )
+
+    // Invalidate notifications cache for the affected users
+    try {
+      if (ownerId) await invalidateNotificationsCache(ownerId)
+      await invalidateNotificationsCache(profile.id)
+    } catch (err) {
+      console.error('[notifications] invalidate after createNotification', err)
+    }
 
     return (data as AssignmentFlag | null) ?? existing
   },

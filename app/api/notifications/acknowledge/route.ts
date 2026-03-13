@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { requireAuth, isNextResponse } from '@/backend/middleware/auth'
 import { supabaseAdmin } from '@/backend/lib/supabase'
+import { invalidateNotificationsCache } from '@/backend/lib/notifications-cache'
 
 const AcknowledgeSchema = z.object({
   id: z.string().uuid(),
@@ -34,6 +35,13 @@ export async function POST(request: NextRequest) {
 
   if (!data) {
     return NextResponse.json({ error: 'Notification not found.' }, { status: 404 })
+  }
+
+  // Invalidate cache for the user so subsequent reads reflect the ack
+  try {
+    await invalidateNotificationsCache(auth.user.id)
+  } catch (err) {
+    console.error('[notifications] invalidate cache failed', err)
   }
 
   return NextResponse.json({ data: { ...data, read_at: timestamp } })

@@ -31,12 +31,37 @@ export default function WaitlistPage() {
       return
     }
     if (!profile) return
-    if (profile.role !== 'waitlist' || !profile.quiz_locked) {
-      router.replace(resolvePostAuthPath(profile))
-      return
+
+    // Fetch a fresh profile from the server to avoid redirecting on stale client cache.
+    let active = true
+
+    const checkFresh = async () => {
+      try {
+        const { data: fresh } = await supabase
+          .from('profiles')
+          .select('role,quiz_locked')
+          .eq('id', user.id)
+          .maybeSingle()
+
+        if (!active) return
+
+        const role = fresh?.role ?? profile.role
+        const quiz_locked = typeof fresh?.quiz_locked === 'boolean' ? fresh.quiz_locked : profile.quiz_locked
+
+        if (role !== 'waitlist' || !quiz_locked) {
+          router.replace(resolvePostAuthPath(profile))
+          return
+        }
+      } catch (err) {
+        // On error, fall back to existing client profile check
+        if (profile.role !== 'waitlist' || !profile.quiz_locked) {
+          router.replace(resolvePostAuthPath(profile))
+          return
+        }
+      }
     }
 
-    let active = true
+    void checkFresh()
 
     const load = async () => {
       const { data } = await supabase

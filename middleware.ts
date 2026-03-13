@@ -7,8 +7,6 @@ function clearSupabaseAuthCookies(request: NextRequest, response: NextResponse) 
     .filter((cookie) => cookie.name.startsWith('sb-'))
     .forEach((cookie) => {
       request.cookies.set(cookie.name, '')
-
-      
       response.cookies.set({
         name: cookie.name,
         value: '',
@@ -19,6 +17,11 @@ function clearSupabaseAuthCookies(request: NextRequest, response: NextResponse) 
 }
 
 export async function middleware(request: NextRequest) {
+  // Skip auth entirely for bot routes — they verify via x-bot-secret header
+  if (request.nextUrl.pathname.startsWith('/api/bots/')) {
+    return NextResponse.next()
+  }
+
   let response = NextResponse.next({
     request: {
       headers: request.headers,
@@ -56,10 +59,7 @@ export async function middleware(request: NextRequest) {
   )
 
   try {
-    const {
-      error,
-    } = await supabase.auth.getUser()
-
+    const { error } = await supabase.auth.getUser()
     if (error?.code === 'refresh_token_not_found') {
       clearSupabaseAuthCookies(request, response)
     }

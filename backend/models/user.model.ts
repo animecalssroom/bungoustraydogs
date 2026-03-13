@@ -2,6 +2,7 @@ import { supabaseAdmin } from '@/backend/lib/supabase'
 import { EXAM_RETAKE_COST, getExamRetakeStatus } from '@/backend/lib/exam-retake'
 import { AP_VALUES, type Profile, type UserEvent, type UserEventType } from '@/backend/types'
 import { CharacterAssignmentModel } from '@/backend/models/character-assignment.model'
+import { redis } from '@/lib/redis'
 
 const TOKYO_TIME_ZONE = 'Asia/Tokyo'
 
@@ -199,6 +200,12 @@ export const UserModel = {
       metadata: metadata ?? {},
     })
 
+    try {
+      await redis.del(`event_summary:${userId}`)
+    } catch (e) {
+      /* ignore cache-bust error */
+    }
+
     await CharacterAssignmentModel.assignIfEligible(userId)
   },
 
@@ -330,6 +337,12 @@ export const UserModel = {
         previous_character: profile.character_match_id,
       },
     })
+
+    try {
+      await redis.del(`event_summary:${userId}`)
+    } catch (e) {
+      /* ignore cache-bust error */
+    }
 
     return {
       data: {

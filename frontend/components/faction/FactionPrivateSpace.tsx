@@ -147,7 +147,7 @@ export function FactionPrivateSpace({
   const [supabase] = useState(() => createClient())
   const [loading, setLoading] = useState(initialRoster.length === 0)
   const [error, setError] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<PrivateTab>('bulletin')
+  const [activeTab, setActiveTab] = useState<PrivateTab>('feed')
   const [bulletins, setBulletins] = useState<FactionBulletin[]>(initialBulletins)
   const [activity, setActivity] = useState<FactionActivity[]>(initialActivity)
   const [roster, setRoster] = useState<RosterEntry[]>(initialRoster)
@@ -336,9 +336,18 @@ export function FactionPrivateSpace({
     })
   }, [messages])
 
+  // Ensure scroll also triggers when mobile FEED tab becomes active
   useEffect(() => {
-    const activityChannel = supabase
-      .channel(`faction-activity-${factionId}`)
+    if (activeTab === 'feed' && chatLogRef.current) {
+      chatLogRef.current.scrollTo({ top: chatLogRef.current.scrollHeight, behavior: 'smooth' })
+    }
+  }, [activeTab, messages])
+
+  useEffect(() => {
+    // Single multiplexed channel for all faction-space realtime events to reduce
+    // concurrent connection counts per client session.
+    const factionChannel = supabase
+      .channel(`faction-space-${factionId}`)
       .on(
         'postgres_changes',
         {
@@ -348,15 +357,9 @@ export function FactionPrivateSpace({
           filter: `faction_id=eq.${factionId}`,
         },
         (payload) => {
-          setActivity((current) =>
-            trimActivity([payload.new as FactionActivity, ...current]),
-          )
+          setActivity((current) => trimActivity([payload.new as FactionActivity, ...current]))
         },
       )
-      .subscribe()
-
-    const messageChannel = supabase
-      .channel(`faction-chat-${factionId}`)
       .on(
         'postgres_changes',
         {
@@ -376,10 +379,6 @@ export function FactionPrivateSpace({
           })
         },
       )
-      .subscribe()
-
-    const rosterChannel = supabase
-      .channel(`faction-roster-${factionId}`)
       .on(
         'postgres_changes',
         {
@@ -407,10 +406,6 @@ export function FactionPrivateSpace({
           }
         },
       )
-      .subscribe()
-
-    const stripChannel = supabase
-      .channel(`faction-strip-${factionId}`)
       .on(
         'postgres_changes',
         {
@@ -425,10 +420,7 @@ export function FactionPrivateSpace({
       .subscribe()
 
     return () => {
-      void supabase.removeChannel(activityChannel)
-      void supabase.removeChannel(messageChannel)
-      void supabase.removeChannel(rosterChannel)
-      void supabase.removeChannel(stripChannel)
+      void supabase.removeChannel(factionChannel)
     }
   }, [factionId, loadRoster, loadWarStrip, supabase])
 
@@ -801,7 +793,17 @@ export function FactionPrivateSpace({
             </div>
           </div>
 
-          <div className={styles.chatInputRow}>
+          <div
+            className={styles.chatInputRow}
+            style={{
+              position: 'sticky',
+              bottom: 0,
+              zIndex: 10,
+              backgroundColor: 'var(--card)',
+              paddingBottom: 'max(12px, env(safe-area-inset-bottom))',
+              boxSizing: 'border-box',
+            }}
+          >
             <input
               value={messageDraft}
               onChange={(event) => setMessageDraft(event.target.value)}
