@@ -26,6 +26,23 @@ const REQUIRED_KEYS = ['1', '2', '3', '4', '5', '6', '7'] as const
 const TIEBREAKER_KEYS = ['3', '5'] as const
 const QUIZ_FALLBACK_ORDER: QuizRawFaction[] = ['agency', 'mafia', 'guild', 'dogs']
 
+function hashAnswerSignature(answers: QuizSubmitAnswers) {
+  return REQUIRED_KEYS.reduce((hash, key) => {
+    return hash + String(answers[key]).charCodeAt(0)
+  }, 0)
+}
+
+function resolveTrueTie(leaders: QuizRawFaction[], answers: QuizSubmitAnswers) {
+  const orderedLeaders = QUIZ_FALLBACK_ORDER.filter((faction) => leaders.includes(faction))
+
+  if (orderedLeaders.length === 1) {
+    return orderedLeaders[0]
+  }
+
+  const signature = hashAnswerSignature(answers)
+  return orderedLeaders[signature % orderedLeaders.length] ?? orderedLeaders[0] ?? 'agency'
+}
+
 export const QUIZ_DATA: QuizDataQuestion[] = [
   {
     id: 1,
@@ -302,7 +319,7 @@ export function calculateFaction(answers: unknown): QuizSubmitResult {
     }
 
     const tiedFactions = sorted
-      .filter(([, score]) => first[1] - score <= 1)
+      .filter(([, score]) => first[1] === score)
       .map(([faction]) => faction)
 
     const highestTieScore = Math.max(...tiedFactions.map((faction) => tieScores[faction]))
@@ -312,14 +329,14 @@ export function calculateFaction(answers: unknown): QuizSubmitResult {
 
     if (tieLeaders.length > 1) {
       return {
-        faction: 'agency',
+        faction: resolveTrueTie(tieLeaders, answers),
         status: 'tied',
         scores: resolved.scores,
       }
     }
 
     return {
-      faction: tieLeaders[0] ?? 'agency',
+      faction: tieLeaders[0] ?? resolveTrueTie(tiedFactions, answers),
       status: 'tied',
       scores: resolved.scores,
     }
