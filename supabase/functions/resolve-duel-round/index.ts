@@ -80,9 +80,50 @@ async function resolveSingleDuel(duelId: string) {
   const incomingToB = Math.max(0, a.damage * (moveB === 'stance' ? 0.6 : 1))
   const nextA = Math.max(0, Math.min(duel.challenger_max_hp, duel.challenger_hp - Math.round(incomingToA) + a.heal))
   const nextB = Math.max(0, Math.min(duel.defender_max_hp, duel.defender_hp - Math.round(incomingToB) + b.heal))
-  const duelOver = nextA <= 0 || nextB <= 0 || duel.current_round >= 5
-  const winnerId = nextA === nextB ? null : nextA > nextB ? duel.challenger_id : duel.defender_id
-  const loserId = winnerId === duel.challenger_id ? duel.defender_id : duel.challenger_id
+
+  // Sudden death and extended rounds
+  const MAX_NORMAL_ROUNDS = 7
+  const SUDDEN_DEATH_ROUND = 8
+  const isSuddenDeath = duel.current_round === SUDDEN_DEATH_ROUND
+
+  // In sudden death: damage is multiplied x1.5, no reduction from stance
+  const finalNextA = isSuddenDeath
+    ? Math.max(0, duel.challenger_hp - Math.round(b.damage * 1.5))
+    : nextA
+  const finalNextB = isSuddenDeath
+    ? Math.max(0, duel.defender_hp - Math.round(a.damage * 1.5))
+    : nextB
+
+  const duelOver =
+    finalNextA <= 0 ||
+    finalNextB <= 0 ||
+    duel.current_round >= SUDDEN_DEATH_ROUND
+
+  // Determine winner. In sudden death, if tied after round 8, use cumulative damage; challenger wins tie.
+  let winnerId = null
+  const loserId = null
+  if (duelOver) {
+    if (finalNextA === finalNextB && duel.current_round >= SUDDEN_DEATH_ROUND) {
+      // Fetch cumulative damage from all rounds
+      const dmgResponse = await fetch(
+        `${supabaseUrl}/rest/v1/duel_rounds?duel_id=eq.${duelId}&select=challenger_damage_dealt,defender_damage_dealt`,
+        { headers }
+      )
+      const dmgRounds = await dmgResponse.json()
+      const totalChallengerDmg = dmgRounds.reduce((sum: number, r: any) => sum + (r.challenger_damage_dealt ?? 0), 0)
+      const totalDefenderDmg = dmgRounds.reduce((sum: number, r: any) => sum + (r.defender_damage_dealt ?? 0), 0)
+      winnerId = totalChallengerDmg >= totalDefenderDmg ? duel.challenger_id : duel.defender_id
+    } else {
+      winnerId = finalNextA === finalNextB ? null : finalNextA > finalNextB ? duel.challenger_id : duel.defender_id
+    }
+  }
+
+  // After 7 normal rounds: if both alive, go to sudden death
+  const goToSuddenDeath =
+    !duelOver &&
+    duel.current_round >= MAX_NORMAL_ROUNDS &&
+    finalNextA > 0 &&
+    finalNextB > 0
   const narrative = await geminiNarrative({
     fighterA: duel.challenger_character ?? 'Operative',
     fighterB: duel.defender_character ?? 'Operative',
@@ -116,11 +157,11 @@ async function resolveSingleDuel(duelId: string) {
       method: 'PATCH',
       headers,
       body: JSON.stringify({
-        status: winnerId ? 'complete' : 'complete',
+        status: 'complete',
         winner_id: winnerId,
-        loser_id: winnerId ? loserId : null,
-        challenger_hp: nextA,
-        defender_hp: nextB,
+        loser_id: winnerId ? (winnerId === duel.challenger_id ? duel.defender_id : duel.challenger_id) : null,
+        challenger_hp: finalNextA,
+        defender_hp: finalNextB,
         completed_at: new Date().toISOString(),
       }),
     })
@@ -133,27 +174,58 @@ async function resolveSingleDuel(duelId: string) {
     return
   }
 
-  const nextRoundNumber = duel.current_round + 1
+  const nextRoundNumber = goToSuddenDeath ? SUDDEN_DEATH_ROUND : duel.current_round + 1
   await fetch(`${supabaseUrl}/rest/v1/duels?id=eq.${duel.id}`, {
     method: 'PATCH',
     headers,
     body: JSON.stringify({
       current_round: nextRoundNumber,
-      challenger_hp: nextA,
-      defender_hp: nextB,
+      challenger_hp: finalNextA,
+      defender_hp: finalNextB,
     }),
   })
 
-  await fetch(`${supabaseUrl}/rest/v1/duel_rounds`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({
-      duel_id: duel.id,
-      round_number: nextRoundNumber,
-      round_started_at: new Date().toISOString(),
-      round_deadline: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
-    }),
-  })
+  // Create the next round; include is_sudden_death if the column exists.
+  try {
+    await fetch(`${supabaseUrl}/rest/v1/duel_rounds`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        duel_id: duel.id,
+        round_number: nextRoundNumber,
+        round_started_at: new Date().toISOString(),
+        round_deadline: new Date(Date.now() + 2 * 60 * 1000).toISOString(),
+        is_sudden_death: goToSuddenDeath || isSuddenDeath,
+      }),
+    })
+  } catch (e) {
+    // If the column doesn't exist, fall back to inserting without it
+    await fetch(`${supabaseUrl}/rest/v1/duel_rounds`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        duel_id: duel.id,
+        round_number: nextRoundNumber,
+        round_started_at: new Date().toISOString(),
+        round_deadline: new Date(Date.now() + 2 * 60 * 1000).toISOString(),
+      }),
+    })
+  }
+  // Trigger bot move instantly
+  try {
+    const vercelUrl = Deno.env.get('NEXT_PUBLIC_APP_URL') ?? ''
+    const botDuelSecret = Deno.env.get('BOT_DUEL_SECRET') ?? ''
+    if (vercelUrl && botDuelSecret) {
+      fetch(`${vercelUrl}/api/bots/submit-duel-move`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-bot-duel-secret': botDuelSecret,
+        },
+        body: JSON.stringify({}),
+      }).catch(() => null)
+    }
+  } catch {}
 }
 
 serve(async (req) => {

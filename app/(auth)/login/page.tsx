@@ -7,6 +7,7 @@ import type { CSSProperties } from 'react'
 import type { Profile } from '@/backend/types'
 import { createClient } from '@/frontend/lib/supabase/client'
 import { resolvePostAuthPath } from '@/frontend/lib/launch'
+import { getGoogleOAuthRedirectUrl } from '@/frontend/lib/supabase/googleOAuth'
 import { Nav } from '@/frontend/components/ui/Nav'
 
 const cardStyle: CSSProperties = {
@@ -48,15 +49,16 @@ function getEmailRedirectUrl() {
   return `${window.location.origin}/auth/callback`
 }
 
-export default function LoginPage() {
+export default function LoginPage({ initialMode }: { initialMode?: 'login' | 'signup' } = {}) {
   const router = useRouter()
   const supabase = createClient()
 
-  const [mode, setMode] = useState<'login' | 'signup'>('login')
+  const [mode, setMode] = useState<'login' | 'signup'>(initialMode ?? 'login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
+  const [googleLoading, setGoogleLoading] = useState(false)
   const [resending, setResending] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
@@ -69,7 +71,24 @@ export default function LoginPage() {
   }, [])
 
 
-  // Google OAuth removed
+
+  const handleGoogleOAuth = async () => {
+    setGoogleLoading(true)
+    setError('')
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: getGoogleOAuthRedirectUrl(),
+        },
+      })
+      if (error) setError(error.message)
+    } catch (err: any) {
+      setError(err?.message || 'Google sign-in failed')
+    } finally {
+      setGoogleLoading(false)
+    }
+  }
 
   const handleLogin = async () => {
     setLoading(true)
@@ -205,11 +224,37 @@ export default function LoginPage() {
           >
             横浜は、いつも雨が降っている。
           </p>
+          <p style={{ marginTop: '0.6rem', color: 'var(--accent)', fontWeight: 600 }}>
+            Login or create an account using Email & Password — Google sign-in is currently unavailable.
+          </p>
         </div>
 
-        <div style={{ display: 'grid', gap: '0.9rem' }}>
 
-          {/* Google OAuth button and divider removed */}
+        <div style={{ display: 'grid', gap: '0.9rem' }}>
+          <button
+            type="button"
+            onClick={handleGoogleOAuth}
+            disabled={googleLoading || loading}
+            style={{
+              width: '100%',
+              padding: '12px 0',
+              background: '#fff',
+              border: '1px solid var(--border)',
+              color: '#222',
+              fontFamily: 'Space Mono, monospace',
+              fontSize: '1rem',
+              borderRadius: '4px',
+              marginBottom: '0.5rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.7em',
+            }}
+          >
+            <svg width="20" height="20" viewBox="0 0 48 48" style={{ verticalAlign: 'middle' }}><g><path fill="#4285F4" d="M43.611 20.083H42V20H24v8h11.303C33.962 32.083 29.418 35 24 35c-6.065 0-11-4.935-11-11s4.935-11 11-11c2.507 0 4.81.858 6.646 2.277l6.418-6.418C33.684 6.163 29.084 4 24 4 12.954 4 4 12.954 4 24s8.954 20 20 20c11.046 0 20-8.954 20-20 0-1.341-.138-2.651-.389-3.917z"/><path fill="#34A853" d="M6.306 14.691l6.571 4.819C14.655 16.108 19.001 13 24 13c2.507 0 4.81.858 6.646 2.277l6.418-6.418C33.684 6.163 29.084 4 24 4c-7.732 0-14.313 4.388-17.694 10.691z"/><path fill="#FBBC05" d="M24 44c5.356 0 10.207-1.843 13.994-4.994l-6.481-5.307C29.418 35 24 35 24 35c-5.418 0-9.962-2.917-11.303-7.083l-6.571 5.081C9.687 39.612 16.268 44 24 44z"/><path fill="#EA4335" d="M43.611 20.083H42V20H24v8h11.303C34.62 32.254 29.418 35 24 35c-6.065 0-11-4.935-11-11s4.935-11 11-11c2.507 0 4.81.858 6.646 2.277l6.418-6.418C33.684 6.163 29.084 4 24 4c-7.732 0-14.313 4.388-17.694 10.691z"/></g></svg>
+            {googleLoading ? 'Redirecting...' : `Continue with Google`}
+          </button>
+          <div style={{ textAlign: 'center', color: 'var(--text3)', fontSize: '0.9em', margin: '0.5em 0' }}>or</div>
 
           <input
             value={email}

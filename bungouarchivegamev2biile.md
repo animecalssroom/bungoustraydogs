@@ -1309,7 +1309,7 @@ Self-contained --- do not touch Prompts 1-5 work.*
 | -   HP BARS: Both visible. CSS width % only --- no numbers shown to   |
 |     opponent. Faction color.                                          |
 |                                                                       |
-| -   ROUND: \'Round X / 5\' centered top                               |
+| -   ROUND: 'Round X / 7' centered top (round 8 is sudden-death)       |
 |                                                                       |
 | -   MOVES: 5 buttons. SPECIAL greyed if on cooldown or unassigned.    |
 |     RECOVER greyed if used last round.                                |

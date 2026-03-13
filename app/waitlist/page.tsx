@@ -41,9 +41,11 @@ export default function WaitlistPage() {
     const load = async () => {
       const { data } = await supabase
         .from('waitlist')
-        .select('*')
+        .select(
+          'id,user_id,faction,character_id,trait_scores,position,joined_at,notified_at',
+        )
         .eq('user_id', user.id)
-        .single()
+        .maybeSingle()
 
       if (!active) return
       setEntry((data as WaitlistEntry | null) ?? null)

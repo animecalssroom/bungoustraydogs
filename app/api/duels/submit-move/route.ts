@@ -220,6 +220,13 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  // Block STANCE and RECOVER in sudden death round
+  if (duel.current_round === 8) {
+    if (parsed.data.move === 'stance' || parsed.data.move === 'recover') {
+      return NextResponse.json({ error: 'SUDDEN_DEATH_RESTRICTED' }, { status: 400 })
+    }
+  }
+
   if (parsed.data.gogol_override_character) {
     if (playerCharacterSlug !== 'nikolai-gogol' || parsed.data.move !== 'special') {
       return NextResponse.json({ error: 'INVALID_GOGOL_OVERRIDE' }, { status: 400 })

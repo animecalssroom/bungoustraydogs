@@ -33,6 +33,12 @@ export function CharacterAssignmentRedirect() {
       return
     }
 
+    try {
+      window.localStorage.setItem(REVEAL_KEY, activeProfile.character_match_id)
+    } catch (e) {
+      // ignore localStorage errors
+    }
+
     router.push(profilePath)
   }, [activeProfile?.character_match_id, activeProfile?.username, pathname, router])
 

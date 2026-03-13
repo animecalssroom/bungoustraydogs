@@ -292,6 +292,12 @@ export function calculateFaction(answers: unknown): QuizSubmitResult {
   }
 
   const resolved = resolveFactionFromScores(scores)
+  // Log answers and computed scores for debugging
+  try {
+    // Avoid throwing in production if console is unavailable
+    // eslint-disable-next-line no-console
+    console.log('[quiz] calculateFaction', { answers, scores, resolved })
+  } catch {}
 
   if (resolved.status !== 'tied') {
     return resolved
@@ -318,6 +324,12 @@ export function calculateFaction(answers: unknown): QuizSubmitResult {
       tieScores[tieOption.faction] += 1
     }
 
+    try {
+      // Log tie-break scores for debugging
+      // eslint-disable-next-line no-console
+      console.log('[quiz] tiebreak', { tieScores })
+    } catch {}
+
     const tiedFactions = sorted
       .filter(([, score]) => first[1] === score)
       .map(([faction]) => faction)
@@ -328,15 +340,25 @@ export function calculateFaction(answers: unknown): QuizSubmitResult {
     )
 
     if (tieLeaders.length > 1) {
+      const chosen = resolveTrueTie(tieLeaders, answers)
+      try {
+        // eslint-disable-next-line no-console
+        console.log('[quiz] resolveTrueTie chosen', { tieLeaders, chosen })
+      } catch {}
       return {
-        faction: resolveTrueTie(tieLeaders, answers),
+        faction: chosen,
         status: 'tied',
         scores: resolved.scores,
       }
     }
 
+    const chosen = tieLeaders[0] ?? resolveTrueTie(tiedFactions, answers)
+    try {
+      // eslint-disable-next-line no-console
+      console.log('[quiz] tiebreak chosen', { chosen, tieLeaders, tiedFactions })
+    } catch {}
     return {
-      faction: tieLeaders[0] ?? resolveTrueTie(tiedFactions, answers),
+      faction: chosen,
       status: 'tied',
       scores: resolved.scores,
     }

@@ -48,11 +48,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  console.log('[quiz/submit] start', { userId: user.id })
+
   const { data: profile } = await supabase
     .from('profiles')
     .select('quiz_completed, exam_completed, exam_scores, exam_retake_used')
     .eq('id', user.id)
     .single()
+
+  console.log('[quiz/submit] fetched profile', { userId: user.id, profile })
 
   if (profile?.quiz_completed) {
     return NextResponse.json(
@@ -71,6 +75,14 @@ export async function POST(request: NextRequest) {
   } catch {
     return NextResponse.json({ error: 'Invalid answers' }, { status: 400 })
   }
+
+  console.log('[quiz/submit] calculated faction', { userId: user.id, result })
+
+  try {
+    // Log the raw answers explicitly for traceability
+    // eslint-disable-next-line no-console
+    console.log('[quiz/submit] answers', { userId: user.id, answers })
+  } catch {}
 
   const isRetake = Boolean(
     profile?.exam_completed && profile?.exam_retake_used && !profile?.quiz_completed,
@@ -103,6 +115,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!factionExists) {
+      console.error('[quiz/submit] missing faction registry', { storedFaction })
       return NextResponse.json(
         {
           error:
@@ -113,40 +126,62 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  const { error: updateError } = await supabaseAdmin
-    .from('profiles')
-    .update({
-      exam_completed: true,
-      exam_taken_at: now,
-      exam_answers: answers,
-      exam_scores: finalScores,
-      quiz_scores: behaviorQuizScores,
-      faction: storedFaction,
-      exam_status: finalResolution.status,
-      quiz_completed: true,
-      quiz_locked: false,
-      behavior_scores: {
-        power: behaviorQuizScores.power,
-        intel: behaviorQuizScores.intel,
-        loyalty: behaviorQuizScores.loyalty,
-        control: behaviorQuizScores.control,
-        arena_votes: {},
-        duel_style: {
-          gambit: 0,
-          strike: 0,
-          stance: 0,
-        },
-        lore_topics: {},
+  const updatePayload = {
+    exam_completed: true,
+    exam_taken_at: now,
+    exam_answers: answers,
+    exam_scores: finalScores,
+    quiz_scores: behaviorQuizScores,
+    faction: storedFaction,
+    exam_status: finalResolution.status,
+    quiz_completed: true,
+    // mark locked to prevent accidental retake/race conditions
+    quiz_locked: true,
+    behavior_scores: {
+      power: behaviorQuizScores.power,
+      intel: behaviorQuizScores.intel,
+      loyalty: behaviorQuizScores.loyalty,
+      control: behaviorQuizScores.control,
+      arena_votes: {},
+      duel_style: {
+        gambit: 0,
+        strike: 0,
+        stance: 0,
       },
-      updated_at: now,
+      lore_topics: {},
+    },
+    updated_at: now,
+  }
+
+  console.log('[quiz/submit] updatePayload', { userId: user.id, updatePayload })
+
+  try {
+    // Log final resolution mapping
+    // eslint-disable-next-line no-console
+    console.log('[quiz/submit] finalResolution', {
+      userId: user.id,
+      finalResolution,
+      storedFaction,
+      finalScores,
+      isRetake,
     })
+  } catch {}
+
+  const { data: updatedProfile, error: updateError } = await supabaseAdmin
+    .from('profiles')
+    .update(updatePayload)
     .eq('id', user.id)
+    .select()
+    .maybeSingle()
 
   if (updateError) {
-    return NextResponse.json(
-      { error: updateError.message },
-      { status: 500 },
-    )
+    console.error('[quiz/submit] profile update error', { userId: user.id, updateError })
+    return NextResponse.json({ error: updateError.message }, { status: 500 })
+  }
+
+  if (!updatedProfile) {
+    console.error('[quiz/submit] profile update returned no row', { userId: user.id })
+    return NextResponse.json({ error: 'Profile update did not modify any row — possible concurrent update' }, { status: 409 })
   }
 
   if (finalResolution.status === 'unplaceable') {
@@ -160,11 +195,21 @@ export async function POST(request: NextRequest) {
     )
   }
 
+  console.log('[quiz/submit] success', {
+    userId: user.id,
+    faction: finalResolution.faction,
+    storedFaction,
+    status: finalResolution.status,
+    scores: finalScores,
+    retake: isRetake,
+  })
+
   return NextResponse.json({
     faction: finalResolution.faction,
     factionId: storedFaction,
     status: finalResolution.status,
     scores: finalScores,
     retake: isRetake,
+    profile: updatedProfile,
   })
 }

@@ -209,6 +209,7 @@ export default function QuizPage() {
 
     const [response] = await Promise.all([request, loadingDelay])
     const json = await response.json().catch(() => ({}))
+    console.log('[quiz] submit response', { status: response.status, body: json })
 
     if (!response.ok) {
       setError(json.error ?? 'The registry could not record the final answer.')
@@ -216,7 +217,13 @@ export default function QuizPage() {
       return
     }
 
-    // Poll for updated profile before redirecting
+    // If server returned the updated profile, we can proceed immediately.
+    if (json?.profile) {
+      router.push('/onboarding/result')
+      return
+    }
+
+    // Fallback: poll for updated profile (rare)
     let pollCount = 0
     const maxPolls = 18 // ~5 seconds
     let profileReady = false
@@ -232,6 +239,7 @@ export default function QuizPage() {
       await new Promise((resolve) => setTimeout(resolve, 300))
       pollCount++
     }
+
     router.push('/onboarding/result')
   }
 
@@ -429,7 +437,7 @@ export default function QuizPage() {
                   textTransform: 'uppercase',
                 }}
               >
-                {DISPLAY_LABELS[index] ?? option.id.toUpperCase()}
+                {option.id.toUpperCase()}
               </span>
               <span>{option.text}</span>
             </button>

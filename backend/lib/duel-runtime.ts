@@ -2,7 +2,10 @@ import { supabaseAdmin } from '@/backend/lib/supabase'
 import type { Duel, DuelCooldown, DuelRound } from '@/backend/types'
 import { resolveDuelRound } from '@/lib/duels/engine'
 import { narrateDuelRound } from '@/backend/lib/duel-narrative'
-import { DUEL_ROUND_DURATION_MS } from '@/lib/duels/shared'
+
+export const DUEL_MAX_ROUNDS = 7
+export const DUEL_SUDDEN_DEATH_ROUND = 8
+export const DUEL_ROUND_DURATION_MS = 2 * 60 * 1000
 
 function duelSelect() {
   return 'id, challenger_id, defender_id, challenger_character, defender_character, challenger_character_slug, defender_character_slug, status, current_round, challenger_hp, defender_hp, challenger_max_hp, defender_max_hp, challenger_came_back, defender_came_back'
@@ -164,18 +167,57 @@ export async function resolveDuelRoundWithAdmin(duelId: string) {
 
   await upsertCooldowns(duel.id, resolution.cooldownWrites)
 
-  if (resolution.duelOver) {
-    const winnerCameBack = resolution.winnerId === duel.challenger_id && resolution.challengerHpAfter <= 20
-    const loserCameBack = resolution.winnerId === duel.defender_id && resolution.defenderHpAfter <= 20
+  // Extended rounds / sudden death handling
+  const MAX_NORMAL_ROUNDS = DUEL_MAX_ROUNDS
+  const SUDDEN_DEATH_ROUND = DUEL_SUDDEN_DEATH_ROUND
+  const isSuddenDeath = duel.current_round === SUDDEN_DEATH_ROUND
+
+  // In sudden death, damage is multiplied by 1.5 and stance/recover are blocked at submission.
+  const finalNextA = isSuddenDeath
+    ? Math.max(0, duel.challenger_hp - Math.round(resolution.defenderDamage * 1.5))
+    : resolution.challengerHpAfter
+  const finalNextB = isSuddenDeath
+    ? Math.max(0, duel.defender_hp - Math.round(resolution.challengerDamage * 1.5))
+    : resolution.defenderHpAfter
+
+  let duelOver = false
+  let winnerId: string | null = null
+  let loserId: string | null = null
+
+  duelOver = finalNextA <= 0 || finalNextB <= 0 || duel.current_round >= SUDDEN_DEATH_ROUND
+
+  if (duelOver) {
+    if (finalNextA === finalNextB && duel.current_round >= SUDDEN_DEATH_ROUND) {
+      // Use cumulative damage across rounds as tiebreaker; challenger wins ties
+      const { data: dmgRounds } = await supabaseAdmin
+        .from('duel_rounds')
+        .select('challenger_damage_dealt, defender_damage_dealt')
+        .eq('duel_id', duel.id)
+
+      const totalChallengerDmg = (dmgRounds ?? []).reduce((s: number, r: any) => s + (r.challenger_damage_dealt ?? 0), 0)
+      const totalDefenderDmg = (dmgRounds ?? []).reduce((s: number, r: any) => s + (r.defender_damage_dealt ?? 0), 0)
+      winnerId = totalChallengerDmg >= totalDefenderDmg ? duel.challenger_id : duel.defender_id
+    } else {
+      winnerId = finalNextA === finalNextB ? null : finalNextA > finalNextB ? duel.challenger_id : duel.defender_id
+    }
+    loserId = winnerId === duel.challenger_id ? duel.defender_id : winnerId === duel.defender_id ? duel.challenger_id : null
+  }
+
+  // After 7 normal rounds, if both are alive, go to sudden death
+  const goToSuddenDeath = !duelOver && duel.current_round >= MAX_NORMAL_ROUNDS && finalNextA > 0 && finalNextB > 0
+
+  if (duelOver) {
+    const winnerCameBack = winnerId === duel.challenger_id && finalNextA <= 20
+    const loserCameBack = winnerId === duel.defender_id && finalNextB <= 20
 
     await supabaseAdmin
       .from('duels')
       .update({
         status: 'complete',
-        winner_id: resolution.winnerId,
-        loser_id: resolution.loserId,
-        challenger_hp: resolution.challengerHpAfter,
-        defender_hp: resolution.defenderHpAfter,
+        winner_id: winnerId,
+        loser_id: loserId,
+        challenger_hp: finalNextA,
+        defender_hp: finalNextB,
         challenger_max_hp: resolution.challengerMaxHpAfter,
         defender_max_hp: resolution.defenderMaxHpAfter,
         challenger_came_back: winnerCameBack || duel.challenger_came_back,
@@ -188,25 +230,61 @@ export async function resolveDuelRoundWithAdmin(duelId: string) {
     return true
   }
 
-  const nextRoundNumber = duel.current_round + 1
+  const nextRoundNumber = goToSuddenDeath ? SUDDEN_DEATH_ROUND : duel.current_round + 1
 
   await supabaseAdmin
     .from('duels')
     .update({
       current_round: nextRoundNumber,
-      challenger_hp: resolution.challengerHpAfter,
-      defender_hp: resolution.defenderHpAfter,
+      challenger_hp: finalNextA,
+      defender_hp: finalNextB,
       challenger_max_hp: resolution.challengerMaxHpAfter,
       defender_max_hp: resolution.defenderMaxHpAfter,
     })
     .eq('id', duel.id)
 
-  await supabaseAdmin.from('duel_rounds').insert({
-    duel_id: duel.id,
-    round_number: nextRoundNumber,
-    round_started_at: now,
-    round_deadline: new Date(Date.now() + DUEL_ROUND_DURATION_MS).toISOString(),
-  })
+  // Insert next round, setting is_sudden_death if available
+  try {
+    await supabaseAdmin.from('duel_rounds').insert({
+      duel_id: duel.id,
+      round_number: nextRoundNumber,
+      round_started_at: now,
+      round_deadline: new Date(Date.now() + DUEL_ROUND_DURATION_MS).toISOString(),
+      is_sudden_death: goToSuddenDeath || isSuddenDeath,
+    })
+  } catch (_) {
+    await supabaseAdmin.from('duel_rounds').insert({
+      duel_id: duel.id,
+      round_number: nextRoundNumber,
+      round_started_at: now,
+      round_deadline: new Date(Date.now() + DUEL_ROUND_DURATION_MS).toISOString(),
+    })
+  }
+
+  // Trigger bot move instantly if either participant is a bot
+  try {
+    const { data: participants } = await supabaseAdmin
+      .from('profiles')
+      .select('id, is_bot')
+      .in('id', [duel.challenger_id, duel.defender_id])
+
+    const hasBot = (participants ?? []).some((p: any) => p.is_bot)
+
+    if (hasBot) {
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? ''
+      const botDuelSecret = process.env.BOT_DUEL_SECRET ?? ''
+      if (appUrl && botDuelSecret) {
+        fetch(`${appUrl}/api/bots/submit-duel-move`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-bot-duel-secret': botDuelSecret,
+          },
+          body: JSON.stringify({}),
+        }).catch(() => null)
+      }
+    }
+  } catch {}
 
   return true
 }

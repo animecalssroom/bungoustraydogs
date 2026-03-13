@@ -666,6 +666,7 @@ export interface DuelRound {
   defender_move_submitted_at: string | null
   round_started_at: string
   round_deadline: string | null
+  is_sudden_death?: boolean
   reversal_available: boolean
   reversal_deadline: string | null
   reversal_used: boolean

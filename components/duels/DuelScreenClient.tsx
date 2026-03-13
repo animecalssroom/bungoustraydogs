@@ -5,6 +5,7 @@ import type { Duel, DuelCooldown, DuelRound, Profile } from '@/backend/types'
 import { createClient } from '@/frontend/lib/supabase/client'
 import { triggerFloatingAP } from '@/frontend/components/ui/FloatingAP'
 import { AftermathOverlay } from '@/components/duels/AftermathOverlay'
+import { DUEL_MAX_ROUNDS } from '@/lib/duels/shared'
 import { DuelGuide } from '@/components/duels/DuelGuide'
 import { HPBar } from '@/components/duels/HPBar'
 import { MoveButtons } from '@/components/duels/MoveButtons'
@@ -29,9 +30,12 @@ export function DuelScreenClient({
   const [waiting, setWaiting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [countdown, setCountdown] = useState('')
+  const [secondsLeft, setSecondsLeft] = useState<number | null>(null)
   const [aftermathDismissed, setAftermathDismissed] = useState(false)
   const [aftermathSummary, setAftermathSummary] = useState<string | null>(null)
   const [aftermathApLabel, setAftermathApLabel] = useState<string | null>(null)
+  const [challengerDisplay, setChallengerDisplay] = useState<string | null>(null)
+  const [defenderDisplay, setDefenderDisplay] = useState<string | null>(null)
   const lastApRef = useRef<HTMLDivElement | null>(null)
 
   const isChallenger = duel.challenger_id === viewer.id
@@ -74,27 +78,87 @@ export function DuelScreenClient({
         : 'Awaiting next move.'
 
   useEffect(() => {
-    if (!currentRound?.round_deadline || !ownSubmitted) {
+    // compute display names for challenger/defender: prefer character name, fall back to username
+    let active = true
+    const loadDisplays = async () => {
+      try {
+        const missingChallenger = !duel.challenger_character
+        const missingDefender = !duel.defender_character
+        if (!missingChallenger && !missingDefender) {
+          if (active) {
+            setChallengerDisplay(duel.challenger_character ?? null)
+            setDefenderDisplay(duel.defender_character ?? null)
+          }
+          return
+        }
+
+        const ids: string[] = []
+        if (missingChallenger && duel.challenger_id) ids.push(duel.challenger_id)
+        if (missingDefender && duel.defender_id) ids.push(duel.defender_id)
+
+        if (ids.length === 0) {
+          if (active) {
+            setChallengerDisplay(duel.challenger_character ?? duel.challenger_faction ?? 'Unregistered')
+            setDefenderDisplay(duel.defender_character ?? duel.defender_faction ?? 'Unregistered')
+          }
+          return
+        }
+
+        const { data, error } = await supabase.from('profiles').select('id, username, character_name').in('id', ids)
+        if (error) {
+          if (active) {
+            setChallengerDisplay(duel.challenger_character ?? duel.challenger_faction ?? 'Unregistered')
+            setDefenderDisplay(duel.defender_character ?? duel.defender_faction ?? 'Unregistered')
+          }
+          return
+        }
+
+        const map = new Map<string, { username: string; character_name: string | null }>()
+        ;(data as any[] | null)?.forEach((r) => map.set(r.id, { username: r.username, character_name: r.character_name }))
+
+        if (active) {
+          setChallengerDisplay(
+            duel.challenger_character ?? map.get(duel.challenger_id ?? '')?.character_name ?? map.get(duel.challenger_id ?? '')?.username ?? duel.challenger_faction ?? 'Unregistered',
+          )
+          setDefenderDisplay(
+            duel.defender_character ?? map.get(duel.defender_id ?? '')?.character_name ?? map.get(duel.defender_id ?? '')?.username ?? duel.defender_faction ?? 'Unregistered',
+          )
+        }
+      } catch {
+        if (active) {
+          setChallengerDisplay(duel.challenger_character ?? duel.challenger_faction ?? 'Unregistered')
+          setDefenderDisplay(duel.defender_character ?? duel.defender_faction ?? 'Unregistered')
+        }
+      }
+    }
+
+    void loadDisplays()
+    return () => {
+      active = false
+    }
+  }, [duel.challenger_character, duel.defender_character, duel.challenger_id, duel.defender_id, duel.challenger_faction, duel.defender_faction, supabase])
+
+  useEffect(() => {
+    if (!currentRound?.round_deadline) {
       setCountdown('')
+      setSecondsLeft(null)
       return
     }
 
-    const tick = () => {
-      const delta = new Date(currentRound.round_deadline ?? '').getTime() - Date.now()
-      if (delta <= 0) {
-        setCountdown('00:00')
-        return
-      }
+    const target = new Date(currentRound.round_deadline ?? '').getTime()
 
-      const minutes = Math.floor(delta / 60000)
-      const seconds = Math.floor((delta % 60000) / 1000)
+    const tick = () => {
+      const remaining = Math.max(0, Math.floor((target - Date.now()) / 1000))
+      setSecondsLeft(remaining)
+      const minutes = Math.floor(remaining / 60)
+      const seconds = remaining % 60
       setCountdown(`${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`)
     }
 
     tick()
     const timer = window.setInterval(tick, 1000)
     return () => window.clearInterval(timer)
-  }, [currentRound?.round_deadline, ownSubmitted])
+  }, [currentRound?.round_deadline])
 
   useEffect(() => {
     if (duel.status !== 'active') {
@@ -252,7 +316,11 @@ export function DuelScreenClient({
     const json = await response.json()
 
     if (!response.ok) {
-      setError(json.error ?? 'Unable to submit move.')
+      if (json?.error === 'SUDDEN_DEATH_RESTRICTED') {
+        setError('That move is locked during sudden-death rounds.')
+      } else {
+        setError(json.error ?? 'Unable to submit move.')
+      }
       setWaiting(false)
       return
     }
@@ -273,17 +341,17 @@ export function DuelScreenClient({
               alignItems: 'center',
             }}
           >
-            <div className="font-cinzel" style={{ fontSize: '1.3rem' }}>
-              {duel.challenger_character ?? 'OPERATIVE'}
+              <div className="font-cinzel" style={{ fontSize: '1.3rem' }}>
+              {challengerDisplay ?? duel.challenger_character ?? 'OPERATIVE'}
             </div>
             <div
               className="font-space-mono"
               style={{ fontSize: '0.6rem', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text3)' }}
             >
-              Round {Math.max(duel.current_round, 1)} / 5
+              {`Round ${Math.max(duel.current_round, 1)} / ${DUEL_MAX_ROUNDS}`}
             </div>
             <div className="font-cinzel" style={{ fontSize: '1.3rem', textAlign: 'right' }}>
-              {duel.defender_character ?? 'OPERATIVE'}
+              {defenderDisplay ?? duel.defender_character ?? 'OPERATIVE'}
             </div>
           </div>
 
@@ -326,7 +394,7 @@ export function DuelScreenClient({
             ownCharacterName={ownCharacter ?? 'Operative'}
             opponentCharacterSlug={isChallenger ? duel.defender_character_slug : duel.challenger_character_slug}
             opponentCharacterName={
-              isChallenger ? duel.defender_character ?? 'Operative' : duel.challenger_character ?? 'Operative'
+              isChallenger ? defenderDisplay ?? duel.defender_character ?? 'Operative' : challengerDisplay ?? duel.challenger_character ?? 'Operative'
             }
           />
 
@@ -350,8 +418,20 @@ export function DuelScreenClient({
             <div className="paper-surface" style={{ padding: '1rem', textAlign: 'center' }}>
               <div className="font-cormorant" style={{ color: 'var(--text2)', fontStyle: 'italic' }}>{waitingLabel}</div>
               {countdown ? (
-                <div className="font-space-mono" style={{ marginTop: '0.45rem', color: 'var(--text3)', fontSize: '0.58rem' }}>
-                  {countdown}
+                <div style={{ display: 'grid', gap: '0.35rem', marginTop: '0.45rem' }}>
+                  {currentRound?.is_sudden_death ? (
+                    <div className="font-cormorant" style={{ color: 'var(--accent)', fontSize: '0.7rem' }}>
+                      SUDDEN DEATH — STANCE and RECOVER are locked. Only STRIKE, GAMBIT, or SPECIAL.
+                    </div>
+                  ) : (
+                    <div className="font-space-mono" style={{ color: 'var(--text3)', fontSize: '0.58rem' }}>
+                      {`Round ${Math.max(duel.current_round, 1)}`}
+                    </div>
+                  )}
+
+                  <div className="font-space-mono" style={{ color: secondsLeft !== null && secondsLeft <= 30 ? 'var(--accent)' : 'var(--text3)', fontSize: '0.58rem' }}>
+                    {secondsLeft === 0 ? 'AUTO-STANCE — awaiting resolution' : countdown}
+                  </div>
                 </div>
               ) : null}
             </div>
@@ -379,8 +459,8 @@ export function DuelScreenClient({
           </div>
           <RoundHistory
             rounds={rounds.filter((round) => round.resolved_at)}
-            challengerName={duel.challenger_character ?? 'Operative'}
-            defenderName={duel.defender_character ?? 'Operative'}
+            challengerName={challengerDisplay ?? duel.challenger_character ?? 'Operative'}
+            defenderName={defenderDisplay ?? duel.defender_character ?? 'Operative'}
           />
         </section>
       </div>
