@@ -31,6 +31,7 @@ export function Nav() {
   const { theme, setTheme, resetThemeToAuto, isAutoTheme, currentTimeLabel } = useTheme()
   const { user, profile, signOut } = useAuth()
   const [menuOpen, setMenuOpen] = useState(false)
+  const [pendingDuelChallenges, setPendingDuelChallenges] = useState(0)
   const activeProfile = profile
   const factionMeta = activeProfile?.faction ? FACTION_META[activeProfile.faction] : null
   const isAngoOperator =
@@ -54,6 +55,40 @@ export function Nav() {
     setMenuOpen(false)
   }, [pathname])
 
+  useEffect(() => {
+    if (!user) {
+      setPendingDuelChallenges(0)
+      return
+    }
+
+    let active = true
+
+    void fetch('/api/notifications?limit=20', { cache: 'no-store' })
+      .then((response) => response.json().catch(() => ({})).then((json) => ({ response, json })))
+      .then(({ response, json }) => {
+        if (!active) {
+          return
+        }
+
+        const rows = response.ok && Array.isArray(json.data) ? json.data : []
+        const count = rows.filter(
+          (item: { type?: string; read_at?: string | null }) =>
+            item.type === 'duel_challenge' && !item.read_at,
+        ).length
+
+        setPendingDuelChallenges(count)
+      })
+      .catch(() => {
+        if (active) {
+          setPendingDuelChallenges(0)
+        }
+      })
+
+    return () => {
+      active = false
+    }
+  }, [user, pathname])
+
   return (
     <>
       <nav className={styles.nav}>
@@ -64,7 +99,7 @@ export function Nav() {
               <line x1="21" y1="2" x2="18" y2="16" stroke="currentColor" strokeWidth="1" />
               <line x1="31" y1="8" x2="28" y2="22" stroke="currentColor" strokeWidth="1" />
             </svg>
-            <span className={styles.brandKanji}>文</span>
+            <span className={styles.brandKanji}>B</span>
           </div>
           <div className={styles.brandCopy}>
             <span className={styles.brandTitle}>
@@ -85,6 +120,7 @@ export function Nav() {
                   className={`${styles.link} ${active ? styles.linkActive : ''}`}
                 >
                   {item.label}
+                  {item.href === '/duels' && pendingDuelChallenges > 0 ? ` | ${pendingDuelChallenges}` : ''}
                 </Link>
               </li>
             )
@@ -109,7 +145,7 @@ export function Nav() {
         <div className={styles.right}>
           {user && activeProfile ? (
             <Link href={profileHref} className={styles.accountLink} style={accountStyle}>
-              <span className={styles.accountSeal}>{factionMeta?.kanji ?? '文'}</span>
+              <span className={styles.accountSeal}>{factionMeta?.kanji ?? 'B'}</span>
               <span className={styles.accountHandle}>
                 <AngoUsername userId={activeProfile.id} username={activeProfile.username} />
               </span>
@@ -129,7 +165,9 @@ export function Nav() {
               title="Use Yokohama time"
             >
               <span className={styles.cityModeLabel}>City</span>
-              <span className={styles.cityModeMeta}>Auto · {currentTimeLabel}</span>
+              <span className={styles.cityModeMeta} suppressHydrationWarning>
+                Auto | {currentTimeLabel}
+              </span>
             </button>
 
             <div className={styles.themeLanterns}>
@@ -209,6 +247,7 @@ export function Nav() {
                   className={`${styles.mobileLink} ${active ? styles.mobileLinkActive : ''}`}
                 >
                   {item.label}
+                  {item.href === '/duels' && pendingDuelChallenges > 0 ? ` | ${pendingDuelChallenges}` : ''}
                 </Link>
               )
             })}
@@ -249,7 +288,7 @@ export function Nav() {
             }`}
           >
             <span>City</span>
-            <span>{THEME_DATA[theme].label} · {currentTimeLabel}</span>
+            <span suppressHydrationWarning>{THEME_DATA[theme].label} | {currentTimeLabel}</span>
           </button>
 
           <div className={styles.mobileLanterns}>

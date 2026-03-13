@@ -69,20 +69,25 @@ export interface Profile {
   character_description: string | null
   character_type: AbilityType | null
   character_assigned_at: string | null
+  secondary_character_slug?: string | null
+  secondary_character_name?: string | null
   exam_completed: boolean
   exam_taken_at: string | null
   exam_answers: Record<string, string> | null
   exam_scores: Record<string, number> | null
+  quiz_scores?: Record<string, number> | null
   exam_status: ExamStatus | null
   quiz_completed: boolean
   quiz_locked: boolean
   assignment_flag_used: boolean
   trait_scores: Record<string, number> | null
   behavior_scores: BehaviorScores | null
+  avg_move_speed_minutes?: number | null
   exam_retake_eligible_at: string | null
   exam_retake_used: boolean
   ap_total: number
   rank: number
+  is_bot?: boolean | null
   login_streak: number
   guide_bot_dismissed?: boolean | null
   guide_bot_opened_at?: string | null
@@ -437,6 +442,8 @@ export interface Notification {
   type: string
   message: string
   payload: Record<string, unknown> | null
+  action_url?: string | null
+  reference_id?: string | null
   read_at: string | null
   created_at: string
 }
@@ -512,6 +519,8 @@ export type UserEventType =
   | 'faction_assignment'
   | 'character_assigned'
   | 'exam_retake'
+  | 'duel_accepted'
+  | 'duel_complete'
   | 'arena_vote'
   | 'lore_post'
   | 'registry_post'
@@ -550,6 +559,8 @@ export const AP_VALUES: Record<UserEventType, number> = {
   faction_assignment: 0,
   character_assigned: 0,
   exam_retake: 0,
+  duel_accepted: 0,
+  duel_complete: 0,
   arena_vote: 10,
   lore_post: 50,
   registry_post: 50,
@@ -600,4 +611,91 @@ export function apProgress(apTotal: number) {
 export interface ApiResponse<T = unknown> {
   data?: T
   error?: string
+}
+
+export type DuelStatus =
+  | 'pending'
+  | 'declined'
+  | 'active'
+  | 'complete'
+  | 'forfeit'
+  | 'cancelled'
+
+export type DuelMove = 'strike' | 'stance' | 'gambit' | 'special' | 'recover'
+
+export interface Duel {
+  id: string
+  challenger_id: string
+  defender_id: string
+  challenger_character: string | null
+  defender_character: string | null
+  challenger_character_slug: string | null
+  defender_character_slug: string | null
+  challenger_faction: FactionId | null
+  defender_faction: FactionId | null
+  status: DuelStatus
+  current_round: number
+  challenger_hp: number
+  defender_hp: number
+  challenger_max_hp: number
+  defender_max_hp: number
+  winner_id: string | null
+  loser_id: string | null
+  ap_awarded: boolean
+  is_ranked: boolean
+  is_war_duel: boolean
+  war_id: string | null
+  challenger_came_back: boolean
+  defender_came_back: boolean
+  decline_reason: string | null
+  challenge_message: string | null
+  challenge_expires_at: string | null
+  accepted_at: string | null
+  completed_at: string | null
+  created_at: string
+}
+
+export interface DuelRound {
+  id: string
+  duel_id: string
+  round_number: number
+  challenger_move: DuelMove | null
+  challenger_override_character: string | null
+  challenger_move_submitted_at: string | null
+  defender_move: DuelMove | null
+  defender_move_submitted_at: string | null
+  round_started_at: string
+  round_deadline: string | null
+  reversal_available: boolean
+  reversal_deadline: string | null
+  reversal_used: boolean
+  challenger_damage_dealt: number
+  defender_damage_dealt: number
+  challenger_hp_after: number | null
+  defender_hp_after: number | null
+  special_events: Array<Record<string, unknown>>
+  narrative: string | null
+  narrative_is_fallback: boolean
+  resolved_at: string | null
+}
+
+export interface OpenChallenge {
+  id: string
+  challenger_id: string
+  faction: FactionId | null
+  character_name: string | null
+  message: string | null
+  status: 'open' | 'accepted' | 'expired' | 'withdrawn'
+  accepted_by: string | null
+  duel_id: string | null
+  expires_at: string | null
+  created_at: string
+}
+
+export interface DuelCooldown {
+  id: string
+  duel_id: string
+  user_id: string
+  ability_type: 'special' | 'recover'
+  locked_until_round: number
 }

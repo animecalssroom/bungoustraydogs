@@ -39,33 +39,33 @@ export const THEME_DATA: Record<
 > = {
   light: {
     label: 'Dawn',
-    labelJp: '夜明け',
-    glyph: '◷',
-    eyebrow: 'Dawn · Agency Hours · 夜明け',
+    labelJp: 'Yoake',
+    glyph: 'o',
+    eyebrow: 'Dawn | Agency Hours | Yoake',
     quote:
       '"No matter how many mistakes you make, you are still ahead of everyone who is not trying."',
-    attr: 'Doppo Kunikida · 国木田独歩',
-    heroKanji: '文豪',
+    attr: 'Doppo Kunikida',
+    heroKanji: 'Bungo',
   },
   neutral: {
     label: 'Twilight',
-    labelJp: '黄昏',
-    glyph: '◐',
-    eyebrow: 'Twilight · Neutral Hours · 黄昏',
+    labelJp: 'Tasogare',
+    glyph: 'O',
+    eyebrow: 'Twilight | Neutral Hours | Tasogare',
     quote:
       '"The world belongs to those willing to pay the price. I simply know my worth."',
-    attr: 'Francis Scott Key Fitzgerald · フィッツジェラルド',
-    heroKanji: '黄昏',
+    attr: 'Francis Scott Key Fitzgerald',
+    heroKanji: 'Dusk',
   },
   dark: {
     label: 'Midnight',
-    labelJp: '深夜',
-    glyph: '◑',
-    eyebrow: 'Midnight · Mafia Hours · 深夜',
+    labelJp: 'Shinya',
+    glyph: '@',
+    eyebrow: 'Midnight | Mafia Hours | Shinya',
     quote:
       '"Humans are foolish creatures. They seek strength, then break beneath it."',
-    attr: 'Ryunosuke Akutagawa · 芥川龍之介',
-    heroKanji: '暗黒',
+    attr: 'Ryunosuke Akutagawa',
+    heroKanji: 'Night',
   },
 }
 
@@ -99,7 +99,7 @@ const ThemeContext = createContext<ThemeContextValue>({
   resetThemeToAuto: () => {},
   isAutoTheme: true,
   isFlashing: false,
-  currentTimeLabel: '',
+  currentTimeLabel: '--:--',
   currentThemeNameJp: THEME_DATA.light.labelJp,
 })
 
@@ -107,7 +107,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<Theme>('light')
   const [themeMode, setThemeMode] = useState<ThemeMode>('auto')
   const [isFlashing, setFlashing] = useState(false)
-  const [currentTimeLabel, setCurrentTimeLabel] = useState(formatTime())
+  const [currentTimeLabel, setCurrentTimeLabel] = useState('--:--')
   const flashTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const applyTheme = useCallback((nextTheme: Theme, animate = true) => {
@@ -124,18 +124,26 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
-  // On mount, restore theme mode and theme from localStorage if present
   useEffect(() => {
-    const storedMode = localStorage.getItem(THEME_MODE_KEY) as ThemeMode | null;
-    const storedTheme = localStorage.getItem(THEME_OVERRIDE_KEY) as Theme | null;
-    if (storedMode === 'manual' && storedTheme && ['light', 'neutral', 'dark'].includes(storedTheme)) {
-      setThemeMode('manual');
-      applyTheme(storedTheme, false);
-    } else {
-      setThemeMode('auto');
-      applyTheme(getTimeTheme(), false);
+    const storedMode = localStorage.getItem(THEME_MODE_KEY) as ThemeMode | null
+    const storedTheme = localStorage.getItem(THEME_OVERRIDE_KEY) as Theme | null
+    const now = new Date()
+
+    setCurrentTimeLabel(formatTime(now))
+
+    if (
+      storedMode === 'manual' &&
+      storedTheme &&
+      ['light', 'neutral', 'dark'].includes(storedTheme)
+    ) {
+      setThemeMode('manual')
+      applyTheme(storedTheme, false)
+      return
     }
-  }, [applyTheme]);
+
+    setThemeMode('auto')
+    applyTheme(getTimeTheme(now), false)
+  }, [applyTheme])
 
   useEffect(() => {
     const interval = window.setInterval(() => {
@@ -152,21 +160,21 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   const setTheme = useCallback(
     (nextTheme: Theme) => {
-      setThemeMode('manual');
-      localStorage.setItem(THEME_MODE_KEY, 'manual');
-      localStorage.setItem(THEME_OVERRIDE_KEY, nextTheme);
-      applyTheme(nextTheme, true);
+      setThemeMode('manual')
+      localStorage.setItem(THEME_MODE_KEY, 'manual')
+      localStorage.setItem(THEME_OVERRIDE_KEY, nextTheme)
+      applyTheme(nextTheme, true)
     },
     [applyTheme],
-  );
+  )
 
   const resetThemeToAuto = useCallback(() => {
-    const nextTheme = getTimeTheme();
-    setThemeMode('auto');
-    localStorage.setItem(THEME_MODE_KEY, 'auto');
-    localStorage.removeItem(THEME_OVERRIDE_KEY);
-    applyTheme(nextTheme, true);
-  }, [applyTheme]);
+    const nextTheme = getTimeTheme()
+    setThemeMode('auto')
+    localStorage.setItem(THEME_MODE_KEY, 'auto')
+    localStorage.removeItem(THEME_OVERRIDE_KEY)
+    applyTheme(nextTheme, true)
+  }, [applyTheme])
 
   const value = useMemo(
     () => ({

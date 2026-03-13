@@ -26,11 +26,14 @@ const CharacterReveal = dynamic(() => import('@/frontend/components/ui/Character
 const RankUpFlash = dynamic(() => import('@/frontend/components/ui/RankUpFlash'), { ssr: false })
 const KanjiReveal = dynamic(() => import('@/frontend/components/ui/KanjiReveal'), { ssr: false })
 
-const REVEAL_KEY = 'bsd_char_reveal_shown'
+const TOKYO_TIME_ZONE = 'Asia/Tokyo'
 
 const formatDate = (value: string | null) =>
   value
-    ? new Intl.DateTimeFormat('en-US', { dateStyle: 'medium' }).format(new Date(value))
+    ? new Intl.DateTimeFormat('en-US', {
+        dateStyle: 'medium',
+        timeZone: TOKYO_TIME_ZONE,
+      }).format(new Date(value))
     : 'No record on file'
 
 const formatDateTime = (value: string | null) =>
@@ -38,6 +41,7 @@ const formatDateTime = (value: string | null) =>
     ? new Intl.DateTimeFormat('en-US', {
         dateStyle: 'medium',
         timeStyle: 'short',
+        timeZone: TOKYO_TIME_ZONE,
       }).format(new Date(value))
     : 'No timestamp on file'
 
@@ -75,6 +79,8 @@ const eventLabel = (type: UserEvent['event_type']) =>
     faction_assignment: 'Faction Assigned',
     character_assigned: 'Character File Sealed',
     exam_retake: 'Exam Retake Opened',
+    duel_accepted: 'Duel Accepted',
+    duel_complete: 'Duel Completed',
     arena_vote: 'Arena Vote Logged',
     lore_post: 'Lore Record Filed',
     registry_post: 'Registry Report Approved',
@@ -102,6 +108,7 @@ const eventLabel = (type: UserEvent['event_type']) =>
 const COUNTS_TOWARD_OBSERVATION = new Set([
   'quiz_complete',
   'faction_assignment',
+  'duel_complete',
   'arena_vote',
   'lore_post',
   'registry_post',
@@ -161,6 +168,7 @@ export function ProfileExperience({
   const [showRankFlash, setShowRankFlash] = useState(false)
   const [rankFlashTitle, setRankFlashTitle] = useState(getRankTitle(initialProfile.rank))
   const previousRankRef = useRef(initialProfile.rank)
+  const rankFlashReadyRef = useRef(false)
 
   const factionMeta = activeProfile.faction ? FACTION_META[activeProfile.faction] : null
   const character = getCharacterReveal(activeProfile.character_match_id)
@@ -241,19 +249,32 @@ export function ProfileExperience({
   }, [activeProfile.id, activeProfile.updated_at, initialEvents, isOwnProfile, supabase])
 
   useEffect(() => {
-    if (isOwnProfile && activeProfile.rank > previousRankRef.current) {
+    if (!isOwnProfile) {
+      previousRankRef.current = activeProfile.rank
+      rankFlashReadyRef.current = true
+      return
+    }
+
+    if (rankFlashReadyRef.current && activeProfile.rank > previousRankRef.current) {
       setRankFlashTitle(getRankTitle(activeProfile.rank))
       setShowRankFlash(true)
     }
+
     previousRankRef.current = activeProfile.rank
+    rankFlashReadyRef.current = true
   }, [activeProfile.rank, isOwnProfile])
 
   useEffect(() => {
     if (!isOwnProfile || !activeProfile.character_match_id) return
-    if (window.localStorage.getItem(REVEAL_KEY) !== activeProfile.character_match_id) {
+    const revealKey = `character_revealed_${activeProfile.id}`
+
+    if (window.localStorage.getItem(revealKey) !== activeProfile.character_match_id) {
       setShowReveal(true)
+      return
     }
-  }, [activeProfile.character_match_id, isOwnProfile])
+
+    setShowReveal(false)
+  }, [activeProfile.character_match_id, activeProfile.id, isOwnProfile])
 
   const abilitySignature =
     factionMeta && character
@@ -295,6 +316,11 @@ export function ProfileExperience({
               <>
                 <h2 className="font-cinzel" style={{ marginTop: '0.85rem', fontSize: 'clamp(1.7rem, 4vw, 2.3rem)' }}>{activeProfile.character_name ?? character.name}</h2>
                 <p className="font-cormorant" style={{ marginTop: '0.4rem', fontSize: '1.05rem', color: factionMeta?.color ?? 'var(--accent)', fontStyle: 'italic' }}>{activeProfile.character_ability ?? character.ability}</p>
+                {activeProfile.secondary_character_name ? (
+                  <p className="font-cormorant" style={{ marginTop: '0.35rem', fontSize: '0.95rem', color: 'var(--text3)', fontStyle: 'italic' }}>
+                    Secondary resonance: {activeProfile.secondary_character_name}
+                  </p>
+                ) : null}
                 {abilityType ? <div style={{ marginTop: '0.9rem', display: 'inline-flex', padding: '0.45rem 0.75rem', border: `1px solid ${ABILITY_TYPE_COLORS[abilityType]}`, color: ABILITY_TYPE_COLORS[abilityType] }}><span className="font-space-mono" style={{ fontSize: '0.52rem', letterSpacing: '0.16em', textTransform: 'uppercase' }}>{ABILITY_TYPE_LABELS[abilityType]}</span></div> : null}
                 <p className="font-cormorant" style={{ marginTop: '0.9rem', fontSize: '1rem', lineHeight: 1.7, color: 'var(--text2)', fontStyle: 'italic' }}>{activeProfile.character_description || (abilityType ? ABILITY_TYPE_DESC[abilityType] : 'The registry has not filed a formal ability classification for this signature yet.')}</p>
                 {isOwnProfile ? (
@@ -435,7 +461,7 @@ export function ProfileExperience({
           registryNote={activeProfile.character_description ?? `Ability signature confirms designation as ${character.name}. The city has completed a lasting record for this file.`}
           factionColor={factionMeta.color}
           onComplete={() => {
-            window.localStorage.setItem(REVEAL_KEY, activeProfile.character_match_id ?? '')
+            window.localStorage.setItem(`character_revealed_${activeProfile.id}`, activeProfile.character_match_id ?? '')
             setShowReveal(false)
           }}
         />

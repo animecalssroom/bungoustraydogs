@@ -24,6 +24,16 @@ function averageScores(
   }, {}) as QuizScores
 }
 
+
+function deriveBehaviorQuizScores(scores: QuizScores) {
+  return {
+    power: scores.mafia ?? 0,
+    intel: scores.guild ?? 0,
+    loyalty: scores.agency ?? 0,
+    control: scores.dogs ?? 0,
+  }
+}
+
 export async function POST(request: NextRequest) {
   // --- Rate limit: max 3 per hour per IP ---
   const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || ''
@@ -84,6 +94,7 @@ export async function POST(request: NextRequest) {
       ? { ...averagedResolution, faction: result.faction }
       : averagedResolution
   const storedFaction = mapQuizFactionToStoredFaction(finalResolution.faction)
+  const behaviorQuizScores = deriveBehaviorQuizScores(finalScores)
   const now = new Date().toISOString()
 
   if (storedFaction) {
@@ -118,10 +129,24 @@ export async function POST(request: NextRequest) {
       exam_taken_at: now,
       exam_answers: answers,
       exam_scores: finalScores,
+      quiz_scores: behaviorQuizScores,
       faction: storedFaction,
       exam_status: finalResolution.status,
       quiz_completed: true,
       quiz_locked: false,
+      behavior_scores: {
+        power: behaviorQuizScores.power,
+        intel: behaviorQuizScores.intel,
+        loyalty: behaviorQuizScores.loyalty,
+        control: behaviorQuizScores.control,
+        arena_votes: {},
+        duel_style: {
+          gambit: 0,
+          strike: 0,
+          stance: 0,
+        },
+        lore_topics: {},
+      },
       updated_at: now,
     })
     .eq('id', user.id)

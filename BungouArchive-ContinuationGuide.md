@@ -1009,13 +1009,13 @@ Do all of the following:
    All list queries have .limit()
 
 5. Add these indexes to Supabase:
-   CREATE INDEX idx_user_events_user_id ON user_events(user_id);
-   CREATE INDEX idx_faction_messages_faction ON faction_messages(faction, created_at DESC);
-   CREATE INDEX idx_faction_activity_faction ON faction_activity(faction, created_at DESC);
-   CREATE INDEX idx_notifications_user_id ON notifications(user_id, read, created_at DESC);
-   CREATE INDEX idx_profiles_username ON profiles(username);
-   CREATE INDEX idx_profiles_faction ON profiles(faction, ap_total DESC);
-   CREATE INDEX idx_registry_posts_status ON registry_posts(status, created_at DESC);
+   CREATE INDEX IF NOT EXISTS idx_user_events_user_id ON user_events(user_id);
+   CREATE INDEX IF NOT EXISTS idx_faction_messages_faction_id ON faction_messages(faction_id, created_at DESC);
+   CREATE INDEX IF NOT EXISTS idx_faction_activity_faction_id ON faction_activity(faction_id, created_at DESC);
+   CREATE INDEX IF NOT EXISTS idx_notifications_user_read_at ON notifications(user_id, read_at, created_at DESC);
+   CREATE INDEX IF NOT EXISTS idx_profiles_username ON profiles(username);
+   CREATE INDEX IF NOT EXISTS idx_profiles_faction_ap_total ON profiles(faction, ap_total DESC);
+   CREATE INDEX IF NOT EXISTS idx_registry_posts_status_created_at ON registry_posts(status, created_at DESC);
 
 6. Audit every Framer Motion animation —
    Only animate: opacity, transform, scale, x, y

@@ -35,7 +35,7 @@ function safeRecord(value: unknown) {
 }
 
 function clampScore(value: number) {
-  return Math.max(0, Math.min(10, value))
+  return Math.max(0, value)
 }
 
 export function normalizeBehaviorScores(
@@ -127,11 +127,19 @@ export function calculateBehaviorDelta(
       return { intel: 1 }
     case 'archive_view':
     case 'archive_read':
-      return { intel: 1 }
+      return {
+        intel: 1,
+        loreTopic:
+          typeof metadata.slug === 'string' && metadata.slug.trim()
+            ? metadata.slug.trim()
+            : null,
+      }
     case 'faction_checkin':
       return { loyalty: 1, control: 1 }
     case 'daily_login':
       return { loyalty: 1 }
+    case 'duel_complete':
+      return { power: 2 }
     case 'login_streak':
       return { loyalty: 1, control: 1 }
     case 'debate_upvote':

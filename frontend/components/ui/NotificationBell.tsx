@@ -3,8 +3,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { usePathname, useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { createClient } from '@/frontend/lib/supabase/client'
 import type { Notification } from '@/backend/types'
+import { formatRemainingTime } from '@/lib/duels/shared'
 
 export default function NotificationBell({ userId }: { userId: string }) {
   const pathname = usePathname()
@@ -17,18 +19,31 @@ export default function NotificationBell({ userId }: { userId: string }) {
     let active = true
 
     const load = async () => {
-      const { data } = await supabase
-        .from('notifications')
-        .select('*')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false })
-        .limit(10)
+      const response = await fetch('/api/notifications?limit=10', {
+        cache: 'no-store',
+      })
+      const json = await response.json().catch(() => ({}))
 
       if (!active) {
         return
       }
 
-      setNotifications((data as Notification[] | null) ?? [])
+      const rows = ((response.ok ? json.data : []) ?? []) as Array<
+        Notification & {
+          action_url?: string | null
+          reference_id?: string | null
+          read_at?: string | null
+        }
+      >
+
+      setNotifications(
+        rows.map((row) => ({
+          ...row,
+          action_url: row.action_url ?? null,
+          reference_id: row.reference_id ?? null,
+          read_at: row.read_at ?? null,
+        })),
+      )
     }
 
     void load()
@@ -43,8 +58,8 @@ export default function NotificationBell({ userId }: { userId: string }) {
           table: 'notifications',
           filter: `user_id=eq.${userId}`,
         },
-        (payload) => {
-          setNotifications((current) => [payload.new as Notification, ...current].slice(0, 10))
+        () => {
+          void load()
         },
       )
       .subscribe()
@@ -56,6 +71,11 @@ export default function NotificationBell({ userId }: { userId: string }) {
   }, [supabase, userId])
 
   const unreadCount = notifications.filter((item) => !item.read_at).length
+  const orderedNotifications = [...notifications].sort((left, right) => {
+    if (left.type === 'duel_challenge' && right.type !== 'duel_challenge') return -1
+    if (left.type !== 'duel_challenge' && right.type === 'duel_challenge') return 1
+    return new Date(right.created_at).getTime() - new Date(left.created_at).getTime()
+  })
   const unreadSpecialInvite = notifications.find(
     (item) => item.type === 'special_division_invite' && !item.read_at,
   )
@@ -66,17 +86,20 @@ export default function NotificationBell({ userId }: { userId: string }) {
 
   const markSingleRead = async (notificationId: string) => {
     const now = new Date().toISOString()
-    const response = await fetch(`/api/notifications/${notificationId}/acknowledge`, {
+    const response = await fetch('/api/notifications/acknowledge', {
       method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: notificationId }),
     })
 
     if (!response.ok) {
-      return
+      return false
     }
 
     setNotifications((current) =>
       current.map((item) => (item.id === notificationId ? { ...item, read_at: now } : item)),
     )
+    return true
   }
 
   useEffect(() => {
@@ -92,13 +115,15 @@ export default function NotificationBell({ userId }: { userId: string }) {
   }, [pathname, specialInvitePath, unreadSpecialInvite])
 
   const markRead = async () => {
-    const unreadIds = notifications.filter((item) => !item.read_at).map((item) => item.id)
+    const nonDuelUnreadIds = notifications
+      .filter((item) => !item.read_at && item.type !== 'duel_challenge')
+      .map((item) => item.id)
 
-    if (unreadIds.length === 0) {
+    if (nonDuelUnreadIds.length === 0) {
       return
     }
 
-    await Promise.all(unreadIds.map((notificationId) => markSingleRead(notificationId)))
+    await Promise.all(nonDuelUnreadIds.map((notificationId) => markSingleRead(notificationId)))
   }
 
   const toggle = () => {
@@ -147,7 +172,7 @@ export default function NotificationBell({ userId }: { userId: string }) {
           textTransform: 'uppercase',
         }}
       >
-        {unreadCount > 0 ? `◉ ${unreadCount}` : '○'}
+        {unreadCount > 0 ? `* ${unreadCount}` : 'o'}
       </button>
 
       <AnimatePresence>
@@ -275,7 +300,7 @@ export default function NotificationBell({ userId }: { userId: string }) {
                 No transmissions received.
               </div>
             ) : (
-              notifications.map((item) => (
+              orderedNotifications.map((item) => (
                 <div
                   key={item.id}
                   style={{
@@ -316,11 +341,29 @@ export default function NotificationBell({ userId }: { userId: string }) {
                       marginTop: '0.35rem',
                       fontSize: '0.52rem',
                       letterSpacing: '0.08em',
-                      color: 'var(--text3)',
+                      color: item.type === 'duel_challenge' ? '#8B0000' : 'var(--text3)',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      gap: '0.75rem',
+                      flexWrap: 'wrap',
                     }}
                   >
-                    {new Date(item.created_at).toLocaleString()}
+                    <span>{new Date(item.created_at).toLocaleString()}</span>
+                    {item.type === 'duel_challenge' ? (
+                      <span>{formatRemainingTime((item.payload?.expires_at as string | undefined) ?? null)}</span>
+                    ) : null}
                   </div>
+                  {item.type === 'duel_challenge' ? (
+                    <div style={{ marginTop: '0.45rem' }}>
+                      <Link
+                        href={typeof item.action_url === 'string' ? item.action_url : '/duels/inbox'}
+                        className="font-space-mono"
+                        style={{ fontSize: '0.55rem', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#8B0000' }}
+                      >
+                        Respond
+                      </Link>
+                    </div>
+                  ) : null}
                 </div>
               ))
             )}

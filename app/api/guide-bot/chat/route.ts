@@ -2,12 +2,35 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth, isNextResponse } from '@/backend/middleware/auth'
 import { sanitizeMultilineText } from '@/backend/lib/input-safety'
 import { supabaseAdmin } from '@/backend/lib/supabase'
+
 import { getRankTitle, type GuideBotMessage, type Profile } from '@/backend/types'
+import { loadKnowledgeFiles, getKnowledgeCache, searchKnowledge, searchRelationship } from '@/backend/lib/guidebot-knowledge'
+import fs from 'fs/promises'
+import path from 'path'
+
 
 const GUIDE_BOT_MODEL = process.env.GEMINI_MODEL ?? 'gemini-2.5-flash'
-const DAILY_QUERY_LIMIT = 5
+const DAILY_QUERY_LIMIT = 10
 const FALLBACK_TEXT = `Registry terminal is experiencing interference.
 Open /tickets and file a registry ticket.`
+
+// Load the full system prompt from guidebotcomplete.md (between === lines)
+let SYSTEM_PROMPT = ''
+async function loadSystemPrompt() {
+  const filePath = path.join(process.cwd(), 'guidebotcomplete.md')
+  try {
+    const content = await fs.readFile(filePath, 'utf8')
+    const match = content.match(/={77,}[\r\n]+([\s\S]*?)[\r\n]+={77,}/)
+    if (match) {
+      SYSTEM_PROMPT = match[1].trim()
+    }
+  } catch (e) {
+    SYSTEM_PROMPT = ''
+  }
+}
+// Load at startup
+loadSystemPrompt()
+loadKnowledgeFiles()
 
 const RANK_TITLES_BY_FACTION: Record<string, Array<{ ap: number; title: string }>> = {
   agency: [
@@ -91,106 +114,22 @@ function getFactionRankTitle(profile: Profile) {
   return title
 }
 
-function buildSystemPrompt(profile: Profile) {
-  const hasCharacter = Boolean(profile.character_name || profile.character_match_id || profile.character_assigned_at)
 
-  return `
-You are the Yokohama Ability Registry Terminal - the city's official information interface.
-You are not a person. You are the city speaking.
-
-Voice rules:
-- cold, precise, official
-- short sentences
-- never warm or casual
-- never use the words "sure", "happy to help", "great question", "of course", "certainly"
-- never use exclamation marks
-- never use emojis
-- never say "I" more than once per response
-- maximum 4 sentences per response unless a short list is necessary
-
-If information is unavailable, say exactly:
-"That information is not available at this terminal. Open /tickets and file a registry ticket."
-
-CURRENT USER DATA
-Username: ${profile.username}
-Faction: ${getFactionLabel(profile)}
-Character: ${profile.character_name ?? 'Pending assessment'}
-AP: ${profile.ap_total}
-Rank: ${getFactionRankTitle(profile)}
-Quiz completed: ${String(Boolean(profile.exam_completed))}
-Character assigned: ${String(hasCharacter)}
-
-Tailor the reply to the current state.
-If they have no faction yet, focus on the quiz and factions.
-If they have a faction but no character, explain the 10-event system.
-If they have a character, explain what they can do with it.
-
-GAME KNOWLEDGE
-World: Yokohama is controlled by five factions. Ango Sakaguchi of the Special Division observes all factions.
-Game layers: Story, Game, Lore.
-
-Factions:
-- Agency: balanced, defensive, analytical. Territory: Kannai.
-- Mafia: aggressive, highest damage, high risk. Territory: Harbor.
-- Guild: resource-heavy, passive damage, traps. Territory: Motomachi.
-- Hunting Dogs: military precision, information advantage. Territory: Honmoku.
-- Special Division: observer faction. Not available through quiz. No auto character assignment.
-
-Faction assignment:
-- seven-question quiz on arrival
-- assessed through Power, Intel, Loyalty, Control
-- faction is permanent
-- one transfer after 30 days and 500 AP minimum
-
-Character assignment:
-- after 10 user events
-- city uses behavior scores and faction roster
-- qualifying activity includes daily_login, chat_message, feed_view, profile_view, archive_read, lore writing, registry_save, and staff-approved registry filings
-- Special Division designations are manual
-
-AP:
-- +5 daily login
-- +25 approved field note
-- +50 approved incident report
-- +100 approved classified report
-- +150 accepted chronicle submission
-- duel and war rewards exist
-
-Duels:
-- 1v1, five rounds max, 100 HP each
-- moves: STRIKE, STANCE, GAMBIT, SPECIAL, RECOVER
-- code decides numbers, Gemini writes narrative
-
-Registry:
-- filing desk reserved for moderators and the owner
-- in-world reports, incident records, classified files, and Chronicle submissions
-- public users may read and save files, but they write through Lore instead
-
-Lore:
-- public writing lane for essays, theory, symbolism, character study, and BSD analysis
-- minimum 50 words
-- rank 1 entries should stay within 200 words
-- rank 2 and above may file up to 500 words before splitting into a continuation
-
-Archive:
-- public case files for BSD characters
-
-Arena:
-- community voting and live ranked duel modes
-
-Book:
-- weekly highest AP faction becomes Book Holder for 7 days and gets +10 percent AP multiplier
-
-For personnel questions:
-"The Special Division does not respond to queries about its personnel."
-
-For off-topic questions:
-"This terminal processes game-related queries only."
-
-Begin every first response with:
-"Registry terminal active."
-Do not begin subsequent responses with that phrase.
-`
+// Build the system prompt with user data and optionally knowledge excerpts
+function buildSystemPrompt(profile: Profile, eventCount: number, knowledgeExcerpts: string[] = []) {
+  let prompt = SYSTEM_PROMPT
+    .replace('[USERNAME]', profile.username)
+    .replace('[FACTION]', profile.faction ?? 'Not yet assigned')
+    .replace('[CHARACTER_NAME]', profile.character_name ?? 'Pending city assessment')
+    .replace('[AP]', String(profile.ap_total ?? 0))
+    .replace('[RANK_TITLE]', getFactionRankTitle(profile))
+    .replace('[QUIZ_COMPLETED]', profile.exam_completed ? 'Yes' : 'No')
+    .replace('[CHARACTER_ASSIGNED]', profile.character_name ? 'Yes' : 'No')
+    .replace('[EVENT_COUNT]', String(eventCount))
+  if (knowledgeExcerpts.length > 0) {
+    prompt += '\n\nRelevant knowledge:\n' + knowledgeExcerpts.join('\n---\n')
+  }
+  return prompt
 }
 
 function normalizeHistory(history: unknown): GuideBotMessage[] {
@@ -440,10 +379,12 @@ export async function POST(req: NextRequest) {
 
   const conversationHistory = normalizeHistory(body.conversationHistory)
   const firstTurn = conversationHistory.length === 0
+
   const profile = await loadTerminalProfile(auth.user.id, auth.profile)
   const apiKey = process.env.GEMINI_API_KEY
   const startOfDayIso = getStartOfDayIso()
   const eventSummary = await getUserEventSummary(auth.user.id)
+  const eventCount = eventSummary?.qualifyingCount ?? 0
 
   const { count: dailyQueryCount, error: countError } = await supabaseAdmin
     .from('guide_bot_messages')
@@ -460,7 +401,7 @@ export async function POST(req: NextRequest) {
     return new Response(
       streamText(
         withActivation(
-          'Daily terminal quota exhausted. Five queries have already been filed today. Return after local midnight.',
+          `Daily terminal quota exhausted. Ten queries have already been filed today. Return after local midnight.`,
           firstTurn,
         ),
       ),
@@ -470,6 +411,9 @@ export async function POST(req: NextRequest) {
     )
   }
 
+
+  const repliesLeft = DAILY_QUERY_LIMIT - (dailyQueryCount ?? 0)
+  const replyNotice = `You have ${repliesLeft} guide bot replies left today.`
   const commonAnswer = getCommonAnswer(message, profile, firstTurn, eventSummary)
   if (commonAnswer) {
     void supabaseAdmin.from('guide_bot_messages').insert([
@@ -481,16 +425,48 @@ export async function POST(req: NextRequest) {
       {
         user_id: auth.user.id,
         role: 'assistant',
-        content: commonAnswer,
+        content: `${commonAnswer}\n\n${replyNotice}`,
       },
     ])
-
-    return new Response(streamText(commonAnswer), {
+    return new Response(streamText(`${commonAnswer}\n\n${replyNotice}`), {
       headers: { 'Content-Type': 'text/plain; charset=utf-8' },
     })
   }
 
-  const systemInstruction = buildSystemPrompt(profile)
+  // Improved relationship query detection and fuzzy matching
+  let knowledgeExcerpts: string[] = []
+  const relPattern = /relationship[s]?|bond|connection|rivalry|duo|pair|trio/i
+  const namePattern = /([a-zA-Z]{3,})/g
+  const lowerMsg = message.toLowerCase()
+  if (relPattern.test(lowerMsg)) {
+    // Extract all words with 3+ letters as possible names
+    const nameCandidates = Array.from(message.matchAll(namePattern)).map(m => m[1].toLowerCase())
+    // Remove duplicates and common words
+    const blacklist = new Set(['relationship','relationships','between','with','and','of','the','what','is','are','to','a','in','vs','bond','connection','duo','pair','trio'])
+    const names = nameCandidates.filter(n => !blacklist.has(n))
+    // Try all pairs
+    let found = false
+    for (let i = 0; i < names.length; i++) {
+      for (let j = i + 1; j < names.length; j++) {
+        const relResults = searchRelationship(names[i], names[j], 2)
+        if (relResults.length > 0) {
+          // Concatenate all relevant excerpts for a fuller answer
+          knowledgeExcerpts = [relResults.map(r => `From ${r.file}:\n${r.excerpt.trim()}`).join('\n---\n')]
+          found = true
+          break
+        }
+      }
+      if (found) break
+    }
+    if (!found) {
+      knowledgeExcerpts = [`No direct relationship found between ${names.slice(0,2).join(' and ') || 'the specified characters'} in the database.`]
+    }
+  } else {
+    const knowledgeResults = searchKnowledge(message, 2)
+    knowledgeExcerpts = knowledgeResults.map(r => `From ${r.file}:\n${r.excerpt.trim()}`)
+  }
+
+  const systemInstruction = buildSystemPrompt(profile, eventCount, knowledgeExcerpts) + `\n\n${replyNotice}`
   let assistantText = FALLBACK_TEXT
   let exactError: string | null = null
 
@@ -521,7 +497,7 @@ export async function POST(req: NextRequest) {
             ],
             generationConfig: {
               temperature: 0.3,
-              maxOutputTokens: 260,
+              maxOutputTokens: 512, // increased to reduce cut-off
             },
           }),
         },
@@ -534,7 +510,7 @@ export async function POST(req: NextRequest) {
 
         const nextText = json.candidates?.[0]?.content?.parts
           ?.map((part) => part.text ?? '')
-          .join('')
+          .join('') 
           .trim()
 
         if (nextText) {
@@ -558,7 +534,7 @@ export async function POST(req: NextRequest) {
   }
 
   if (exactError) {
-    console.error('[guide-bot] exact failure:', exactError)
+    console.error('[guide-bot] exact failure:', exactError)                             
     assistantText = `${withActivation(FALLBACK_TEXT, firstTurn)}\n\n[Exact terminal fault] ${exactError}`
   }
 
