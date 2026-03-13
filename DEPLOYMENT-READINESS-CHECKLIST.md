@@ -4,12 +4,16 @@ Use this file to verify the current live surface before opening the project to m
 
 ## Environment
 
+- Use `Node 20.18.x` for local builds and Vercel runtime.
 - Confirm `.env.local` contains:
   - `NEXT_PUBLIC_SUPABASE_URL`
   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
   - `SUPABASE_SERVICE_ROLE_KEY`
+  - `SUPABASE_URL`
   - `GEMINI_API_KEY`
-  - optional `GEMINI_MODEL=gemini-2.5-flash`
+  - optional `GEMINI_MODEL=gemini-1.5-flash` or `gemini-2.5-flash`
+  - `BOT_DUEL_SECRET`
+  - `OWNER_USER_ID`
 - Run the latest [schema.sql](/f:/bsd-app-mvc/backend/db/schema.sql)
 - Restart the app after env or schema changes
 
