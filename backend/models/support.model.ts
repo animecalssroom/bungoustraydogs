@@ -37,6 +37,25 @@ function nowIso() {
   return new Date().toISOString()
 }
 
+function isSupportSchemaMissing(message?: string | null) {
+  if (!message) {
+    return false
+  }
+
+  return (
+    message.includes('support_tickets') ||
+    message.includes('content_flags') ||
+    message.includes("Could not find the table 'public.support_tickets'") ||
+    message.includes("Could not find the table 'public.content_flags'") ||
+    message.includes('relation "support_tickets" does not exist') ||
+    message.includes('relation "content_flags" does not exist')
+  )
+}
+
+function supportSchemaMessage() {
+  return 'The registry support schema is not installed yet. Run the latest support migration in Supabase.'
+}
+
 function resolveTicketQueue(category: TicketCategory): TicketQueue {
   if (category === 'registry' || category === 'lore' || category === 'faction' || category === 'special_division') {
     return 'special_division'
@@ -279,6 +298,10 @@ export const SupportModel = {
       .single()
 
     if (error || !data) {
+      if (isSupportSchemaMissing(error?.message)) {
+        return { error: supportSchemaMessage() }
+      }
+
       return { error: error?.message ?? 'Unable to file this ticket right now.' }
     }
 
@@ -352,6 +375,10 @@ export const SupportModel = {
       .single()
 
     if (error || !data) {
+      if (isSupportSchemaMissing(error?.message)) {
+        return { error: supportSchemaMessage() }
+      }
+
       return { error: error?.message ?? 'Unable to flag this file right now.' }
     }
 
@@ -395,6 +422,13 @@ export const SupportModel = {
         .limit(50),
     ])
 
+    if (isSupportSchemaMissing(ticketsResult.error?.message) || isSupportSchemaMissing(flagsResult.error?.message)) {
+      return {
+        tickets: [] as SupportTicket[],
+        flags: [] as ContentFlag[],
+      }
+    }
+
     return {
       tickets: (ticketsResult.data ?? []) as SupportTicket[],
       flags: (flagsResult.data ?? []) as ContentFlag[],
@@ -413,7 +447,12 @@ export const SupportModel = {
       query = query.eq('queue', queue)
     }
 
-    const { data } = await query
+    const { data, error } = await query
+
+    if (isSupportSchemaMissing(error?.message)) {
+      return [] as TicketQueueItem[]
+    }
+
     const rows = (data ?? []) as SupportTicket[]
     const targets = await loadTicketTargets(rows)
 
@@ -437,7 +476,12 @@ export const SupportModel = {
       query = query.eq('queue', queue)
     }
 
-    const { data } = await query
+    const { data, error } = await query
+
+    if (isSupportSchemaMissing(error?.message)) {
+      return [] as ContentFlagQueueItem[]
+    }
+
     const rows = (data ?? []) as ContentFlag[]
     const reporters = await loadFlagReporters(rows)
 
@@ -452,7 +496,7 @@ export const SupportModel = {
     ticketId: string,
     input: { status: Extract<TicketStatus, 'in_review' | 'resolved' | 'dismissed'>; note?: string | null },
   ) {
-    const { data } = await supabaseAdmin
+    const { data, error: lookupError } = await supabaseAdmin
       .from('support_tickets')
       .select('*')
       .eq('id', ticketId)
@@ -461,6 +505,10 @@ export const SupportModel = {
     const ticket = (data as SupportTicket | null) ?? null
 
     if (!ticket) {
+      if (isSupportSchemaMissing(lookupError?.message)) {
+        return { error: supportSchemaMessage() }
+      }
+
       return { error: 'Ticket not found.' }
     }
 
@@ -508,7 +556,7 @@ export const SupportModel = {
     flagId: string,
     input: { action: 'dismiss' | 'take_action'; note?: string | null },
   ) {
-    const { data } = await supabaseAdmin
+    const { data, error: lookupError } = await supabaseAdmin
       .from('content_flags')
       .select('*')
       .eq('id', flagId)
@@ -517,6 +565,10 @@ export const SupportModel = {
     const flag = (data as ContentFlag | null) ?? null
 
     if (!flag) {
+      if (isSupportSchemaMissing(lookupError?.message)) {
+        return { error: supportSchemaMessage() }
+      }
+
       return { error: 'Flagged file not found.' }
     }
 
@@ -584,3 +636,4 @@ export const SupportModel = {
     return { data: updated as ContentFlag }
   },
 }
+

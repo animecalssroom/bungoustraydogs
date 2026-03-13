@@ -40,9 +40,11 @@ supabase/.output/
 
 # Ignore generated SQL dumps
 *.sql
+!supabase/migrations/*.sql
 
 # Ignore Playwright output
 playwright-report/
 
 # TypeScript
 tsconfig.tsbuildinfo
+
