@@ -43,7 +43,7 @@ export function Footer() {
       style={{
         borderTop: '1px solid var(--border)',
         background: 'var(--bg2)',
-        padding: '5rem 2.5rem 2.5rem',
+        padding: 'clamp(2rem, 8vw, 5rem) clamp(1rem, 5vw, 2.5rem) 2.5rem',
         transition: 'all 0.8s ease',
       }}
     >
@@ -69,21 +69,17 @@ export function Footer() {
               width: 'fit-content',
             }}
           >
-            <div
-              style={{
-                width: '38px',
-                height: '38px',
+            <img 
+              src="/images/logo.jpg" 
+              alt="Logo" 
+              style={{ 
+                width: '40px', 
+                height: '40px', 
+                objectFit: 'cover', 
                 border: '1.5px solid var(--border)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontFamily: 'Noto Serif JP, serif',
-                fontSize: '15px',
-                color: 'var(--accent)',
-              }}
-            >
-              文
-            </div>
+                borderRadius: '4px'
+              }} 
+            />
             <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1 }}>
               <span
                 style={{
@@ -124,6 +120,36 @@ export function Footer() {
             A curated record of Yokohama&apos;s ability users, their gifts, their
             philosophies, and the conflicts that keep the city lit after midnight.
           </p>
+
+          <a
+            href="https://t.me/+VUN2mJJB4pBkMjM1"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '10px',
+              marginTop: '1.5rem',
+              padding: '0.8rem 1.2rem',
+              border: '1px solid var(--border)',
+              background: 'color-mix(in srgb, var(--accent) 5%, transparent)',
+              textDecoration: 'none',
+              transition: 'all 0.3s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = 'var(--accent)'
+              e.currentTarget.style.background = 'color-mix(in srgb, var(--accent) 10%, transparent)'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = 'var(--border)'
+              e.currentTarget.style.background = 'color-mix(in srgb, var(--accent) 5%, transparent)'
+            }}
+          >
+            <img src="/images/logo.jpg" alt="Telegram" style={{ width: '20px', height: '20px', borderRadius: '50%' }} />
+            <span style={{ fontFamily: 'Space Mono, monospace', fontSize: '0.55rem', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text2)' }}>
+              Telegram Channel
+            </span>
+          </a>
         </div>
 
         {footerColumns.map((column) => (

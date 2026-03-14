@@ -100,14 +100,7 @@ export function Nav() {
     <>
       <nav className={styles.nav}>
         <Link href="/" className={styles.brand}>
-          <div className={styles.brandEmblem}>
-            <svg className={styles.rainMark} viewBox="0 0 42 42" aria-hidden="true">
-              <line x1="11" y1="6" x2="8" y2="18" stroke="currentColor" strokeWidth="1" />
-              <line x1="21" y1="2" x2="18" y2="16" stroke="currentColor" strokeWidth="1" />
-              <line x1="31" y1="8" x2="28" y2="22" stroke="currentColor" strokeWidth="1" />
-            </svg>
-            <span className={styles.brandKanji}>B</span>
-          </div>
+            <img src="/images/logo.jpg" alt="Logo" style={{ width: '40px', height: '40px', objectFit: 'cover', border: '1px solid var(--border)' }} />
           <div className={styles.brandCopy}>
             <span className={styles.brandTitle}>
               Bungou<span className={styles.brandTitleAccent}>Archive</span>
@@ -153,7 +146,7 @@ export function Nav() {
         <div className={styles.right}>
           {user && activeProfile ? (
             <Link href={profileHref} className={styles.accountLink} style={accountStyle}>
-              <span className={styles.accountSeal}>{factionMeta?.kanji ?? 'B'}</span>
+              <img src="/images/logo.jpg" alt="Seal" style={{ width: '24px', height: '24px', borderRadius: '4px', border: '1px solid var(--border)' }} />
               <span className={styles.accountHandle}>
                 <AngoUsername userId={activeProfile.id} username={activeProfile.username} />
               </span>
