@@ -48,11 +48,17 @@ function getEmailRedirectUrl() {
   return `${window.location.origin}/auth/callback`
 }
 
-export default function LoginPage({ initialMode }: { initialMode?: 'login' | 'signup' } = {}) {
+export default function LoginPage() {
   const router = useRouter()
   const supabase = createClient()
 
-  const [mode, setMode] = useState<'login' | 'signup'>(initialMode ?? 'login')
+  const [mode, setMode] = useState<'login' | 'signup'>('login')
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const m = params.get('mode')
+    if (m === 'signup' || m === 'login') setMode(m)
+  }, [])
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -106,7 +112,7 @@ export default function LoginPage({ initialMode }: { initialMode?: 'login' | 'si
         return
       }
 
-      setNotice('Check your email. If you have an account, you will receive a sign-in link. If you are new, we will create your file.')
+      setNotice('Check your email for a sign-in link.')
     } catch (e: any) {
       setError(e?.message || 'Network error')
     } finally {
@@ -143,7 +149,7 @@ export default function LoginPage({ initialMode }: { initialMode?: 'login' | 'si
     setError('')
 
     if (!password) {
-      setError('A password is required for direct entry. Request an access link below if you forgotten yours.')
+      await handleEmailSign()
       setLoading(false)
       return
     }
@@ -181,7 +187,7 @@ export default function LoginPage({ initialMode }: { initialMode?: 'login' | 'si
     }
 
     if (!password) {
-      setError('Please set a password for your account, or use the "Signup via Magic Link" button below.')
+      await handleEmailSign()
       setLoading(false)
       return
     }
@@ -257,7 +263,7 @@ export default function LoginPage({ initialMode }: { initialMode?: 'login' | 'si
             横浜は、いつも雨が降っている。
           </p>
           <p style={{ marginTop: '0.6rem', color: 'var(--accent)', fontWeight: 600 }}>
-            Sign in with Google or use your credentials below.
+            Sign in with Google or request a magic link to your email.
           </p>
         </div>
 
@@ -394,29 +400,6 @@ export default function LoginPage({ initialMode }: { initialMode?: 'login' | 'si
             {mode === 'login' ? 'Sign up' : 'Sign in'}
           </button>
         </p>
-
-        <div style={{ marginTop: '1.5rem', paddingTop: '1.2rem', borderTop: '1px solid var(--border)', textAlign: 'center' }}>
-           <button
-             type="button"
-             onClick={handleEmailSign}
-             disabled={loading || !email}
-             style={{
-               background: 'transparent',
-               border: 'none',
-               color: 'var(--text3)',
-               textDecoration: 'underline',
-               fontSize: '0.85rem',
-               fontFamily: 'Space Mono, monospace',
-               cursor: email ? 'pointer' : 'not-allowed',
-               opacity: email ? 1 : 0.5
-             }}
-           >
-             {loading ? 'Requesting...' : mode === 'login' ? 'Request Magic Link via Email' : 'Signup via Magic Link'}
-           </button>
-           <p style={{ fontSize: '0.62rem', color: 'rgba(255,255,255,0.3)', marginTop: '0.5rem', fontFamily: 'Space Mono, monospace' }}>
-             (GLOBAL LIMIT: 3 REQUESTS / HOUR)
-           </p>
-        </div>
       </div>
     </div>
   )

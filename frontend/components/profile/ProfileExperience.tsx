@@ -47,6 +47,7 @@ const formatDateTime = (value: string | null) =>
 
 const roleLabel = (role: Profile['role']) =>
   ({
+    user: 'User',
     owner: 'Owner',
     mod: 'Moderator',
     member: 'Member',

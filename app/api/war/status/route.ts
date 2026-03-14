@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { WarModel } from '@/backend/models/war.model'
-import { requireAuth } from '@/frontend/lib/auth-server'
+import { requireAuth } from '@/backend/middleware/auth'
 
 export async function GET(req: NextRequest) {
     try {

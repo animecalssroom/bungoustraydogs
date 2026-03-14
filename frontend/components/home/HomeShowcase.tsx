@@ -6,12 +6,12 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { useTheme } from '@/frontend/context/ThemeContext'
 import { useAuth } from '@/frontend/context/AuthContext'
 import {
-  HOME_ARENA_DEBATE,
   HOME_CHARACTER_FILTERS,
   HOME_CHARACTERS,
   HOME_FACTIONS,
   HOME_LORE_POSTS,
   HOME_THEME_CONTENT,
+  RESERVED_SLUGS,
   type HomeCharacterFilter,
 } from '@/frontend/lib/home-content'
 import { resolvePostAuthPath, toPrivateFactionRouteId } from '@/frontend/lib/launch'
@@ -35,31 +35,31 @@ const HOME_QUIZ_PREVIEW = {
 } as const
 
 const OPENING_SEQUENCE = [
-  { text: 'Yokohama does not announce itself.', delay: 0.2, duration: 0.7, emphasis: false },
-  { text: 'It simply exists -', delay: 1.1, duration: 0.6, emphasis: false },
+  { text: 'SIGNAL INTERCEPTED. TRACING ORIGIN...', delay: 0.2, duration: 0.7, emphasis: false },
+  { text: '03:00 JST. THE RAIN REFUSES TO LET UP.', delay: 1.1, duration: 0.6, emphasis: false },
   {
-    text: 'rain-soaked, gaslit, watching from the harbor.',
+    text: 'MULTIPLE ABILITY SIGNATURES DETECTED. SECTOR 4.',
     delay: 1.9,
     duration: 0.8,
     emphasis: false,
   },
   {
-    text: 'The ability users came before the war ended.',
-    delay: 4.0,
+    text: 'THIS IS NOT A FAN SITE. THIS IS THE REGISTRY.',
+    delay: 3.5,
     duration: 0.8,
     emphasis: false,
   },
   {
-    text: 'Nobody remembers where they went after.',
-    delay: 4.9,
+    text: 'ACCESSING SPECIAL DIVISION RECORDS... DECRYPTION ACTIVE.',
+    delay: 4.4,
     duration: 0.8,
     emphasis: false,
   },
-  { text: 'The city remembers everything.', delay: 7.1, duration: 0.8, emphasis: true },
-  { text: 'You have been here before.', delay: 8.0, duration: 0.7, emphasis: true },
+  { text: 'THE CITY REMEMBERS EVERY GHOST.', delay: 6.5, duration: 0.8, emphasis: true },
+  { text: 'USER IDENTIFIED. ASSIGNMENT PENDING.', delay: 7.4, duration: 0.7, emphasis: true },
   {
-    text: "You just don't know it yet.",
-    delay: 8.8,
+    text: "REGISTRY CASE YKH-2025-001 IS NOW OPEN.",
+    delay: 8.2,
     duration: 0.7,
     emphasis: true,
   },
@@ -194,9 +194,6 @@ export function HomeShowcase() {
     fetchLiveFactions()
   }, [])
 
-  const totalVotes = HOME_ARENA_DEBATE.votesA + HOME_ARENA_DEBATE.votesB
-  const percentA = Math.round((HOME_ARENA_DEBATE.votesA / totalVotes) * 100)
-  const percentB = 100 - percentA
   const themeCopy = HOME_THEME_CONTENT[theme]
   const visibleCharacters = HOME_CHARACTERS.filter((character) =>
     groupVisible(activeFilter, character.filter),
@@ -231,45 +228,65 @@ export function HomeShowcase() {
             viewBox="0 0 1400 320"
             xmlns="http://www.w3.org/2000/svg"
             preserveAspectRatio="xMidYMax meet"
-            style={{ width: '100%', height: '100%', display: 'block' }}
+            className={styles.skylineSvg}
           >
-            <g fill="currentColor" opacity="0.16">
-              <rect x="0" y="190" width="58" height="130" />
-              <rect x="20" y="158" width="18" height="32" />
-              <rect x="65" y="176" width="84" height="144" />
-              <rect x="86" y="140" width="16" height="36" />
-              <rect x="152" y="150" width="54" height="170" />
-              <rect x="168" y="120" width="12" height="30" />
-              <polygon points="228,132 266,90 304,132" />
-              <rect x="232" y="132" width="72" height="188" />
-              <polygon points="236,126 266,84 296,126" />
-              <rect x="246" y="82" width="40" height="12" />
-              <rect x="252" y="60" width="28" height="24" />
-              <rect x="320" y="180" width="88" height="140" />
-              <rect x="340" y="150" width="12" height="30" />
-              <rect x="370" y="158" width="12" height="22" />
-              <rect x="410" y="160" width="74" height="160" />
-              <rect x="480" y="152" width="58" height="168" />
-              <polygon points="480,152 509,114 538,152" />
-              <rect x="544" y="176" width="48" height="144" />
-              <rect x="598" y="160" width="70" height="160" />
-              <rect x="615" y="126" width="20" height="34" />
-              <rect x="672" y="182" width="60" height="138" />
-              <rect x="740" y="120" width="74" height="200" />
-              <rect x="754" y="80" width="44" height="40" />
-              <rect x="768" y="52" width="16" height="28" />
-              <rect x="822" y="164" width="62" height="156" />
-              <rect x="900" y="150" width="80" height="170" />
-              <polygon points="900,150 940,108 980,150" />
-              <rect x="990" y="172" width="60" height="148" />
-              <rect x="1060" y="154" width="84" height="166" />
-              <rect x="1082" y="122" width="14" height="32" />
-              <rect x="1150" y="170" width="68" height="150" />
-              <rect x="1224" y="150" width="64" height="170" />
-              <rect x="1240" y="120" width="16" height="30" />
-              <rect x="1292" y="174" width="108" height="146" />
+            <defs>
+               <filter id="glow">
+                  <feGaussianBlur stdDeviation="1.5" result="coloredBlur"/>
+                  <feMerge>
+                      <feMergeNode in="coloredBlur"/>
+                      <feMergeNode in="SourceGraphic"/>
+                  </feMerge>
+              </filter>
+            </defs>
+            <g fill="currentColor" opacity="var(--city-opacity, 0.16)">
+              {/* Warehouse & Port structures */}
+              <rect x="0" y="210" width="80" height="110" />
+              <rect x="30" y="180" width="20" height="30" />
+              <rect x="100" y="190" width="120" height="130" />
+              
+              {/* Typical 1930s Industrial silhouettes */}
+              <rect x="240" y="150" width="40" height="170" />
+              <rect x="290" y="120" width="10" height="200" /> {/* Power line pole suggestion */}
+              <rect x="285" y="125" width="20" height="2" />
+              
+              {/* Main skyline buildings */}
+              <rect x="340" y="170" width="90" height="150" />
+              <polygon points="340,170 385,130 430,170" />
+              
+              {/* Torii/Shrine suggestion */}
+              <g transform="translate(480, 200)">
+                <rect x="0" y="0" width="60" height="6" />
+                <rect x="5" y="-8" width="50" height="4" />
+                <rect x="12" y="0" width="6" height="120" />
+                <rect x="42" y="0" width="6" height="120" />
+              </g>
+
+              {/* Distant port cranes */}
+              <g transform="translate(600, 160)">
+                 <rect x="0" y="0" width="4" height="160" />
+                 <rect x="-40" y="10" width="80" height="3" transform="rotate(-30)" />
+              </g>
+
+              <rect x="700" y="140" width="80" height="180" />
+              <rect x="730" y="100" width="20" height="40" />
+              
+              {/* Large central structure */}
+              <rect x="820" y="110" width="110" height="210" />
+              <rect x="850" y="80" width="50" height="30" />
+              <rect x="870" y="40" width="10" height="40" />
+
+              <rect x="980" y="180" width="90" height="140" />
+              <rect x="1100" y="160" width="70" height="160" />
+              
+              {/* Coastal light/Tower */}
+              <rect x="1220" y="130" width="40" height="190" />
+              <rect x="1225" y="110" width="30" height="20" opacity="0.4" />
+              
+              <rect x="1300" y="200" width="100" height="120" />
             </g>
-            <rect x="0" y="308" width="1400" height="12" opacity="0.08" fill="currentColor" />
+            {/* Ground line */}
+            <rect x="0" y="318" width="1400" height="2" fill="currentColor" opacity="0.1" />
           </svg>
         </div>
 
@@ -545,6 +562,7 @@ export function HomeShowcase() {
                 <p className={styles.factionStatus}>{faction.status}</p>
                 <h3 className={styles.factionName}>{faction.name}</h3>
                 <p className={styles.factionNameJp}>{faction.nameJp}</p>
+                <p className={styles.factionPhilosophy}>{faction.philosophy}</p>
                 <p className={styles.factionDesc}>{faction.description}</p>
                 <div className={styles.factionBarTrack}>
                   <div
@@ -595,14 +613,19 @@ export function HomeShowcase() {
             {visibleCharacters.map((character, index) => (
               <article
                 key={character.slug}
-                className={`reveal ${styles.characterCard}`}
+                className={`reveal ${styles.characterCard} faction-corner faction-bleed`}
                 data-home-reveal
                 style={{
                   transitionDelay: `${Math.min(index, 11) * 45}ms`,
-                  ...accentStyle(character.accentColor),
-                }}
+                  '--card-accent': character.accentColor,
+                } as any}
               >
-                <span className={styles.characterBadge}>{character.factionBadge}</span>
+                <div className={styles.characterHeader}>
+                  <span className={styles.characterBadge}>{character.factionBadge}</span>
+                  <span className={styles.abilityBadge} data-type={character.abilityType}>
+                    {character.abilityType}
+                  </span>
+                </div>
                 <h3 className={styles.characterName}>{character.name}</h3>
                 <p className={styles.characterNameJp}>{character.nameJp}</p>
                 <p className={styles.characterAbility}>{character.ability}</p>
@@ -612,21 +635,31 @@ export function HomeShowcase() {
 
                 <div className={styles.characterStats}>
                   {[
-                    { label: 'Power', value: character.stats.power },
-                    { label: 'Speed', value: character.stats.speed },
-                    { label: 'Control', value: character.stats.control },
+                    { label: 'POWER', value: character.stats.power },
+                    { label: 'INTEL', value: character.stats.intel },
+                    { label: 'LOYALTY', value: character.stats.loyalty },
+                    { label: 'CONTROL', value: character.stats.control },
                   ].map((stat) => (
-                    <div key={stat.label}>
-                      <p className={styles.characterStatLabel}>{stat.label}</p>
+                    <div key={stat.label} className={styles.statBox}>
+                      <div className={styles.statLine}>
+                        <span className={styles.statLabel}>{stat.label}</span>
+                        <span className={styles.statValue}>{stat.value}</span>
+                      </div>
                       <div className={styles.characterStatTrack}>
                         <div
-                          className={styles.characterStatFill}
-                          style={{ width: `${stat.value}%` }}
+                           className={styles.characterStatFill}
+                           style={{ width: `${stat.value}%` }}
                         />
                       </div>
                     </div>
                   ))}
                 </div>
+
+                {RESERVED_SLUGS.includes(character.slug) && (
+                  <div className={styles.classifiedStamp}>
+                    <div className="ink-stamp">CLASSIFIED</div>
+                  </div>
+                )}
 
                 <p className={styles.characterAuthor}>
                   <span>{character.authorNote}</span>
@@ -638,92 +671,6 @@ export function HomeShowcase() {
         </div>
       </section>
 
-      <section className={`${styles.section} ${styles.sectionMuted}`} id="arena">
-        <div className={styles.sectionWrap}>
-          <div className={`reveal ${styles.sectionHead}`} data-home-reveal>
-            <p className={styles.sectionEyebrow}>{HOME_ARENA_DEBATE.label}</p>
-            <h2 className={styles.sectionTitle}>
-              1v1 Community <em>Debate</em>
-            </h2>
-            <div className={styles.sectionDivider} />
-            <p className={styles.sectionSub}>{HOME_ARENA_DEBATE.closesIn}</p>
-          </div>
-
-          <div className={`reveal ${styles.arenaCard}`} data-home-reveal>
-            <p className={styles.arenaQuestion}>{HOME_ARENA_DEBATE.question}</p>
-
-            <div className={styles.arenaSplit}>
-              <div
-                className={styles.fighter}
-                style={accentStyle(HOME_ARENA_DEBATE.fighterA.accentColor)}
-              >
-                <span className={styles.fighterTag}>{HOME_ARENA_DEBATE.fighterA.factionBadge}</span>
-                <h3 className={styles.fighterName}>{HOME_ARENA_DEBATE.fighterA.name}</h3>
-                <p className={styles.fighterNameJp}>{HOME_ARENA_DEBATE.fighterA.nameJp}</p>
-                <p className={styles.fighterAbility}>
-                  {HOME_ARENA_DEBATE.fighterA.ability} · {HOME_ARENA_DEBATE.fighterA.abilityJp}
-                </p>
-                <p className={styles.fighterQuote}>{HOME_ARENA_DEBATE.fighterA.quote}</p>
-                <div className={styles.fighterVotes}>{percentA}%</div>
-                <span className={styles.fighterVotesLabel}>
-                  {HOME_ARENA_DEBATE.votesA.toLocaleString()} votes · leading
-                </span>
-                <div className={styles.arenaAction}>
-                  <Link href="/arena" className="btn-primary">
-                    Vote {HOME_ARENA_DEBATE.fighterA.name.split(' ')[0]} →
-                  </Link>
-                </div>
-                <span className={styles.fighterSymbol}>{HOME_ARENA_DEBATE.fighterA.symbol}</span>
-              </div>
-
-              <div className={styles.arenaVs}>
-                <span className={styles.arenaLine} />
-                <span className={styles.arenaVsText}>VS</span>
-                <span className={styles.arenaLine} />
-              </div>
-
-              <div
-                className={styles.fighter}
-                style={accentStyle(HOME_ARENA_DEBATE.fighterB.accentColor)}
-              >
-                <span className={styles.fighterTag}>{HOME_ARENA_DEBATE.fighterB.factionBadge}</span>
-                <h3 className={styles.fighterName}>{HOME_ARENA_DEBATE.fighterB.name}</h3>
-                <p className={styles.fighterNameJp}>{HOME_ARENA_DEBATE.fighterB.nameJp}</p>
-                <p className={styles.fighterAbility}>
-                  {HOME_ARENA_DEBATE.fighterB.ability} · {HOME_ARENA_DEBATE.fighterB.abilityJp}
-                </p>
-                <p className={styles.fighterQuote}>{HOME_ARENA_DEBATE.fighterB.quote}</p>
-                <div className={styles.fighterVotes}>{percentB}%</div>
-                <span className={styles.fighterVotesLabel}>
-                  {HOME_ARENA_DEBATE.votesB.toLocaleString()} votes
-                </span>
-                <div className={styles.arenaAction}>
-                  <Link href="/arena" className="btn-secondary">
-                    Vote {HOME_ARENA_DEBATE.fighterB.name.split(' ')[0]} →
-                  </Link>
-                </div>
-                <span className={styles.fighterSymbol}>{HOME_ARENA_DEBATE.fighterB.symbol}</span>
-              </div>
-            </div>
-
-            <div className={styles.arenaBarTrack}>
-              <div
-                className={styles.arenaBarFill}
-                style={{
-                  width: '100%',
-                  background: `linear-gradient(90deg, ${HOME_ARENA_DEBATE.fighterA.accentColor} 0 ${percentA}%, ${HOME_ARENA_DEBATE.fighterB.accentColor} ${percentA}% 100%)`,
-                }}
-              />
-            </div>
-          </div>
-
-          <div className={`reveal ${styles.arenaLink}`} data-home-reveal>
-            <Link href="/arena" className="btn-secondary">
-              Enter the Debate Hall →
-            </Link>
-          </div>
-        </div>
-      </section>
 
       <section className={styles.section} id="lore">
         <div className={styles.sectionWrap}>

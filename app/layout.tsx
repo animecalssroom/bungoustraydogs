@@ -1,4 +1,3 @@
-import { Suspense } from 'react'
 import type { Metadata } from 'next'
 import { Cinzel, Cormorant_Garamond, Space_Mono } from 'next/font/google'
 import dynamic from 'next/dynamic'
@@ -65,16 +64,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <DailyLoginRitual />
                 <CharacterAssignmentRedirect />
                 <GlobalDuelMatchmaker />
-                <Suspense fallback={null}>
-                  <Nav />
-                </Suspense>
+                <Nav />
                 <main style={{ minHeight: '100vh', paddingTop: '60px' }}>
                   {children}
                 </main>
                 <Footer />
-                <Suspense fallback={null}>
-                  <GuideBotWidget />
-                </Suspense>
+                <GuideBotWidget />
               </SoundProvider>
             </AngoProvider>
           </AuthProvider>

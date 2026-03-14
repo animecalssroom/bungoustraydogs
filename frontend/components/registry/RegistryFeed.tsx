@@ -82,34 +82,47 @@ export function RegistryFeed({ initialPosts: serverPosts }: { initialPosts: Regi
       </div>
 
       <div className={styles.grid}>
-        {posts.map((post) => (
-          <Link key={post.id} href={`/registry/${encodeURIComponent(post.case_number)}`} className={styles.card}>
-            {post.featured ? <span className={`${styles.stamp} ${styles.featured}`}>Featured</span> : null}
-            <div className={styles.meta}>{post.case_number}</div>
-            <h2 className={styles.title}>{post.title}</h2>
-            <div className={styles.metaRow}>
-              <span className={styles.meta}>{post.post_type.replace(/_/g, ' ')}</span>
-              <span className={styles.meta}>{post.author_character ?? 'Unknown file'}</span>
-              {post.profiles?.username ? (
+        {posts.length > 0 ? (
+          posts.map((post) => (
+            <Link key={post.id} href={`/registry/${encodeURIComponent(post.case_number)}`} className={styles.card}>
+              {post.featured ? <span className={`${styles.stamp} ${styles.featured}`}>Featured</span> : null}
+              <div className={styles.meta}>{post.case_number}</div>
+              <h2 className={styles.title}>{post.title}</h2>
+              <div className={styles.metaRow}>
+                <span className={styles.meta}>{post.post_type.replace(/_/g, ' ')}</span>
+                <span className={styles.meta}>{post.author_character ?? 'Unknown file'}</span>
+                {post.profiles?.username ? (
+                  <span className={styles.meta}>
+                    <AngoUsername userId={post.author_id} username={post.profiles.username} />
+                  </span>
+                ) : null}
+                <span className={styles.meta}>{post.author_rank ?? 'Unfiled'}</span>
                 <span className={styles.meta}>
-                  <AngoUsername userId={post.author_id} username={post.profiles.username} />
+                  {post.author_faction ? FACTION_META[post.author_faction].name : 'Unaffiliated'}
                 </span>
-              ) : null}
-              <span className={styles.meta}>{post.author_rank ?? 'Unfiled'}</span>
-              <span className={styles.meta}>
-                {post.author_faction ? FACTION_META[post.author_faction].name : 'Unaffiliated'}
-              </span>
+              </div>
+              <p className={styles.excerpt}>{post.content.slice(0, 160)}...</p>
+              <div className={styles.statsRow}>
+                <span className={styles.counter}>{post.word_count} words</span>
+                <span className={styles.counter}>{post.save_count} saves</span>
+                <span className={styles.counter}>
+                  {post.district ? REGISTRY_DISTRICT_LABELS[post.district] : 'Other'}
+                </span>
+              </div>
+            </Link>
+          ))
+        ) : (
+          <div className={styles.emptyState}>
+            <div className={styles.emptyBox}>
+              <div className="ink-stamp">SEALED</div>
+              <p className={styles.emptyText}>
+                No intelligence reports match these coordinates.
+                The city remains silent for now.
+              </p>
+              <span className={styles.emptyKanji}>密封</span>
             </div>
-            <p className={styles.excerpt}>{post.content.slice(0, 160)}...</p>
-            <div className={styles.statsRow}>
-              <span className={styles.counter}>{post.word_count} words</span>
-              <span className={styles.counter}>{post.save_count} saves</span>
-              <span className={styles.counter}>
-                {post.district ? REGISTRY_DISTRICT_LABELS[post.district] : 'Other'}
-              </span>
-            </div>
-          </Link>
-        ))}
+          </div>
+        )}
       </div>
     </div>
   )

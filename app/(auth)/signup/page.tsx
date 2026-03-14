@@ -1,6 +1,6 @@
-import LoginPage from '../login/page'
+import { redirect } from 'next/navigation'
 
 export default function SignupPage() {
-  // Render login page with signup mode by default
-  return <LoginPage initialMode="signup" />
+  // Redirect to login page with signup mode as a query param
+  redirect('/auth/login?mode=signup')
 }

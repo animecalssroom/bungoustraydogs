@@ -30,6 +30,7 @@ export interface HomeFactionCard {
   description: string
   theme: BSDTheme
   joinable: boolean
+  philosophy: string
 }
 
 export interface HomeCharacterCard {
@@ -46,9 +47,11 @@ export interface HomeCharacterCard {
   quote: string
   authorNote: string
   symbol: string
+  abilityType: 'Destruction' | 'Counter' | 'Support' | 'Special' | 'Defense'
   stats: {
     power: number
-    speed: number
+    intel: number
+    loyalty: number
     control: number
   }
 }
@@ -62,15 +65,6 @@ export interface HomeLorePost {
   featured?: boolean
 }
 
-export interface HomeArenaDebate {
-  label: string
-  closesIn: string
-  question: string
-  fighterA: HomeCharacterCard
-  fighterB: HomeCharacterCard
-  votesA: number
-  votesB: number
-}
 
 const traitPhrase: Record<
   TraitAxis,
@@ -111,6 +105,22 @@ const traitPhrase: Record<
     high: 'deeply loyal',
     low: 'self-directed',
   },
+}
+
+const factionPhilosophies: Record<FactionId, string> = {
+  agency:
+    'The Agency exists because some cases are too violent for police, too human for military. They occupy a space that shouldn\'t exist and do so with extraordinary conviction to protect the city\'s vulnerable.',
+  mafia:
+    'The Mafia maintains Yokohama\'s order by being the most organised expression of its darkness. They do not pretend to be righteous, for they are the reason the city is alive: they control what others cannot.',
+  guild:
+    'The Guild treats influence like capital and strategy like art. Resources enable everything else — they do not fight for honor, they invest in outcomes.',
+  hunting_dogs:
+    'The enforcement of law is not a matter of preference, but of duty. Surgeons of justice, they are the blade that makes the framework of society real.',
+  special_div:
+    'Special Division is not a faction, but an observer. They are the city\'s official memory, recording the supernatural cost of existence without taking a side.',
+  rats: ' Fyodor believes abilities are a mark of sin. The Rats seek to purify humanity through a controlled collapse of the current ability-saturated reality.',
+  decay: 'Chaos practitioners who move obliquely, the Decay frame their actions as theater and sabotage, watching the city\'s reaction from within the wreckage.',
+  clock_tower: 'An overseas aristocray of power that recognizes only long-standing consistency. They are the foundation upon which the global ability community is built.',
 }
 
 const factionDescriptions: Record<FactionId, string> = {
@@ -167,15 +177,16 @@ const factionEmoji: Record<FactionId, string> = {
 
 const characterOverrides: Record<
   string,
-  Partial<Pick<HomeCharacterCard, 'summary' | 'quote' | 'authorNote' | 'stats' | 'symbol'>>
+  Partial<Pick<HomeCharacterCard, 'summary' | 'quote' | 'authorNote' | 'stats' | 'symbol' | 'abilityType'>>
 > = {
   'nakajima-atsushi': {
     summary:
       'Transforms into a white tiger with regenerative power. Born from abandonment, the signature reads like survival forced into something fierce.',
     quote: '"I do not want to die. That is all I ever had."',
     authorNote:
-      'Based on Nakajima Atsushi (1909-1942) and the tiger-haunted imagery of Sangetsuki.',
-    stats: { power: 75, speed: 82, control: 55 },
+      'Based on Nakajima Atsushi (1909-1942) — Master of lyrical prose whose work explored the bridge between beast and human.',
+    abilityType: 'Destruction',
+    stats: { power: 85, intel: 55, loyalty: 70, control: 45 },
     symbol: '虎',
   },
   'dazai-osamu': {
@@ -183,8 +194,9 @@ const characterOverrides: Record<
       'Nullifies any ability with a single touch. The file reads like brilliance sharpened by self-erasure and a refusal to stay still long enough to be understood.',
     quote: '"I want to die with a beautiful woman. Know any candidates?"',
     authorNote:
-      'Based on Osamu Dazai (1909-1948), author of No Longer Human and one of BSD\'s clearest literary mirrors.',
-    stats: { power: 98, speed: 72, control: 97 },
+      'Based on Osamu Dazai (1909-1948) — Father of Japanese decadence and author of No Longer Human.',
+    abilityType: 'Special',
+    stats: { power: 30, intel: 98, loyalty: 40, control: 95 },
     symbol: '無',
   },
   'kunikida-doppo': {
@@ -192,8 +204,9 @@ const characterOverrides: Record<
       'Manifests any object written in his notebook as reality. His ability is only as exacting as the ideals he refuses to compromise.',
     quote: '"An ideal is not a dream. It is a blueprint."',
     authorNote:
-      'Based on Kunikida Doppo (1871-1908), a Meiji writer whose observational rigor survives intact in BSD.',
-    stats: { power: 70, speed: 75, control: 90 },
+      'Based on Kunikida Doppo (1871-1908) — A pioneer of Japanese naturalism whose journals of integrity survive in the series.',
+    abilityType: 'Support',
+    stats: { power: 65, intel: 85, loyalty: 95, control: 90 },
     symbol: '詩',
   },
   'nakahara-chuuya': {
@@ -201,8 +214,9 @@ const characterOverrides: Record<
       'Controls gravity itself. At full release the file stops reading like a person and starts reading like a natural disaster.',
     quote: '"Gravity is the one truth that never lies. Everything falls eventually."',
     authorNote:
-      'Based on Nakahara Chuuya (1907-1937), whose poem Tainted Sorrow gives this signature its name.',
-    stats: { power: 97, speed: 96, control: 82 },
+      'Based on Nakahara Chuuya (1907-1937) — The quintessential "Bohemian" poet whose Tainted Sorrow provides the title for this signature.',
+    abilityType: 'Destruction',
+    stats: { power: 98, intel: 72, loyalty: 100, control: 85 },
     symbol: '重',
   },
   'akutagawa-ryunosuke': {
@@ -210,8 +224,9 @@ const characterOverrides: Record<
       'Rashomon turns cloth into a devouring void-beast. Hunger, violence, and the need to be acknowledged all arrive in the same cut.',
     quote: '"Weak people have no right to live. That is the only truth I know."',
     authorNote:
-      'Based on Akutagawa Ryunosuke (1892-1927), father of the Japanese short story and the moral edge behind Rashomon.',
-    stats: { power: 90, speed: 88, control: 76 },
+      'Based on Akutagawa Ryunosuke (1892-1927) — The Father of Japanese short fiction and a writer of dark, sharp-edged moralism.',
+    abilityType: 'Destruction',
+    stats: { power: 92, intel: 78, loyalty: 88, control: 75 },
     symbol: '羅',
   },
   fitzgerald: {
@@ -220,8 +235,9 @@ const characterOverrides: Record<
     quote:
       '"Everything I do, I do for my wife and my dream. Is that not the most human thing of all?"',
     authorNote:
-      'Based on F. Scott Fitzgerald (1896-1940), where glamour, ruin, and the American Dream collapse into one signature.',
-    stats: { power: 95, speed: 78, control: 70 },
+      'Based on F. Scott Fitzgerald (1896-1940) — American author who captured the Jazz Age\'s brilliance and eventual ruin.',
+    abilityType: 'Destruction',
+    stats: { power: 95, intel: 80, loyalty: 65, control: 70 },
     symbol: '富',
   },
   'fyodor-dostoevsky': {
@@ -229,18 +245,20 @@ const characterOverrides: Record<
       'Kills an ability user with a single touch. The registry marks the file as theological, hostile, and terrifyingly calm.',
     quote: '"God and I have an understanding. He created sin. I simply remove it."',
     authorNote:
-      'Based on Fyodor Dostoevsky (1821-1881), whose work makes guilt and salvation impossible to separate.',
-    stats: { power: 99, speed: 60, control: 99 },
+      'Based on Fyodor Dostoevsky (1821-1881) — Russian philosopher-novelist whose work explored the psychological depth of guilt and redemption.',
+    abilityType: 'Counter',
+    stats: { power: 40, intel: 100, loyalty: 20, control: 99 },
     symbol: '罰',
   },
   'nikolai-gogol': {
     summary:
       'Creates a dimensional space inside the overcoat. The file reads like theater weaponized into freedom and panic at the same time.',
     quote:
-      '"Freedom is not a destination. It is the burning of every map you have ever been given."',
+       '"Freedom is not a destination. It is the burning of every map you have ever been given."',
     authorNote:
-      'Based on Nikolai Gogol (1809-1852), whose absurdism and identity fractures echo all over BSD.',
-    stats: { power: 85, speed: 92, control: 65 },
+       'Based on Nikolai Gogol (1809-1852) — A master of surrealism and absurdism whose work breaks the boundaries of reality.',
+    abilityType: 'Special',
+    stats: { power: 75, intel: 88, loyalty: 30, control: 65 },
     symbol: '外',
   },
 }
@@ -283,17 +301,19 @@ function buildGeneratedAuthorNote(character: AssignmentCharacter) {
 
 function deriveStats(character: AssignmentCharacter) {
   return {
-    power: clamp(40 + character.traits.power * 6 + character.traits.emotion * 1.5, 35, 99),
-    speed: clamp(35 + character.traits.method * 4.5 + character.traits.identity * 3.5, 30, 99),
-    control: clamp(
-      30 +
-        character.traits.method * 5 +
-        (10 - character.traits.emotion) * 4 +
-        character.traits.identity * 2,
-      28,
-      99,
-    ),
+    power: clamp(40 + character.traits.power * 6, 35, 99),
+    intel: clamp(30 + character.traits.method * 7, 30, 99),
+    loyalty: clamp(20 + character.traits.loyalty * 8, 20, 99),
+    control: clamp(25 + character.traits.identity * 7.5, 25, 99),
   }
+}
+
+function deriveAbilityType(character: AssignmentCharacter): HomeCharacterCard['abilityType'] {
+  if (character.traits.power >= 8) return 'Destruction'
+  if (character.traits.method >= 8) return 'Counter'
+  if (character.traits.social >= 7) return 'Support'
+  if (character.traits.identity >= 8) return 'Special'
+  return 'Defense'
 }
 
 function symbolForCharacter(character: AssignmentCharacter) {
@@ -337,6 +357,7 @@ export const HOME_FACTIONS: HomeFactionCard[] = [
     memberDisplay: '2,841 members',
     barPercent: 92,
     description: factionDescriptions.mafia,
+    philosophy: factionPhilosophies.mafia ?? '',
     theme: 'dark',
     joinable: true,
   },
@@ -349,9 +370,10 @@ export const HOME_FACTIONS: HomeFactionCard[] = [
     status: 'Joinable · Light',
     rank: '02',
     apDisplay: '78,230 AP',
-    memberDisplay: '3,102 members',
-    barPercent: 78,
+    memberDisplay: '3,412 members',
+    barPercent: 88,
     description: factionDescriptions.agency,
+    philosophy: factionPhilosophies.agency ?? '',
     theme: 'light',
     joinable: true,
   },
@@ -364,9 +386,10 @@ export const HOME_FACTIONS: HomeFactionCard[] = [
     status: 'Joinable · Neutral',
     rank: '03',
     apDisplay: '61,880 AP',
-    memberDisplay: '1,540 members',
-    barPercent: 61,
+    memberDisplay: '1,955 members',
+    barPercent: 64,
     description: factionDescriptions.guild,
+    philosophy: factionPhilosophies.guild ?? '',
     theme: 'neutral',
     joinable: true,
   },
@@ -379,9 +402,10 @@ export const HOME_FACTIONS: HomeFactionCard[] = [
     status: 'Joinable · Dark',
     rank: '04',
     apDisplay: '55,120 AP',
-    memberDisplay: '892 members',
-    barPercent: 55,
+    memberDisplay: '842 members',
+    barPercent: 41,
     description: factionDescriptions.hunting_dogs,
+    philosophy: factionPhilosophies.hunting_dogs ?? '',
     theme: 'dark',
     joinable: true,
   },
@@ -394,9 +418,10 @@ export const HOME_FACTIONS: HomeFactionCard[] = [
     status: 'Joinable · Light',
     rank: '05',
     apDisplay: '42,660 AP',
-    memberDisplay: '445 members',
-    barPercent: 42,
+    memberDisplay: '1,102 members',
+    barPercent: 28,
     description: factionDescriptions.special_div,
+    philosophy: factionPhilosophies.special_div ?? '',
     theme: 'light',
     joinable: true,
   },
@@ -409,9 +434,10 @@ export const HOME_FACTIONS: HomeFactionCard[] = [
     status: 'Lore · Dark · Unlock Required',
     rank: '—',
     apDisplay: '???',
-    memberDisplay: '??? members',
-    barPercent: 88,
+    memberDisplay: '---',
+    barPercent: 12,
     description: factionDescriptions.rats,
+    philosophy: factionPhilosophies.rats ?? '',
     theme: 'dark',
     joinable: false,
   },
@@ -424,9 +450,10 @@ export const HOME_FACTIONS: HomeFactionCard[] = [
     status: 'Lore · Neutral · Unlock Required',
     rank: '—',
     apDisplay: '???',
-    memberDisplay: '??? members',
-    barPercent: 75,
+    memberDisplay: '---',
+    barPercent: 8,
     description: factionDescriptions.decay,
+    philosophy: factionPhilosophies.decay ?? '',
     theme: 'neutral',
     joinable: false,
   },
@@ -439,9 +466,10 @@ export const HOME_FACTIONS: HomeFactionCard[] = [
     status: 'Lore · Neutral · Unlock Required',
     rank: '—',
     apDisplay: '???',
-    memberDisplay: '??? members',
-    barPercent: 66,
+    memberDisplay: '---',
+    barPercent: 4,
     description: factionDescriptions.clock_tower,
+    philosophy: factionPhilosophies.clock_tower ?? '',
     theme: 'neutral',
     joinable: false,
   },
@@ -479,9 +507,21 @@ export const HOME_CHARACTERS: HomeCharacterCard[] = CHARACTER_ASSIGNMENT_POOL.ma
       authorNote: override?.authorNote ?? buildGeneratedAuthorNote(character),
       symbol: override?.symbol ?? symbolForCharacter(character),
       stats: override?.stats ?? deriveStats(character),
+      abilityType: override?.abilityType ?? deriveAbilityType(character),
     }
   },
 )
+
+export const RESERVED_SLUGS = [
+  'mori-ogai',
+  'fukuzawa-yukichi',
+  'fitzgerald',
+  'fukuchi-ouchi',
+  'fyodor-dostoevsky',
+  'nikolai-gogol',
+  'ango-sakaguchi',
+  'sakunosuke-oda',
+]
 
 export const HOME_LORE_POSTS: HomeLorePost[] = [
   {
@@ -519,19 +559,3 @@ export const HOME_LORE_POSTS: HomeLorePost[] = [
   },
 ]
 
-const arenaFighterA = HOME_CHARACTERS.find((character) => character.slug === 'nakahara-chuuya')
-const arenaFighterB = HOME_CHARACTERS.find((character) => character.slug === 'akutagawa-ryunosuke')
-
-if (!arenaFighterA || !arenaFighterB) {
-  throw new Error('Home arena fighters are missing from the character registry.')
-}
-
-export const HOME_ARENA_DEBATE: HomeArenaDebate = {
-  label: '戦場 · The Arena · Week 47',
-  closesIn: 'Voting closes in 4 days 12 hours.',
-  question: 'Who takes a straight fight with no allies and no exit route?',
-  fighterA: arenaFighterA,
-  fighterB: arenaFighterB,
-  votesA: 2841,
-  votesB: 1598,
-}

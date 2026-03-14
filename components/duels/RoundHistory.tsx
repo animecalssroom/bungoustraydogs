@@ -236,7 +236,7 @@ export function RoundHistory({
                       opacity: 0.95,
                     }}
                   >
-                    "{narrative}"
+                    { '"' }{narrative}{ '"' }
                   </p>
                 </div>
 

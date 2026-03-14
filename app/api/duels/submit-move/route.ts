@@ -5,7 +5,6 @@ import { supabaseAdmin } from '@/backend/lib/supabase'
 import type { BehaviorScores, Duel, DuelMove, DuelRound, Profile } from '@/backend/types'
 import { normalizeBehaviorScores } from '@/frontend/lib/behavior'
 import { resolveDuelRoundWithAdmin } from '@/backend/lib/duel-runtime'
-import { UserModel } from '@/backend/models/user.model'
 
 const SubmitMoveSchema = z.object({
   duel_id: z.string().uuid(),
@@ -276,6 +275,7 @@ export async function POST(request: NextRequest) {
   const moveCount = await getMoveCount(auth.user.id)
   const existingAverage = auth.profile.avg_move_speed_minutes ?? 0
   const nextAverage = moveCount > 0 ? (existingAverage * moveCount + deltaMinutes) / (moveCount + 1) : deltaMinutes
+  const nextBehaviorScores = applyDuelStyle(auth.profile.behavior_scores, parsed.data.move)
 
   const updates: Record<string, unknown> = {
     [moveField]: parsed.data.move,
@@ -288,17 +288,10 @@ export async function POST(request: NextRequest) {
 
   await supabaseAdmin.from('duel_rounds').update(updates).eq('id', round.id)
 
-  // Use addAp to record event and update behavior scores correctly
-  await UserModel.addAp(auth.user.id, 'duel_complete', 0, {
-    duel_id: duel.id,
-    duel_style: parsed.data.move,
-    move: parsed.data.move,
-  })
-
-  // Update speed average separately
   await supabaseAdmin
     .from('profiles')
     .update({
+      behavior_scores: nextBehaviorScores,
       avg_move_speed_minutes: Number(nextAverage.toFixed(2)),
       updated_at: submittedAt,
     } satisfies Partial<Profile>)

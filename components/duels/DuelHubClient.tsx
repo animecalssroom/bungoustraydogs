@@ -104,11 +104,11 @@ export function DuelHubClient({
     return () => { void supabase.removeChannel(channel) }
   }, [supabase, userId])
 
-  const refreshOpenChallenges = async () => {
+  const refreshOpenChallenges = useCallback(async () => {
     const response = await fetch('/api/duels/open')
     const json = await response.json()
     setOpenChallenges(json.data ?? [])
-  }
+  }, [])
 
   const sendChallenge = async () => {
     if (!selected) return

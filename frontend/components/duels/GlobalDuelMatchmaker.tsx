@@ -40,8 +40,9 @@ export function GlobalDuelMatchmaker() {
                     const raw = payload.new as Duel | undefined
                     if (!raw) {
                         // Deleted
-                        if (payload.old && payload.old.id) {
-                            setPendingDuels((current) => current.filter(d => d.id !== payload.old.id))
+                        const oldId = (payload.old as any)?.id
+                        if (oldId) {
+                            setPendingDuels((current) => current.filter(d => d.id !== oldId))
                         }
                         return
                     }

@@ -52,7 +52,7 @@ export const FACTION_META: Record<FactionId, FactionMeta> = {
     nameJp: '武装探偵社',
     kanji: '探',
     philosophy:
-      'The city does not distinguish between the guilty and the desperate. We do. The Armed Detective Agency exists in the space between law and mercy - cases too dangerous for the police, too human for the military. We carry the weight of Yokohama\'s twilight. Some call it heroism. We call it Tuesday.',
+      'The Agency exists because some cases are too violent for police, too human for military. They are licensed ability users who take on crimes involving the supernatural that others cannot or will not touch. Bound not by law but by extraordinary conviction, they occupy a space that shouldn\'t exist to protect those the city has forgotten.',
     description:
       'Justice is not handed to you. You build it, case by case, with what little you have.',
     color: '#8b6020',
@@ -65,7 +65,7 @@ export const FACTION_META: Record<FactionId, FactionMeta> = {
     nameJp: 'ポートマフィア',
     kanji: '港',
     philosophy:
-      'Order is maintained by those willing to be its shadow. The Port Mafia does not pretend to be righteous. We are the reason Yokohama sleeps at night - not because the darkness is gone, but because we control it. You serve the city by serving us. This is not a choice. It is an assessment.',
+      'The Mafia maintains Yokohama\'s order by being the most organised expression of its darkness. Controlling the port and the underground, they do not pretend to be righteous, but they are the reason the city survives its own shadows. Hierarchy is absolute, loyalty is life, and order has a price they are always willing to collect.',
     description:
       'Power is the only language Yokohama understands. The Port Mafia speaks it fluently.',
     color: '#cc1a1a',
@@ -78,7 +78,7 @@ export const FACTION_META: Record<FactionId, FactionMeta> = {
     nameJp: 'ザ・ギルド',
     kanji: '富',
     philosophy:
-      'Power without resources is theater. The Guild understands what others refuse to admit - that ability without capital is merely talent, and talent is abundant. We do not fight for Yokohama. We invest in it. Your presence here is either an asset or a liability. Demonstrate which.',
+      'The Guild treats influence like capital and strategy like art. Originally an overseas interest seeking the Book, they have evolved into a transactional power that acknowledges resources as the only true foundation for change. They do not fight for honor or tradition; they invest in outcomes and manage the city as an asset.',
     description:
       'The Guild treats influence like capital and strategy like art.',
     color: '#c8a020',
@@ -91,7 +91,7 @@ export const FACTION_META: Record<FactionId, FactionMeta> = {
     nameJp: '猟犬部隊',
     kanji: '犬',
     philosophy:
-      'The law is not a suggestion. The Hunting Dogs are the government\'s answer to those who believe otherwise. We are not merciful. We are not cruel. We are precise. Yokohama\'s ability users exist within a framework they did not create and cannot escape. Neither can you. Neither can we.',
+      'Japan\'s government answer to ability users who believe the law doesn\'t apply to them. Surgically enhanced and undefeated, the Hunting Dogs exist to maintain the framework of society through precise, disciplined force. They are loyal to the institution of the law, placing duty above preference and sacrifice above sentiment.',
     description:
       'The military does not question its orders. It executes them.',
     color: '#4a6a8a',

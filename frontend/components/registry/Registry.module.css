@@ -211,6 +211,49 @@
   margin-top: 0.8rem;
 }
 
+.emptyState {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: center;
+  padding: 4rem 1rem;
+}
+
+.emptyBox {
+  max-width: 420px;
+  width: 100%;
+  padding: 3.5rem 2rem;
+  border: 1px solid var(--border);
+  background: var(--card);
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--shadow-glow);
+}
+
+.emptyText {
+  margin-top: 2rem;
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-size: 1.15rem;
+  line-height: 1.6;
+  color: var(--text3);
+  position: relative;
+  z-index: 2;
+}
+
+.emptyKanji {
+  position: absolute;
+  bottom: -0.5rem;
+  right: -0.5rem;
+  font-family: 'Noto Serif JP', serif;
+  font-size: 8rem;
+  font-weight: 200;
+  color: var(--kanji);
+  opacity: 0.15;
+  line-height: 1;
+  pointer-events: none;
+}
+
 @media (max-width: 900px) {
   .controls {
     grid-template-columns: 1fr;
