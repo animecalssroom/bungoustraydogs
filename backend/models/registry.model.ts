@@ -18,6 +18,7 @@ import type {
   RegistryThread,
 } from '@/backend/types'
 import { AP_VALUES, getRankTitle } from '@/backend/types'
+import { cache } from '@/backend/lib/cache'
 
 type RegistryListOptions = {
   faction?: FactionId | 'all'
@@ -174,38 +175,45 @@ export const RegistryModel = {
   },
 
   async getPublic(options: RegistryListOptions = {}) {
-    try {
+    const key = `registry:public:${options.faction || 'all'}:${options.district || 'all'}:${options.sort || 'recent'}`
+    return cache.getOrSet(key, 120, async () => {
+      try {
         let query = supabaseAdmin
-        .from('registry_posts')
-        .select(REGISTRY_SELECT)
-        .eq('status', 'approved')
-        .limit(100)
+          .from('registry_posts')
+          .select(REGISTRY_SELECT)
+          .eq('status', 'approved')
+          .limit(100)
 
-      if (options.faction && options.faction !== 'all') {
-        query = query.eq('author_faction', options.faction)
-      }
+        if (options.faction && options.faction !== 'all') {
+          query = query.eq('author_faction', options.faction)
+        }
 
-      if (options.district && options.district !== 'all') {
-        query = query.eq('district', options.district)
-      }
+        if (options.district && options.district !== 'all') {
+          query = query.eq('district', options.district)
+        }
 
-      if (options.sort === 'saved') {
-        query = query.order('save_count', { ascending: false })
-      } else if (options.sort === 'featured') {
-        query = query.order('featured', { ascending: false }).order('created_at', { ascending: false })
-      } else {
-        query = query.order('created_at', { ascending: false })
-      }
+        if (options.sort === 'saved') {
+          query = query.order('save_count', { ascending: false })
+        } else if (options.sort === 'featured') {
+          query = query.order('featured', { ascending: false }).order('created_at', { ascending: false })
+        } else {
+          query = query.order('created_at', { ascending: false })
+        }
 
-      const { data, error } = await query
-      if (error || !data) {
+        const { data, error } = await query
+        if (error || !data) {
+          return applyRegistryFilters(REGISTRY_FALLBACK_POSTS, options)
+        }
+
+        return (data as RawRegistryPost[]).map((row) => normalizeRegistryPost(row))
+      } catch {
         return applyRegistryFilters(REGISTRY_FALLBACK_POSTS, options)
       }
+    })
+  },
 
-      return (data as RawRegistryPost[]).map((row) => normalizeRegistryPost(row))
-    } catch {
-      return applyRegistryFilters(REGISTRY_FALLBACK_POSTS, options)
-    }
+  async invalidatePublicCache() {
+    await cache.invalidate('registry:public:all:all:recent')
   },
 
   async getByCaseNumber(caseNumber: string, viewerId?: string | null) {
@@ -344,10 +352,10 @@ export const RegistryModel = {
     const sequenceCount =
       input.postType === 'field_note'
         ? await supabaseAdmin
-            .from('registry_posts')
-            .select('id', { count: 'exact', head: true })
-            .eq('post_type', 'field_note')
-            .then(({ count: fieldCount }) => fieldCount ?? 0)
+          .from('registry_posts')
+          .select('id', { count: 'exact', head: true })
+          .eq('post_type', 'field_note')
+          .then(({ count: fieldCount }) => fieldCount ?? 0)
         : (count ?? 0) + 1
 
     const caseNumber = generateRegistryCaseNumber(
@@ -423,6 +431,8 @@ export const RegistryModel = {
           .eq('id', threadId)
       }
 
+      await this.invalidatePublicCache()
+
       return {
         data: normalizeRegistryPost({
           ...(data as RawRegistryPost),
@@ -466,6 +476,8 @@ export const RegistryModel = {
         post_id: post.id,
         saved_author_id: post.author_id,
       })
+
+      await this.invalidatePublicCache()
 
       return { data: { case_number: post.case_number, save_count: (post.save_count ?? 0) + 1 } }
     } catch {
@@ -547,7 +559,7 @@ export const RegistryModel = {
     await supabaseAdmin.from('registry_posts').update(updates).eq('id', post.id)
 
     if (input.action === 'approve') {
-      await UserModel.addAp(post.author_id, 'lore_post', AP_VALUES.lore_post, {
+      await UserModel.addAp(post.author_id, 'registry_post', 25, {
         case_number: post.case_number,
         district: post.district,
         post_type: post.post_type,
@@ -565,7 +577,7 @@ export const RegistryModel = {
         message: `Your incident report ${post.case_number} has been accepted into the Registry. The city remembers.`,
         payload: { case_number: post.case_number },
       })
-      try { await import('@/backend/lib/notifications-cache').then(m=>m.invalidateNotificationsCache(post.author_id)) } catch (err) { console.error('[notifications] invalidate error', err) }
+      try { await import('@/backend/lib/notifications-cache').then(m => m.invalidateNotificationsCache(post.author_id)) } catch (err) { console.error('[notifications] invalidate error', err) }
 
       if (post.author_faction) {
         await supabaseAdmin.from('faction_activity').insert({
@@ -585,8 +597,10 @@ export const RegistryModel = {
             : `Your incident report ${post.case_number} needs revision. ${input.note?.trim()}`,
         payload: { case_number: post.case_number },
       })
-      try { await import('@/backend/lib/notifications-cache').then(m=>m.invalidateNotificationsCache(post.author_id)) } catch (err) { console.error('[notifications] invalidate error', err) }
+      try { await import('@/backend/lib/notifications-cache').then(m => m.invalidateNotificationsCache(post.author_id)) } catch (err) { console.error('[notifications] invalidate error', err) }
     }
+
+    await this.invalidatePublicCache()
 
     return { data: { id: post.id, status: nextStatus } }
   },

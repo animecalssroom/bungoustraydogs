@@ -77,7 +77,7 @@ async function clearExistingOutcome(
 }
 
 export const OnboardingModel = {
-  
+
   // --- UPDATED: Dynamic count that ignores bots and auto-heals state drift ---
   async factionHasSpace(faction: VisibleFactionId) {
     const { data: slotRow } = await supabaseAdmin
@@ -95,11 +95,10 @@ export const OnboardingModel = {
       .select('id', { count: 'exact', head: true })
       .eq('faction', faction)
       .in('role', ['member', 'mod'])
-      .eq('is_bot', false)
 
     if (error) {
       console.error(`[Faction Capacity] Error counting members for ${faction}:`, error)
-      return false 
+      return false
     }
 
     const currentHumanCount = count ?? 0

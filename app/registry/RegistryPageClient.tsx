@@ -3,15 +3,12 @@
 import Link from 'next/link'
 import type { RegistryPost } from '@/backend/types'
 import { ErrorBoundary } from '@/frontend/components/ui/ErrorBoundary'
-import { Nav } from '@/frontend/components/ui/Nav'
-import { Footer } from '@/frontend/components/ui/Footer'
 import { RegistryFeed } from '@/frontend/components/registry/RegistryFeed'
 
 export default function RegistryPageClient({ posts }: { posts: RegistryPost[] }) {
   return (
     <ErrorBoundary>
-      <Nav />
-      <main style={{ paddingTop: '60px' }}>
+      <div style={{ paddingTop: '36px' }}>
         <div className="section-head">
           <p className="section-eyebrow">City Registry · Yokohama Filed Reports</p>
           <h1 className="section-title">
@@ -84,8 +81,7 @@ export default function RegistryPageClient({ posts }: { posts: RegistryPost[] })
           </div>
         </div>
         <RegistryFeed initialPosts={posts} />
-      </main>
-      <Footer />
+      </div>
     </ErrorBoundary>
   )
 }

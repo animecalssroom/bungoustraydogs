@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/frontend/lib/supabase/client'
 import { useAuth } from '@/frontend/context/AuthContext'
 import { resolvePostAuthPath } from '@/frontend/lib/launch'
-import { Nav } from '@/frontend/components/ui/Nav'
 
 function humanizeSchemaError(message: string) {
   if (
@@ -103,26 +102,23 @@ export default function UsernameSetupPage() {
   }
 
   return (
-    <>
-      <Nav />
-      <main
+    <div
+      style={{
+        display: 'grid',
+        placeItems: 'center',
+        background: 'var(--bg)',
+        padding: '36px 0 32px',
+      }}
+    >
+      <section
         style={{
-          minHeight: '100vh',
-          display: 'grid',
-          placeItems: 'center',
-          background: 'var(--bg)',
-          padding: '96px 24px 32px',
+          width: '100%',
+          maxWidth: '520px',
+          padding: '3rem 2.5rem',
+          border: '1px solid var(--border)',
+          background: 'var(--card)',
         }}
       >
-        <section
-          style={{
-            width: '100%',
-            maxWidth: '520px',
-            padding: '3rem 2.5rem',
-            border: '1px solid var(--border)',
-            background: 'var(--card)',
-          }}
-        >
         <p
           style={{
             fontFamily: 'Noto Serif JP, serif',
@@ -214,8 +210,7 @@ export default function UsernameSetupPage() {
         >
           {saving ? 'Recording...' : 'Continue to Assignment'}
         </button>
-        </section>
-      </main>
-    </>
+      </section>
+    </div>
   )
 }

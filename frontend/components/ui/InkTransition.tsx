@@ -20,14 +20,19 @@ export default function InkTransition({ children }: { children: React.ReactNode 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        transition={{ duration: 0.28 }}
+        transition={{ duration: 0.35 }}
+        style={{ willChange: 'opacity' }}
       >
         <motion.div
           className="ink-overlay"
-          initial={{ scale: 0, borderRadius: '50%', opacity: 0.9 }}
-          animate={{ scale: 4, borderRadius: '0%', opacity: 0 }}
-          exit={{ scale: 0, borderRadius: '50%', opacity: 0 }}
-          transition={{ duration: 0.45, ease: 'easeInOut' }}
+          initial={{ scale: 0, borderRadius: '50%', opacity: 0.8 }}
+          animate={{ scale: 3, borderRadius: '0%', opacity: 0 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+          style={{
+            willChange: 'transform, opacity',
+            pointerEvents: 'none'
+          }}
         />
         {children}
       </motion.div>

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type CSSProperties } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import {
   THEME_DATA,
   THEME_ORDER,
@@ -19,6 +19,7 @@ import { AngoUsername } from '@/frontend/components/ango/AngoUsername'
 import styles from './Nav.module.css'
 import SoundToggle from './SoundToggle'
 import NotificationBell from './NotificationBell'
+import { createClient as createSupabaseClient } from '@/frontend/lib/supabase/client'
 
 const MOBILE_THEME_META = {
   light: 'Agency hours',
@@ -27,6 +28,7 @@ const MOBILE_THEME_META = {
 } as const
 
 export function Nav() {
+  const router = useRouter()
   const pathname = usePathname()
   const { theme, setTheme, resetThemeToAuto, isAutoTheme, currentTimeLabel } = useTheme()
   const { user, profile, signOut } = useAuth()
@@ -38,9 +40,9 @@ export function Nav() {
     user && activeProfile?.role === 'mod' && activeProfile.faction === 'special_div'
   const privateFactionHref =
     activeProfile?.faction &&
-    (activeProfile.role === 'member' ||
-      activeProfile.role === 'mod' ||
-      activeProfile.role === 'owner')
+      (activeProfile.role === 'member' ||
+        activeProfile.role === 'mod' ||
+        activeProfile.role === 'owner')
       ? `/faction/${toPrivateFactionRouteId(activeProfile.faction)}`
       : null
   const profileHref = activeProfile
@@ -61,33 +63,38 @@ export function Nav() {
       return
     }
 
+    // Load once on mount, then update in real-time via Supabase channel
+    const supabase = createSupabaseClient()
     let active = true
 
-    void fetch('/api/notifications?limit=20', { cache: 'no-store' })
-      .then((response) => response.json().catch(() => ({})).then((json) => ({ response, json })))
-      .then(({ response, json }) => {
-        if (!active) {
-          return
-        }
+    const load = async () => {
+      const response = await fetch('/api/notifications?limit=20', { cache: 'no-store' })
+      const json = await response.json().catch(() => ({}))
+      if (!active) return
+      const rows = response.ok && Array.isArray(json.data) ? json.data : []
+      const count = rows.filter(
+        (item: { type?: string; read_at?: string | null }) =>
+          item.type === 'duel_challenge' && !item.read_at,
+      ).length
+      setPendingDuelChallenges(count)
+    }
 
-        const rows = response.ok && Array.isArray(json.data) ? json.data : []
-        const count = rows.filter(
-          (item: { type?: string; read_at?: string | null }) =>
-            item.type === 'duel_challenge' && !item.read_at,
-        ).length
+    void load()
 
-        setPendingDuelChallenges(count)
-      })
-      .catch(() => {
-        if (active) {
-          setPendingDuelChallenges(0)
-        }
-      })
+    const channel = supabase
+      .channel(`nav-duel-count:${user.id}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },
+        () => { void load() },
+      )
+      .subscribe()
 
     return () => {
       active = false
+      void supabase.removeChannel(channel)
     }
-  }, [user, pathname])
+  }, [user])
 
   return (
     <>
@@ -117,6 +124,7 @@ export function Nav() {
               <li key={item.href} className={styles.linkItem}>
                 <Link
                   href={item.href}
+                  onMouseEnter={() => router.prefetch(item.href)}
                   className={`${styles.link} ${active ? styles.linkActive : ''}`}
                 >
                   {item.label}
@@ -129,11 +137,11 @@ export function Nav() {
             <li className={styles.linkItem}>
               <Link
                 href={privateFactionHref}
-                className={`${styles.link} ${styles.factionLink} ${
-                  pathname === privateFactionHref || pathname.startsWith(`${privateFactionHref}/`)
-                    ? styles.linkActive
-                    : ''
-                }`}
+                onMouseEnter={() => router.prefetch(privateFactionHref)}
+                className={`${styles.link} ${styles.factionLink} ${pathname === privateFactionHref || pathname.startsWith(`${privateFactionHref}/`)
+                  ? styles.linkActive
+                  : ''
+                  }`}
                 style={{ '--faction-link-color': factionMeta.color } as CSSProperties}
               >
                 {factionMeta.kanji}
@@ -159,9 +167,8 @@ export function Nav() {
             <button
               type="button"
               onClick={resetThemeToAuto}
-              className={`${styles.cityModeButton} ${
-                isAutoTheme ? styles.cityModeButtonActive : ''
-              }`}
+              className={`${styles.cityModeButton} ${isAutoTheme ? styles.cityModeButtonActive : ''
+                }`}
               title="Use Yokohama time"
             >
               <span className={styles.cityModeLabel}>City</span>
@@ -176,9 +183,8 @@ export function Nav() {
                   key={themeKey}
                   type="button"
                   onClick={() => setTheme(themeKey)}
-                  className={`${styles.lanternButton} ${
-                    theme === themeKey ? styles.lanternButtonActive : ''
-                  } ${isAutoTheme ? styles.lanternButtonAuto : ''}`}
+                  className={`${styles.lanternButton} ${theme === themeKey ? styles.lanternButtonActive : ''
+                    } ${isAutoTheme ? styles.lanternButtonAuto : ''}`}
                   title={`Switch to ${THEME_DATA[themeKey].label}`}
                 >
                   <span className={styles.lanternGlyph}>{THEME_DATA[themeKey].glyph}</span>
@@ -255,11 +261,10 @@ export function Nav() {
             {privateFactionHref ? (
               <Link
                 href={privateFactionHref}
-                className={`${styles.mobileLink} ${
-                  pathname === privateFactionHref || pathname.startsWith(`${privateFactionHref}/`)
-                    ? styles.mobileLinkActive
-                    : ''
-                }`}
+                className={`${styles.mobileLink} ${pathname === privateFactionHref || pathname.startsWith(`${privateFactionHref}/`)
+                  ? styles.mobileLinkActive
+                  : ''
+                  }`}
                 style={
                   factionMeta
                     ? ({ '--mobile-link-accent': factionMeta.color } as CSSProperties)
@@ -283,9 +288,8 @@ export function Nav() {
           <button
             type="button"
             onClick={resetThemeToAuto}
-            className={`${styles.mobileCityMode} ${
-              isAutoTheme ? styles.mobileCityModeActive : ''
-            }`}
+            className={`${styles.mobileCityMode} ${isAutoTheme ? styles.mobileCityModeActive : ''
+              }`}
           >
             <span>City</span>
             <span suppressHydrationWarning>{THEME_DATA[theme].label} | {currentTimeLabel}</span>
@@ -297,9 +301,8 @@ export function Nav() {
                 key={themeKey}
                 type="button"
                 onClick={() => setTheme(themeKey)}
-                className={`${styles.mobileLanternButton} ${
-                  theme === themeKey ? styles.mobileLanternButtonActive : ''
-                }`}
+                className={`${styles.mobileLanternButton} ${theme === themeKey ? styles.mobileLanternButtonActive : ''
+                  }`}
               >
                 <span className={styles.lanternGlyph}>{THEME_DATA[themeKey].glyph}</span>
                 <span className={styles.mobileLanternCopy}>

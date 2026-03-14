@@ -4,6 +4,8 @@
   background:
     radial-gradient(circle at top left, rgba(139, 37, 0, 0.08), transparent 28%),
     linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%);
+  overflow-x: hidden;
+  max-width: 100vw;
 }
 
 .wrap {
@@ -536,8 +538,12 @@
 
 @media (max-width: 900px) {
   .wrap {
-    width: min(100%, calc(100% - 1rem));
+    width: 100%;
     padding-top: 0.8rem;
+    padding-left: 0;
+    padding-right: 0;
+    margin: 0;
+    overflow-x: hidden;
   }
 
   .mobileTabs {
@@ -566,6 +572,10 @@
 
   .column {
     min-height: auto;
+    width: 100%;
+    box-sizing: border-box;
+    border-left: none;
+    border-right: none;
   }
 
   .mobilePanelHidden {
@@ -574,6 +584,8 @@
 
   .mobilePanelVisible {
     display: block;
+    width: 100%;
+    box-sizing: border-box;
   }
 
   .desktopOnly {
@@ -585,7 +597,9 @@
   }
 
   .warStrip {
-    order: -1;
+    margin-top: 1rem;
+    border-left: none;
+    border-right: none;
   }
 
   .shell {
@@ -598,6 +612,11 @@
 
   .chatVisible {
     display: block;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 1rem;
+    border-left: none;
+    border-right: none;
   }
 
   .chatLog {

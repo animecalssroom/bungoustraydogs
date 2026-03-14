@@ -1,7 +1,5 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/frontend/lib/supabase/server'
-import { Nav } from '@/frontend/components/ui/Nav'
-import { Footer } from '@/frontend/components/ui/Footer'
 import { OwnerConsole } from '@/frontend/components/owner/OwnerConsole'
 import { OwnerModel } from '@/backend/models/owner.model'
 import type { Profile } from '@/backend/types'
@@ -39,23 +37,19 @@ export default async function OwnerPage() {
   const dashboard = await OwnerModel.getDashboard()
 
   return (
-    <>
-      <Nav />
-      <main style={{ paddingTop: '60px', minHeight: '100vh' }}>
-        <section className="section-wrap" style={{ paddingTop: '4rem', paddingBottom: '6rem' }}>
-          <OwnerConsole
-            users={dashboard.users}
-            flags={dashboard.flags}
-            slots={dashboard.slots}
-            events={dashboard.events}
-            reservedCharacters={dashboard.reservedCharacters}
-            specialDivisionRecommendations={dashboard.specialDivisionRecommendations}
-            supportTickets={dashboard.supportTickets}
-            contentFlags={dashboard.contentFlags}
-          />
-        </section>
-      </main>
-      <Footer />
-    </>
+    <div style={{ paddingTop: '36px' }}>
+      <section className="section-wrap" style={{ paddingTop: '4rem', paddingBottom: '6rem' }}>
+        <OwnerConsole
+          users={dashboard.users}
+          flags={dashboard.flags}
+          slots={dashboard.slots}
+          events={dashboard.events}
+          reservedCharacters={dashboard.reservedCharacters}
+          specialDivisionRecommendations={dashboard.specialDivisionRecommendations}
+          supportTickets={dashboard.supportTickets}
+          contentFlags={dashboard.contentFlags}
+        />
+      </section>
+    </div>
   )
 }

@@ -58,6 +58,40 @@ export async function getBotProfile(username: string) {
   }
 }
 
+export async function getBotProfiles(usernames: string[]) {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('profiles')
+      .select('id, username, faction, character_name, character_match_id, duel_wins, duel_losses, is_bot_paused, last_bot_post_at, bot_config')
+      .in('username', usernames)
+      .eq('is_bot', true)
+
+    if (error) {
+      // eslint-disable-next-line no-console
+      console.error('getBotProfiles supabase error', error.message)
+      return []
+    }
+
+    if (!data) return []
+
+    return data.map((profile) => {
+      try {
+        if (profile.bot_config && typeof profile.bot_config === 'string') {
+          // eslint-disable-next-line no-param-reassign
+          profile.bot_config = JSON.parse(profile.bot_config)
+        }
+      } catch (e) {
+        // ignore
+      }
+      return profile
+    })
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('getBotProfiles unexpected error', err)
+    return []
+  }
+}
+
 export async function updateLastBotPostAt(userId: string) {
   await supabaseAdmin
     .from('profiles')

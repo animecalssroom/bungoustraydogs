@@ -15,6 +15,7 @@ export type HiddenFactionId =
 export type FactionId = VisibleFactionId | HiddenFactionId
 
 export type StoredRole =
+  | 'user'
   | 'observer'
   | 'waitlist'
   | 'member'
@@ -560,13 +561,13 @@ export const AP_VALUES: Record<UserEventType, number> = {
   character_assigned: 0,
   exam_retake: 0,
   duel_accepted: 0,
-  duel_complete: 0,
-  arena_vote: 10,
+  duel_complete: 0, // Handled manually in duel-runtime
+  arena_vote: 5,
   lore_post: 50,
-  registry_post: 50,
+  registry_post: 25,
   registry_submit: 0,
   chat_message: 2,
-  bulletin_post: 3,
+  bulletin_post: 10,
   feed_view: 0,
   profile_view: 0,
   write_lore: 50,
@@ -574,7 +575,7 @@ export const AP_VALUES: Record<UserEventType, number> = {
   registry_save: 10,
   registry_featured: 100,
   archive_view: 5,
-  archive_read: 1,
+  archive_read: 3,
   faction_checkin: 5,
   daily_login: 5,
   login_streak: 10,
@@ -594,17 +595,62 @@ export const RANK_TITLES = [
   'Legend File',
 ] as const
 
+export const RANK_THRESHOLDS = [
+  { rank: 1, ap: 0 },
+  { rank: 2, ap: 100 },
+  { rank: 3, ap: 500 },
+  { rank: 4, ap: 1500 },
+  { rank: 5, ap: 4000 },
+  { rank: 6, ap: 10000 },
+]
+
+export function calculateRank(apTotal: number): number {
+  let rank = 1
+  for (const threshold of RANK_THRESHOLDS) {
+    if (apTotal >= threshold.ap) {
+      rank = threshold.rank
+    } else {
+      break
+    }
+  }
+  return rank
+}
+
+export const CHARACTER_ASSIGNMENT_THRESHOLD = 10
+
+export const QUALIFYING_ASSIGNMENT_EVENTS: UserEventType[] = [
+  'daily_login',
+  'chat_message',
+  'archive_read',
+  'lore_post',
+  'duel_complete',
+  'arena_vote',
+  'registry_post',
+  'bulletin_post',
+  'faction_checkin',
+  'write_lore',
+  'save_lore',
+  'registry_save',
+  'registry_featured',
+]
+
 export function getRankTitle(rank: number): string {
   return RANK_TITLES[Math.max(0, Math.min(rank - 1, RANK_TITLES.length - 1))]
 }
 
 export function apProgress(apTotal: number) {
-  const needed = 500
-  const current = apTotal % needed
+  const rank = calculateRank(apTotal)
+  const currentThreshold = RANK_THRESHOLDS.find(t => t.rank === rank)?.ap ?? 0
+  const nextThreshold = RANK_THRESHOLDS.find(t => t.rank === rank + 1)?.ap ?? currentThreshold
+  
+  const span = Math.max(nextThreshold - currentThreshold, 1)
+  const current = apTotal - currentThreshold
+  
   return {
     current,
-    needed,
-    percent: Math.round((current / needed) * 100),
+    needed: nextThreshold,
+    remaining: Math.max(0, nextThreshold - apTotal),
+    percent: Math.round(Math.min((current / span) * 100, 100)),
   }
 }
 
@@ -699,4 +745,17 @@ export interface DuelCooldown {
   user_id: string
   ability_type: 'special' | 'recover'
   locked_until_round: number
+}
+export interface TerritoryControl {
+  district: RegistryDistrict
+  controlling_faction: FactionId | null
+  influence: Record<FactionId, number>
+  status: 'stable' | 'contested' | 'warzone'
+}
+
+export interface WarStatus {
+  active_wars: number
+  total_territories: number
+  faction_rankings: Array<{ faction: FactionId; score: number }>
+  last_flip_at: string | null
 }

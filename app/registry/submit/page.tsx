@@ -1,8 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/frontend/lib/supabase/server'
 import type { Profile } from '@/backend/types'
-import { Nav } from '@/frontend/components/ui/Nav'
-import { Footer } from '@/frontend/components/ui/Footer'
 import { RegistrySubmitForm } from '@/frontend/components/registry/RegistrySubmitForm'
 import Link from 'next/link'
 
@@ -32,35 +30,31 @@ export default async function RegistrySubmitPage() {
   }
 
   return (
-    <>
-      <Nav />
-      <main style={{ paddingTop: '96px', minHeight: '100vh' }}>
-        <div className="section-wrap" style={{ paddingBottom: '1.5rem' }}>
-          <div
-            style={{
-              border: '1px solid var(--border)',
-              background: 'var(--card)',
-              padding: '1.5rem',
-              marginBottom: '1rem',
-            }}
-          >
-            <p className="section-eyebrow" style={{ marginBottom: '0.75rem' }}>
-              Registry Filing Desk
-            </p>
-            <p className="section-sub" style={{ padding: 0 }}>
-              Registry submissions are a staff-authored filing lane. Use this desk for in-world
-              field notes, incident reports, classified dossiers, and Chronicle-bound records.
-            </p>
-            <div style={{ marginTop: '1rem' }}>
-              <Link href="/guide" className="btn-secondary">
-                Read Contribution Guide
-              </Link>
-            </div>
+    <div style={{ paddingTop: '36px' }}>
+      <div className="section-wrap" style={{ paddingBottom: '1.5rem' }}>
+        <div
+          style={{
+            border: '1px solid var(--border)',
+            background: 'var(--card)',
+            padding: '1.5rem',
+            marginBottom: '1rem',
+          }}
+        >
+          <p className="section-eyebrow" style={{ marginBottom: '0.75rem' }}>
+            Registry Filing Desk
+          </p>
+          <p className="section-sub" style={{ padding: 0 }}>
+            Registry submissions are a staff-authored filing lane. Use this desk for in-world
+            field notes, incident reports, classified dossiers, and Chronicle-bound records.
+          </p>
+          <div style={{ marginTop: '1rem' }}>
+            <Link href="/guide" className="btn-secondary">
+              Read Contribution Guide
+            </Link>
           </div>
         </div>
-        <RegistrySubmitForm viewerRank={viewer.rank} />
-      </main>
-      <Footer />
-    </>
+      </div>
+      <RegistrySubmitForm viewerRank={viewer.rank} />
+    </div>
   )
 }

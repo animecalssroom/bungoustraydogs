@@ -1,19 +1,32 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import type { FactionId, RegistryDistrict, RegistryPost } from '@/backend/types'
 import { REGISTRY_DISTRICT_LABELS } from '@/backend/lib/registry'
 import { useAuth } from '@/frontend/context/AuthContext'
 import { FACTION_META } from '@/frontend/lib/launch'
 import { AngoUsername } from '@/frontend/components/ango/AngoUsername'
+import { usePersistentData } from '@/frontend/hooks/usePersistentData'
 import styles from './Registry.module.css'
 
-export function RegistryFeed({ initialPosts }: { initialPosts: RegistryPost[] }) {
+export function RegistryFeed({ initialPosts: serverPosts }: { initialPosts: RegistryPost[] }) {
   const { profile } = useAuth()
+
+  // Use persistent data for 'Warm Start' UX
+  const [initialPosts, setPersistentPosts] = usePersistentData<RegistryPost[]>('registry_list', serverPosts)
+
+  // Sync server posts to persistence when they change
+  useEffect(() => {
+    if (serverPosts.length) {
+      setPersistentPosts(serverPosts)
+    }
+  }, [serverPosts])
+
   const [faction, setFaction] = useState<FactionId | 'all'>('all')
   const [district, setDistrict] = useState<RegistryDistrict | 'all'>('all')
   const [sort, setSort] = useState<'recent' | 'saved' | 'featured'>('recent')
+
   const canSubmitRegistry = profile?.role === 'mod' || profile?.role === 'owner'
 
   const posts = useMemo(() => {

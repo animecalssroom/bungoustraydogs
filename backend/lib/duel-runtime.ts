@@ -2,6 +2,7 @@ import { supabaseAdmin } from '@/backend/lib/supabase'
 import type { Duel, DuelCooldown, DuelRound } from '@/backend/types'
 import { resolveDuelRound } from '@/lib/duels/engine'
 import { narrateDuelRound } from '@/backend/lib/duel-narrative'
+import { UserModel } from '@/backend/models/user.model'
 
 export const DUEL_MAX_ROUNDS = 7
 export const DUEL_SUDDEN_DEATH_ROUND = 8
@@ -11,25 +12,136 @@ function duelSelect() {
   return 'id, challenger_id, defender_id, challenger_character, defender_character, challenger_character_slug, defender_character_slug, status, current_round, challenger_hp, defender_hp, challenger_max_hp, defender_max_hp, challenger_came_back, defender_came_back'
 }
 
-async function triggerAftermathIfPossible(duelId: string) {
+export async function triggerAftermathIfPossible(duelId: string) {
   const supabaseUrl = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
-  if (!supabaseUrl || !serviceRoleKey) {
-    return
+  let edgeFunctionSuccess = false
+
+  if (supabaseUrl && serviceRoleKey) {
+    try {
+      const res = await fetch(`${supabaseUrl}/functions/v1/resolve-duel-aftermath`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${serviceRoleKey}`,
+        },
+        body: JSON.stringify({ duel_id: duelId }),
+      })
+      edgeFunctionSuccess = res.ok
+    } catch {
+      // Edge function not available
+    }
   }
 
+  // Local fallback: always check if ap_awarded is still false and process locally if so.
+  // This ensures that even if the edge function "succeeds" but fails to update the DB, we have a safety net.
+  if (!edgeFunctionSuccess) {
+    await processLocalAftermath(duelId)
+  } else {
+    // Small delay to let edge function finish, then check
+    setTimeout(async () => {
+      await processLocalAftermath(duelId)
+    }, 2000)
+  }
+}
+
+async function processLocalAftermath(duelId: string) {
   try {
-    await fetch(`${supabaseUrl}/functions/v1/resolve-duel-aftermath`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${serviceRoleKey}`,
-      },
-      body: JSON.stringify({ duel_id: duelId }),
-    })
-  } catch {
-    // Ignore local/dev aftermath failures.
+    const { data: duel } = await supabaseAdmin
+      .from('duels')
+      .select('*')
+      .eq('id', duelId)
+      .maybeSingle()
+
+    if (!duel || duel.status !== 'complete') return
+    if (duel.ap_awarded) return
+
+    const isDraw = !duel.winner_id
+
+    const { calculateRank } = await import('@/backend/types')
+
+    async function updateApAndRank(userId: string, apDelta: number, eventData: any, isWinner = false) {
+      const { data: p } = await supabaseAdmin.from('profiles').select('ap_total, rank, faction, duel_wins, duel_losses').eq('id', userId).maybeSingle()
+      if (!p) return
+
+      const newAp = Math.max(0, (p.ap_total ?? 0) + apDelta)
+      const newRank = calculateRank(newAp)
+
+      let wins = p.duel_wins ?? 0
+      let losses = p.duel_losses ?? 0
+      if (isWinner) wins++
+      else if (!isDraw) losses++
+
+      await supabaseAdmin
+        .from('profiles')
+        .update({
+          ap_total: newAp,
+          rank: newRank,
+          duel_wins: wins,
+          duel_losses: losses,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', userId)
+
+      await supabaseAdmin.from('user_events').insert({
+        user_id: userId,
+        event_type: 'duel_complete',
+        ap_awarded: apDelta,
+        faction: p.faction,
+        metadata: {
+          duel_id: duelId,
+          ...eventData
+        },
+      })
+
+      if (newRank > (p.rank ?? 1)) {
+        await supabaseAdmin.from('notifications').insert({
+          user_id: userId,
+          type: 'rank_up',
+          message: `Rank ${newRank} achieved.`,
+          payload: { old_rank: p.rank ?? 1, new_rank: newRank },
+        })
+      }
+
+      return { faction: p.faction }
+    }
+
+    // Update winner
+    if (duel.winner_id) {
+      const isComeback = duel.challenger_came_back || duel.defender_came_back
+      const winAp = isComeback ? 75 : 50
+      const winnerObj = await updateApAndRank(duel.winner_id, winAp, { result: 'win', comeback: isComeback, is_war_duel: duel.is_war_duel }, true)
+
+      if (duel.is_war_duel && winnerObj?.faction) {
+        const { data: activeWar } = await supabaseAdmin.from('faction_wars').select('*').eq('status', 'active').maybeSingle()
+        if (activeWar) {
+          const updateData = activeWar.faction_a_id === winnerObj.faction
+            ? { faction_a_points: (activeWar.faction_a_points ?? 0) + 3 }
+            : { faction_b_points: (activeWar.faction_b_points ?? 0) + 3 }
+          await supabaseAdmin.from('faction_wars').update(updateData).eq('id', activeWar.id)
+        }
+      }
+    }
+
+    // Update loser
+    if (duel.loser_id) {
+      await updateApAndRank(duel.loser_id, -20, { result: 'loss', comeback: false, is_war_duel: duel.is_war_duel }, false)
+    }
+
+    // Draw: both get +5 AP
+    if (isDraw) {
+      if (duel.challenger_id) await updateApAndRank(duel.challenger_id, 5, { result: 'draw', comeback: false, is_war_duel: duel.is_war_duel }, false)
+      if (duel.defender_id) await updateApAndRank(duel.defender_id, 5, { result: 'draw', comeback: false, is_war_duel: duel.is_war_duel }, false)
+    }
+
+    await supabaseAdmin
+      .from('duels')
+      .update({ ap_awarded: true })
+      .eq('id', duel.id)
+
+  } catch (err) {
+    // Silent fail for aftermath fallback
   }
 }
 
@@ -366,7 +478,7 @@ export async function resolveDuelRoundWithAdmin(duelId: string) {
         }).catch(() => null)
       }
     }
-  } catch {}
+  } catch { }
 
   return true
 }

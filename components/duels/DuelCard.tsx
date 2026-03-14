@@ -74,14 +74,20 @@ export function DuelCard({
       <div className="font-cinzel" style={{ fontSize: '1.15rem' }}>
         {me} vs {opponent}
       </div>
-      <div className="font-space-mono" style={{ fontSize: '0.58rem', color: 'var(--text3)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+      <div className="font-space-mono" style={{ fontSize: '0.58rem', color: duel.status === 'active' ? '#4a8a4a' : 'var(--text3)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
         {duel.status === 'pending'
-          ? `Pending - ${formatRemainingTime(duel.challenge_expires_at)}`
+          ? `${isChallenger ? 'Waiting' : 'Incoming'} - ${formatRemainingTime(duel.challenge_expires_at)}`
           : `Round ${Math.max(duel.current_round, 1)} / ${DUEL_MAX_ROUNDS}`}
       </div>
-      <Link href={duel.status === 'pending' ? '/duels/inbox' : `/duels/${duel.id}`} className="btn-secondary">
-        {duel.status === 'pending' ? 'Respond In Inbox' : 'Enter Duel'}
-      </Link>
+      {duel.status === 'pending' && isChallenger ? (
+        <div className="font-cormorant" style={{ fontSize: '0.9rem', color: 'var(--text3)', fontStyle: 'italic' }}>
+          Challenge sent. Awaiting response.
+        </div>
+      ) : (
+        <Link href={duel.status === 'pending' ? '/duels/inbox' : `/duels/${duel.id}`} className="btn-secondary" style={{ textDecoration: 'none', textAlign: 'center' }}>
+          {duel.status === 'pending' ? 'Respond In Inbox' : 'Enter Duel'}
+        </Link>
+      )}
     </article>
   )
 }

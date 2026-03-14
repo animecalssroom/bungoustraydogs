@@ -1,6 +1,7 @@
 import { supabaseAdmin } from '@/backend/lib/supabase'
 import { invalidateNotificationsCache } from '@/backend/lib/notifications-cache'
 import type { Duel, OpenChallenge, Profile } from '@/backend/types'
+import { triggerAftermathIfPossible } from '@/backend/lib/duel-runtime'
 import {
   canIssueFactionChallenge,
   canUseDuelSystem,
@@ -24,6 +25,7 @@ type DuelParticipant = Pick<
   | 'faction'
   | 'character_name'
   | 'character_match_id'
+  | 'character_ability'
   | 'rank'
 > & {
   duel_wins?: number | null
@@ -396,6 +398,76 @@ export const DuelModel = {
       .limit(20)
 
     return ((data as Duel[] | null) ?? []).map(normalizeDuel)
+  },
+
+  async getHistoryForUser(userId: string) {
+    const { data } = await supabaseAdmin
+      .from('duels')
+      .select(DUEL_SELECT)
+      .or(`challenger_id.eq.${userId},defender_id.eq.${userId}`)
+      .in('status', ['complete', 'forfeit', 'cancelled', 'declined'])
+      .order('created_at', { ascending: false })
+      .limit(20)
+
+    return ((data as Duel[] | null) ?? []).map(normalizeDuel)
+  },
+
+  async getPendingChallengesForUser(userId: string) {
+    await this.expirePendingChallengesForUsers([userId])
+    const now = new Date().toISOString()
+    const { data } = await supabaseAdmin
+      .from('duels')
+      .select(DUEL_SELECT)
+      .or(`challenger_id.eq.${userId},defender_id.eq.${userId}`)
+      .eq('status', 'pending')
+      .gt('challenge_expires_at', now)
+      .order('created_at', { ascending: false })
+      .limit(20)
+
+    return ((data as Duel[] | null) ?? []).map(normalizeDuel)
+  },
+
+  async forfeitDuel(duelId: string, userId: string) {
+    const { data, error } = await supabaseAdmin
+      .from('duels')
+      .update({
+        status: 'forfeit',
+        loser_id: userId,
+        winner_id: null, // will be set by aftermath if needed
+        completed_at: new Date().toISOString(),
+      })
+      .eq('id', duelId)
+      .eq('status', 'active')
+      .select(DUEL_SELECT)
+      .single()
+
+    if (error || !data) {
+      return { error: error?.message ?? 'Unable to forfeit this duel.' as const }
+    }
+
+    const duel = normalizeDuel(data as Duel)
+    const winnerId = duel.challenger_id === userId ? duel.defender_id : duel.challenger_id
+
+    // Set winner
+    await supabaseAdmin
+      .from('duels')
+      .update({ winner_id: winnerId })
+      .eq('id', duelId)
+
+    // Notify the opponent
+    try {
+      await supabaseAdmin.from('notifications').insert({
+        user_id: winnerId,
+        type: 'duel_accepted',
+        message: `${duel.challenger_id === userId ? (duel.challenger_character ?? 'Your opponent') : (duel.defender_character ?? 'Your opponent')} has forfeited the match. You win.`,
+        reference_id: duelId,
+        action_url: `/duels/${duelId}`,
+        payload: { duel_id: duelId, forfeit: true },
+      })
+    } catch { }
+
+    await triggerAftermathIfPossible(duelId)
+    return { data: { ...duel, winner_id: winnerId } }
   },
 
   async searchOpponents(userId: string, faction: string, query: string) {

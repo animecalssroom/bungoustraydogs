@@ -1,88 +1,103 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { verifyBotSecret, getBotProfile, updateLastBotPostAt } from '@/src/lib/bots/bot-utils'
-import { generateBotPost } from '@/src/lib/bots/npc-logic'
+import { supabaseAdmin } from '@/backend/lib/supabase'
+import { verifyBotSecret, getBotProfiles } from '@/src/lib/bots/bot-utils'
 import { ALL_BOT_CONFIGS } from '@/src/lib/bots/bot-config'
-import { RegistryModel } from '@/backend/models/registry.model'
-import { fetchWithRetry } from '@/src/lib/bots/fetch-retry'
+import type { BotConfig } from '@/src/lib/bots/bot-config'
+
+// AP awarded for a daily login — must match the value in AP_VALUES
+const DAILY_LOGIN_AP = 5
 
 export async function POST(request: NextRequest) {
   if (!verifyBotSecret(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  try {
-    const now = Date.now()
-    const results: Array<{ bot: string; posted: boolean }> = []
+  const results: Array<{ bot: string; status: 'logged_in' | 'already_done' | 'skipped' | 'error' }> = []
 
-    for (const cfg of Object.values(ALL_BOT_CONFIGS) as any[]) {
-      try {
-        // eslint-disable-next-line no-console
-        console.debug('daily-login:processing', cfg.username)
-        const profile = await getBotProfile(cfg.username)
-        if (!profile || profile.is_bot_paused) {
-          // eslint-disable-next-line no-console
-          console.debug('daily-login:skipping paused or missing profile', cfg.username)
-          continue
-        }
+  // Batch fetch all bot profiles in one query
+  const configs = Object.values(ALL_BOT_CONFIGS) as BotConfig[]
+  const usernames = configs.map((c) => c.username)
+  const profiles = await getBotProfiles(usernames)
+  const profileMap = new Map(profiles.map((p: any) => [p.username, p]))
 
-        const last = profile.last_bot_post_at ? new Date(profile.last_bot_post_at).getTime() : 0
-        const intervalMs = (cfg.postIntervalHours ?? 24) * 3600 * 1000
-        if (now - last < intervalMs) {
-          results.push({ bot: profile.username, posted: false })
-          continue
-        }
+  // Today in JST — bots use JST same as the rest of the game
+  const now = new Date()
+  const jstOffset = 9 * 60 * 60 * 1000
+  const jstNow = new Date(now.getTime() + jstOffset)
+  const todayJST = jstNow.toISOString().slice(0, 10) // 'YYYY-MM-DD'
 
-        let content = await generateBotPost(cfg.personality ?? '', '', process.env.GEMINI_API_KEY ?? '')
-        if (!content) {
-          content = (cfg.fallbackPosts ?? [])[Math.floor(Math.random() * ((cfg.fallbackPosts ?? []).length || 1))] ?? '...'
-        }
+  for (const cfg of configs) {
+    try {
+      const profile = profileMap.get(cfg.username)
 
-        const input = {
-          title: `${profile.username} — dispatch`,
-          content,
-          district: 'other' as any,
-          postType: 'field_note' as any,
-          threadMode: 'new' as const,
-        }
-
-        try {
-          let created = false
-          for (let attempt = 0; attempt < 3; attempt += 1) {
-            try {
-              await RegistryModel.createSubmission(profile as any, input)
-              created = true
-              break
-            } catch (err) {
-              // eslint-disable-next-line no-console
-              console.error('RegistryModel.createSubmission failed attempt', attempt + 1, profile.username, err)
-              // small wait
-              // eslint-disable-next-line no-await-in-loop
-              await new Promise((r) => setTimeout(r, 200 * Math.pow(2, attempt)))
-            }
-          }
-
-          if (created) {
-            await updateLastBotPostAt(profile.id)
-            results.push({ bot: profile.username, posted: true })
-          } else {
-            results.push({ bot: profile.username, posted: false })
-          }
-        } catch (outer) {
-          // eslint-disable-next-line no-console
-          console.error('Daily-login unexpected error for', profile.username, outer)
-          results.push({ bot: profile.username, posted: false })
-        }
-      } catch (outerErr) {
-        // eslint-disable-next-line no-console
-        console.error('daily-login:bot processing error', (cfg as any).username, outerErr)
+      if (!profile) {
+        results.push({ bot: cfg.username, status: 'skipped' })
+        continue
       }
-    }
 
-    return NextResponse.json({ success: true, results })
-  } catch (err) {
-    // eslint-disable-next-line no-console
-    console.error('daily-login:error', err)
-    return NextResponse.json({ error: 'Server error' }, { status: 500 })
+      if (profile.is_bot_paused) {
+        results.push({ bot: cfg.username, status: 'skipped' })
+        continue
+      }
+
+      // Check if this bot already logged in today (JST)
+      // A daily_login user_event within today's JST date window means already done
+      const { count } = await supabaseAdmin
+        .from('user_events')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', profile.id)
+        .eq('event_type', 'daily_login')
+        .gte('created_at', `${todayJST}T00:00:00+09:00`)
+        .lt('created_at', `${getNextDay(todayJST)}T00:00:00+09:00`)
+
+      if (count && count > 0) {
+        results.push({ bot: cfg.username, status: 'already_done' })
+        continue
+      }
+
+      // Record the daily login event
+      const { error: eventError } = await supabaseAdmin
+        .from('user_events')
+        .insert({
+          user_id: profile.id,
+          event_type: 'daily_login',
+          ap_awarded: DAILY_LOGIN_AP,
+          faction: profile.faction ?? cfg.faction ?? null,
+          metadata: { is_bot: true },
+        })
+
+      if (eventError) {
+        console.error(`[bot-daily-login] event insert failed for ${cfg.username}:`, eventError.message)
+        results.push({ bot: cfg.username, status: 'error' })
+        continue
+      }
+
+      // Award AP
+      const { error: apError } = await supabaseAdmin
+        .from('profiles')
+        .update({
+          ap_total: (profile.ap_total ?? 0) + DAILY_LOGIN_AP,
+          updated_at: now.toISOString(),
+        })
+        .eq('id', profile.id)
+
+      if (apError) {
+        console.error(`[bot-daily-login] AP update failed for ${cfg.username}:`, apError.message)
+        // Event was recorded — log the error but don't mark as full failure
+      }
+
+      results.push({ bot: cfg.username, status: 'logged_in' })
+    } catch (err) {
+      console.error(`[bot-daily-login] unexpected error for ${cfg.username}:`, err)
+      results.push({ bot: cfg.username, status: 'error' })
+    }
   }
+
+  return NextResponse.json({ success: true, results })
 }
 
+function getNextDay(dateStr: string): string {
+  const d = new Date(`${dateStr}T00:00:00Z`)
+  d.setUTCDate(d.getUTCDate() + 1)
+  return d.toISOString().slice(0, 10)
+}

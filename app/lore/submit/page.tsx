@@ -1,8 +1,6 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import type { Profile } from '@/backend/types'
-import { Nav } from '@/frontend/components/ui/Nav'
-import { Footer } from '@/frontend/components/ui/Footer'
 import { createClient } from '@/frontend/lib/supabase/server'
 import { LoreSubmitForm } from '@/frontend/components/lore/LoreSubmitForm'
 
@@ -32,44 +30,40 @@ export default async function LoreSubmitPage() {
   }
 
   return (
-    <>
-      <Nav />
-      <main style={{ paddingTop: '96px', minHeight: '100vh' }}>
-        <div className="section-wrap" style={{ paddingBottom: '1.5rem' }}>
-          <div
-            style={{
-              border: '1px solid var(--border)',
-              background: 'var(--card)',
-              padding: '1.5rem',
-              marginBottom: '1rem',
-            }}
-          >
-            <p className="section-eyebrow" style={{ marginBottom: '0.75rem' }}>
-              Literary Desk
-            </p>
-            <p className="section-sub" style={{ padding: 0 }}>
-              Write essays, theory, symbolism, author context, and character studies here.
-              Registry is the moderated in-world filing desk and is reserved for staff-authored case reports.
-            </p>
-            <div style={{ marginTop: '1rem', display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-              <Link href="/guide" className="btn-secondary">
-                Read City Guide
+    <div style={{ paddingTop: '36px' }}>
+      <div className="section-wrap" style={{ paddingBottom: '1.5rem' }}>
+        <div
+          style={{
+            border: '1px solid var(--border)',
+            background: 'var(--card)',
+            padding: '1.5rem',
+            marginBottom: '1rem',
+          }}
+        >
+          <p className="section-eyebrow" style={{ marginBottom: '0.75rem' }}>
+            Literary Desk
+          </p>
+          <p className="section-sub" style={{ padding: 0 }}>
+            Write essays, theory, symbolism, author context, and character studies here.
+            Registry is the moderated in-world filing desk and is reserved for staff-authored case reports.
+          </p>
+          <div style={{ marginTop: '1rem', display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <Link href="/guide" className="btn-secondary">
+              Read City Guide
+            </Link>
+            {viewer.role === 'mod' || viewer.role === 'owner' ? (
+              <Link href="/registry/submit" className="btn-secondary">
+                Open Registry Desk
               </Link>
-              {viewer.role === 'mod' || viewer.role === 'owner' ? (
-                <Link href="/registry/submit" className="btn-secondary">
-                  Open Registry Desk
-                </Link>
-              ) : (
-                <Link href="/registry" className="btn-secondary">
-                  Read Registry
-                </Link>
-              )}
-            </div>
+            ) : (
+              <Link href="/registry" className="btn-secondary">
+                Read Registry
+              </Link>
+            )}
           </div>
         </div>
-        <LoreSubmitForm viewerRank={viewer.rank} />
-      </main>
-      <Footer />
-    </>
+      </div>
+      <LoreSubmitForm viewerRank={viewer.rank} />
+    </div>
   )
 }

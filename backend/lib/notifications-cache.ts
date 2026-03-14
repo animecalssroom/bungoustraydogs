@@ -15,11 +15,10 @@ export async function getNotificationsCache(userId: string, limit: number) {
   }
 }
 
-export async function setNotificationsCache(userId: string, limit: number, rows: unknown[], ttlSeconds = 15) {
+export async function setNotificationsCache(userId: string, limit: number, rows: unknown[], ttlSeconds = 60) {
   try {
     const key = makeKey(userId, limit)
-    await redis.set(key, JSON.stringify(rows))
-    await redis.expire(key, ttlSeconds)
+    await redis.set(key, JSON.stringify(rows), { ex: ttlSeconds })
   } catch (err) {
     console.error('[notifications-cache] set error', err)
   }

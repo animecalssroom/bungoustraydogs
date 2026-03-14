@@ -1,6 +1,28 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 
+// Routes that genuinely need the Supabase session to be refreshed on the server.
+// Public content pages (archive, lore, guide, etc.) are excluded.
+const AUTH_REQUIRED_PREFIXES = [
+  '/api/',
+  '/onboarding',
+  '/faction',
+  '/duels',
+  '/profile',
+  '/waitlist',
+  '/observer',
+  '/owner',
+  '/admin',
+  '/login',
+  '/arena',
+  '/registry',
+]
+
+function needsAuth(pathname: string) {
+  if (pathname.startsWith('/api/bots/')) return false  // verified via x-bot-secret
+  return AUTH_REQUIRED_PREFIXES.some((prefix) => pathname.startsWith(prefix))
+}
+
 function clearSupabaseAuthCookies(request: NextRequest, response: NextResponse) {
   request.cookies
     .getAll()
@@ -17,9 +39,9 @@ function clearSupabaseAuthCookies(request: NextRequest, response: NextResponse) 
 }
 
 export async function middleware(request: NextRequest) {
-  // Skip auth entirely for bot routes — they verify via x-bot-secret header
-  if (request.nextUrl.pathname.startsWith('/api/bots/')) {
-    return NextResponse.next()
+  // Fast-path: skip auth check entirely for public pages
+  if (!needsAuth(request.nextUrl.pathname)) {
+    return NextResponse.next({ request: { headers: request.headers } })
   }
 
   let response = NextResponse.next({
@@ -71,5 +93,7 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+  matcher: [
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+  ],
 }

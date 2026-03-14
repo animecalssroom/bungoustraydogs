@@ -1,6 +1,4 @@
 import { redirect } from 'next/navigation'
-import { Nav } from '@/frontend/components/ui/Nav'
-import { Footer } from '@/frontend/components/ui/Footer'
 import { createClient } from '@/frontend/lib/supabase/server'
 import { SpecialDivisionConsole } from '@/frontend/components/admin/SpecialDivisionConsole'
 import { SpecialDivisionModel } from '@/backend/models/special-division.model'
@@ -40,8 +38,7 @@ export default async function Page() {
   const dashboard = await SpecialDivisionModel.getDashboard()
   return (
     <ErrorBoundary>
-      <Nav />
-      <main style={{ paddingTop: '60px', minHeight: '100vh' }}>
+      <div style={{ paddingTop: '36px' }}>
         <section className="section-wrap" style={{ paddingTop: '4rem', paddingBottom: '6rem' }}>
           <SpecialDivisionConsole
             unplaceable={dashboard.unplaceable}
@@ -50,8 +47,7 @@ export default async function Page() {
             contentFlags={dashboard.contentFlags}
           />
         </section>
-      </main>
-      <Footer />
+      </div>
     </ErrorBoundary>
   )
 }

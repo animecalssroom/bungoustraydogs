@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/backend/lib/supabase'
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { validate } from '@/backend/middleware/validate'
+import { UserModel } from '@/backend/models/user.model'
 
 const LoginSchema = z.object({
   email: z.string().email(),
@@ -39,9 +40,9 @@ export async function ensureProfile(user: {
 }) {
   const fallbackUsername = String(
     user.user_metadata?.preferred_username ??
-      user.user_metadata?.user_name ??
-      user.user_metadata?.name ??
-      (user.email ? user.email.split('@')[0] : `file_${user.id.slice(0, 8)}`),
+    user.user_metadata?.user_name ??
+    user.user_metadata?.name ??
+    (user.email ? user.email.split('@')[0] : `file_${user.id.slice(0, 8)}`),
   )
     .replace(/[^a-zA-Z0-9_]/g, '_')
     .slice(0, 20) || `file_${user.id.slice(0, 8)}`
@@ -69,7 +70,7 @@ export async function ensureProfile(user: {
     }
 
     if (existing) {
-      const updatePayload: Record<string, string | null> = {}
+      const updatePayload: Record<string, string | null | any> = {}
       const nextEmail = user.email ?? ''
       const nextAvatar =
         (user.user_metadata?.avatar_url as string | undefined) ?? null
@@ -227,18 +228,7 @@ export const AuthController = {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { data: profile, error: profileError } = await supabaseAdmin
-      .from('profiles')
-      .select('*')
-      .eq('id', user.id)
-      .maybeSingle()
-
-    if (profileError) {
-      return NextResponse.json(
-        { error: profileError.message },
-        { status: 500 },
-      )
-    }
+    const profile = await UserModel.getById(user.id)
 
     if (!profile) {
       await supabase.auth.signOut()
@@ -259,6 +249,9 @@ export const AuthController = {
           updated_at: new Date().toISOString(),
         })
         .eq('id', user.id)
+
+      // Since we updated last_seen, bust the profile cache
+      await UserModel.invalidateCache(user.id)
     }
 
     return NextResponse.json({ data: profile })

@@ -1,7 +1,5 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/frontend/lib/supabase/server'
-import { Nav } from '@/frontend/components/ui/Nav'
-import { Footer } from '@/frontend/components/ui/Footer'
 import { OwnerModel } from '@/backend/models/owner.model'
 import { ReservedCharacterDesk } from '@/frontend/components/owner/ReservedCharacterDesk'
 import type { Profile } from '@/backend/types'
@@ -39,17 +37,13 @@ export default async function OwnerAssignCharacterPage() {
   const data = await OwnerModel.getReservedAssignmentData()
 
   return (
-    <>
-      <Nav />
-      <main style={{ paddingTop: '60px', minHeight: '100vh' }}>
-        <section className="section-wrap" style={{ paddingTop: '4rem', paddingBottom: '6rem' }}>
-          <ReservedCharacterDesk
-            users={data.users}
-            reservedCharacters={data.reservedCharacters}
-          />
-        </section>
-      </main>
-      <Footer />
-    </>
+    <div style={{ paddingTop: '36px' }}>
+      <section className="section-wrap" style={{ paddingTop: '4rem', paddingBottom: '6rem' }}>
+        <ReservedCharacterDesk
+          users={data.users}
+          reservedCharacters={data.reservedCharacters}
+        />
+      </section>
+    </div>
   )
 }

@@ -82,7 +82,7 @@ export function HomeShowcase() {
   const [activeFilter, setActiveFilter] = useState<HomeCharacterFilter>('all')
   const [showIntro, setShowIntro] = useState(false)
   const [introReady, setIntroReady] = useState(false)
-  
+
   // --- ADDED: State to hold our live faction data ---
   const [liveFactions, setLiveFactions] = useState<Array<typeof HOME_FACTIONS[0] & { rawAp?: number }>>(HOME_FACTIONS)
   const rootRef = useRef<HTMLDivElement>(null)
@@ -132,11 +132,24 @@ export function HomeShowcase() {
       return
     }
 
-    const previousOverflow = document.body.style.overflow
-    document.body.style.overflow = showIntro ? 'hidden' : previousOverflow || ''
+    const html = document.documentElement
+    const body = document.body
+
+    if (showIntro) {
+      // Prevent layout shift by keeping scrollbar gutter if possible
+      const scrollBarWidth = window.innerWidth - html.clientWidth
+      body.style.overflow = 'hidden'
+      if (scrollBarWidth > 0) {
+        body.style.paddingRight = `${scrollBarWidth}px`
+      }
+    } else {
+      body.style.overflow = ''
+      body.style.paddingRight = ''
+    }
 
     return () => {
-      document.body.style.overflow = previousOverflow
+      body.style.overflow = ''
+      body.style.paddingRight = ''
     }
   }, [introReady, showIntro])
 
@@ -146,7 +159,7 @@ export function HomeShowcase() {
       try {
         const res = await fetch('/api/faction')
         const json = await res.json()
-        
+
         if (json.data && Array.isArray(json.data)) {
           const realData = json.data
 
@@ -190,7 +203,7 @@ export function HomeShowcase() {
   )
   const cityReturnHref =
     profile?.faction &&
-    (profile.role === 'member' || profile.role === 'mod' || profile.role === 'owner')
+      (profile.role === 'member' || profile.role === 'mod' || profile.role === 'owner')
       ? `/faction/${toPrivateFactionRouteId(profile.faction)}`
       : resolvePostAuthPath(profile)
 
@@ -404,14 +417,16 @@ export function HomeShowcase() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.35 }}
+              transition={{ duration: 0.8, ease: [0.33, 1, 0.68, 1] }}
+              style={{ willChange: 'opacity' }}
             >
               <motion.div
                 className={styles.heroIntroPanel}
-                initial={{ opacity: 0, y: 18, scale: 0.98 }}
+                initial={{ opacity: 0, y: 12, scale: 0.99 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 12, scale: 0.98 }}
-                transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                exit={{ opacity: 0, y: -8, scale: 1.01 }}
+                transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+                style={{ willChange: 'opacity, transform' }}
               >
                 <motion.p
                   className={styles.heroIntroTag}
@@ -568,9 +583,8 @@ export function HomeShowcase() {
                 key={filter.id}
                 type="button"
                 onClick={() => setActiveFilter(filter.id)}
-                className={`${styles.filterButton} ${
-                  activeFilter === filter.id ? styles.filterButtonActive : ''
-                }`}
+                className={`${styles.filterButton} ${activeFilter === filter.id ? styles.filterButtonActive : ''
+                  }`}
               >
                 {filter.label}
               </button>
@@ -729,9 +743,8 @@ export function HomeShowcase() {
               <Link
                 key={post.slug}
                 href="/lore"
-                className={`reveal ${styles.loreCard} ${
-                  post.featured ? styles.loreFeatured : ''
-                }`}
+                className={`reveal ${styles.loreCard} ${post.featured ? styles.loreFeatured : ''
+                  }`}
                 data-home-reveal
                 style={{ transitionDelay: `${index * 70}ms` }}
               >
@@ -765,9 +778,8 @@ export function HomeShowcase() {
               {Array.from({ length: 7 }).map((_, index) => (
                 <span
                   key={index}
-                  className={`${styles.examDot} ${
-                    index === 0 ? styles.examDotActive : ''
-                  }`}
+                  className={`${styles.examDot} ${index === 0 ? styles.examDotActive : ''
+                    }`}
                 />
               ))}
             </div>

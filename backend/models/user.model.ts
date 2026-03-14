@@ -2,7 +2,9 @@ import { supabaseAdmin } from '@/backend/lib/supabase'
 import { EXAM_RETAKE_COST, getExamRetakeStatus } from '@/backend/lib/exam-retake'
 import { AP_VALUES, type Profile, type UserEvent, type UserEventType } from '@/backend/types'
 import { CharacterAssignmentModel } from '@/backend/models/character-assignment.model'
+import { checkAssignmentTrigger } from '@/src/lib/assignment/checkAssignmentTrigger'
 import { redis } from '@/lib/redis'
+import { cache } from '@/backend/lib/cache'
 
 const TOKYO_TIME_ZONE = 'Asia/Tokyo'
 
@@ -24,13 +26,19 @@ function getTokyoDateKey(value: string | Date) {
 
 export const UserModel = {
   async getById(id: string): Promise<Profile | null> {
-    const { data } = await supabaseAdmin
-      .from('profiles')
-      .select('*')
-      .eq('id', id)
-      .single()
+    return cache.getOrSet(`profile:id:${id}`, 30, async () => {
+      const { data } = await supabaseAdmin
+        .from('profiles')
+        .select('*')
+        .eq('id', id)
+        .single()
 
-    return (data as Profile | null) ?? null
+      return (data as Profile | null) ?? null
+    })
+  },
+
+  async invalidateCache(id: string) {
+    await cache.invalidate(`profile:id:${id}`)
   },
 
   async getByUsername(username: string): Promise<Profile | null> {
@@ -71,6 +79,10 @@ export const UserModel = {
       .eq('id', id)
       .select('*')
       .single()
+
+    if (data) {
+      await this.invalidateCache(id)
+    }
 
     return (data as Profile | null) ?? null
   },
@@ -119,7 +131,17 @@ export const UserModel = {
     }
 
     if (eventType === 'archive_read') {
-      return events.length >= 5
+      const targetSlug = typeof metadata.slug === 'string' ? metadata.slug.trim().toLowerCase() : ''
+      if (!targetSlug) return false
+
+      const alreadyReadToday = events.some((event) => {
+        const eventSlug = typeof event.metadata?.slug === 'string' ? event.metadata.slug.trim().toLowerCase() : ''
+        return eventSlug === targetSlug
+      })
+
+      // If they already got AP for this character today, throttle it.
+      // We also enforce a max of 10 unique character reads per day to prevent farming.
+      return alreadyReadToday || events.length >= 10
     }
 
     if (eventType === 'profile_view') {
@@ -161,6 +183,11 @@ export const UserModel = {
       metadata,
     )
 
+    const { calculateRank } = await import('@/backend/types')
+    const currentRank = profile?.rank ?? 1
+    const nextTotal = Math.max(0, (profile?.ap_total ?? 0) + apAwarded)
+    const nextRank = calculateRank(nextTotal)
+
     const { error } = await supabaseAdmin.rpc('award_ap', {
       p_user_id: userId,
       p_amount: apAwarded,
@@ -173,25 +200,48 @@ export const UserModel = {
         .from('profiles')
         .update({
           behavior_scores: nextBehaviorScores,
+          rank: nextRank,
           updated_at: now,
         })
         .eq('id', userId)
 
-      await CharacterAssignmentModel.assignIfEligible(userId)
+      if (nextRank > currentRank) {
+        await supabaseAdmin.from('notifications').insert({
+          user_id: userId,
+          type: 'rank_up',
+          message: `Rank ${nextRank} achieved.`,
+          payload: { old_rank: currentRank, new_rank: nextRank },
+        })
+      }
+
+      await this.invalidateCache(userId)
+      // Background the assignment trigger to prevent blocking critical actions (like chat)
+      checkAssignmentTrigger(userId).catch(err => {
+        console.error(`[assignment-trigger] Background error for user ${userId}:`, err)
+      })
       return
     }
-
-    const nextTotal = Math.max(0, (profile?.ap_total ?? 0) + apAwarded)
 
     await supabaseAdmin
       .from('profiles')
       .update({
         ap_total: nextTotal,
+        rank: nextRank,
         behavior_scores: nextBehaviorScores,
         updated_at: now,
       })
       .eq('id', userId)
 
+    if (nextRank > currentRank) {
+      await supabaseAdmin.from('notifications').insert({
+        user_id: userId,
+        type: 'rank_up',
+        message: `Rank ${nextRank} achieved.`,
+        payload: { old_rank: currentRank, new_rank: nextRank },
+      })
+    }
+
+    await this.invalidateCache(userId)
     await supabaseAdmin.from('user_events').insert({
       user_id: userId,
       event_type: eventType,
@@ -201,12 +251,16 @@ export const UserModel = {
     })
 
     try {
+      const { redis } = await import('@/src/lib/redis')
       await redis.del(`event_summary:${userId}`)
     } catch (e) {
       /* ignore cache-bust error */
     }
 
-    await CharacterAssignmentModel.assignIfEligible(userId)
+    // Background the assignment trigger to prevent blocking critical actions (like chat)
+    checkAssignmentTrigger(userId).catch((err) => {
+      console.error(`[assignment-trigger] Background error for user ${userId}:`, err)
+    })
   },
 
   async claimDailyLogin(userId: string) {
@@ -258,6 +312,7 @@ export const UserModel = {
       })
       .eq('id', userId)
 
+    await this.invalidateCache(userId)
     await this.addAp(userId, 'daily_login', AP_VALUES.daily_login, {
       streak,
       date_key: todayKey,
@@ -326,6 +381,7 @@ export const UserModel = {
       })
       .eq('id', userId)
 
+    await this.invalidateCache(userId)
     await supabaseAdmin.from('user_events').insert({
       user_id: userId,
       event_type: 'exam_retake',

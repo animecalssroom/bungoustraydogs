@@ -1,4 +1,5 @@
 import { supabaseAdmin } from '@/backend/lib/supabase'
+import { cache } from '@/backend/lib/cache'
 import type {
   Faction,
   FactionId,
@@ -50,34 +51,40 @@ function baseFaction(id: FactionId): Faction {
 
 export const FactionModel = {
   async getAll(): Promise<Faction[]> {
-    const [slotResult, waitlistResult, apResult] = await Promise.all([
-      supabaseAdmin.from('faction_slots').select('faction, active_count, max_slots'),
-      supabaseAdmin.from('waitlist').select('faction'),
-      supabaseAdmin
-        .from('profiles')
-        .select('faction, ap_total')
-        .not('faction', 'is', null),
-    ])
+    return cache.getOrSet('factions:all', 3600, async () => {
+      const [slotResult, waitlistResult, apResult] = await Promise.all([
+        supabaseAdmin.from('faction_slots').select('faction, active_count, max_slots'),
+        supabaseAdmin.from('waitlist').select('faction'),
+        supabaseAdmin
+          .from('profiles')
+          .select('faction, ap_total')
+          .not('faction', 'is', null),
+      ])
 
-    const slots = (slotResult.data ?? []) as SlotRow[]
-    const waitlistRows = waitlistResult.data ?? []
-    const apRows = apResult.data ?? []
+      const slots = (slotResult.data ?? []) as SlotRow[]
+      const waitlistRows = waitlistResult.data ?? []
+      const apRows = apResult.data ?? []
 
-    return PUBLIC_FACTION_ORDER.map((id) => {
-      const faction = baseFaction(id)
-      const slot = slots.find((row) => row.faction === id)
-      const factionAp = apRows
-        .filter((row) => row.faction === id)
-        .reduce((sum, row) => sum + (row.ap_total ?? 0), 0)
+      return PUBLIC_FACTION_ORDER.map((id) => {
+        const faction = baseFaction(id)
+        const slot = slots.find((row) => row.faction === id)
+        const factionAp = apRows
+          .filter((row) => row.faction === id)
+          .reduce((sum, row) => sum + (row.ap_total ?? 0), 0)
 
-      return {
-        ...faction,
-        ap: factionAp,
-        member_count: slot?.active_count ?? 0,
-        waitlist_count: waitlistRows.filter((row) => row.faction === id).length,
-        slot_count: slot?.max_slots ?? 0,
-      }
+        return {
+          ...faction,
+          ap: factionAp,
+          member_count: slot?.active_count ?? 0,
+          waitlist_count: waitlistRows.filter((row) => row.faction === id).length,
+          slot_count: slot?.max_slots ?? 0,
+        }
+      })
     })
+  },
+
+  async invalidateCache() {
+    await cache.invalidate('factions:all')
   },
 
   async getById(id: FactionId): Promise<Faction | null> {

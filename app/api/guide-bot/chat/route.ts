@@ -3,7 +3,13 @@ import { requireAuth, isNextResponse } from '@/backend/middleware/auth'
 import { sanitizeMultilineText } from '@/backend/lib/input-safety'
 import { supabaseAdmin } from '@/backend/lib/supabase'
 
-import { getRankTitle, type GuideBotMessage, type Profile } from '@/backend/types'
+import {
+  CHARACTER_ASSIGNMENT_THRESHOLD,
+  QUALIFYING_ASSIGNMENT_EVENTS,
+  getRankTitle,
+  type GuideBotMessage,
+  type Profile,
+} from '@/backend/types'
 import { allowFixedWindow, userCommonAnswerKey } from '@/backend/lib/upstash'
 import { redis } from '@/lib/redis'
 import { loadKnowledgeFiles, getKnowledgeCache, searchKnowledge, searchRelationship } from '@/backend/lib/guidebot-knowledge'
@@ -207,24 +213,6 @@ async function getUserEventSummary(userId: string) {
     // ignore redis failures
   }
 
-  const qualifyingTypes = [
-    'daily_login',
-    'chat_message',
-    'feed_view',
-    'profile_view',
-    'archive_read',
-    'registry_save',
-    'lore_post',
-    'registry_submit',
-    'write_lore',
-    'archive_view',
-    'faction_checkin',
-    'bulletin_post',
-    'join_faction',
-    'quiz_complete',
-    'faction_assignment',
-  ]
-
   const [totalRes, qualifyingRes] = await Promise.all([
     supabaseAdmin
       .from('user_events')
@@ -234,7 +222,7 @@ async function getUserEventSummary(userId: string) {
       .from('user_events')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
-      .in('event_type', qualifyingTypes),
+      .in('event_type', QUALIFYING_ASSIGNMENT_EVENTS),
   ])
 
   const result = { totalCount: totalRes.count ?? 0, qualifyingCount: qualifyingRes.count ?? 0 }
@@ -289,8 +277,8 @@ function getCommonAnswer(
       profile.faction === 'special_div'
         ? 'Your file is marked under Special Division. Special Division does not receive automatic character assignment. That designation is handled manually.'
         : noCharacter
-        ? 'Character assignment occurs after 10 qualifying user events. Daily login, chat messages, feed views, profile views, archive reads, lore writing, and registry saves all count. Staff-approved registry filings also count for moderators. The city assigns the character after enough behaviour has been recorded.'
-        : `Your assigned character is ${profile.character_name}. Further progression comes through AP and faction activity.`,
+          ? `Character assignment occurs after ${CHARACTER_ASSIGNMENT_THRESHOLD} qualifying user events. Daily login, transmissions, archive reads, lore records, faction check-ins, and registry activity all count. The city assigns the character after enough behavior has been recorded.`
+          : `Your assigned character is ${profile.character_name}. Further progression comes through AP and faction activity.`,
       firstTurn,
     )
   }
@@ -311,14 +299,14 @@ function getCommonAnswer(
     }
 
     return withActivation(
-      `Your file records ${eventSummary.totalCount} total events, with ${eventSummary.qualifyingCount} qualifying interactions toward character assignment. The assignment threshold is 10 qualifying interactions.`,
+      `Your file records ${eventSummary.totalCount} total events, with ${eventSummary.qualifyingCount} qualifying interactions toward character assignment. The assignment threshold is ${CHARACTER_ASSIGNMENT_THRESHOLD} qualifying interactions.`,
       firstTurn,
     )
   }
 
   if (/(what counts as a user event|user events|qualifying events)/.test(normalized)) {
     return withActivation(
-      'Qualifying events include daily_login, chat_message, feed_view, profile_view, archive_read, lore writing, and registry saves. Staff-approved registry filings also count for moderators. Ten qualifying events are required before character assignment is eligible.',
+      `Qualifying events include daily login, transmissions, archive activity, lore records, faction check-ins, and registry filing. ${CHARACTER_ASSIGNMENT_THRESHOLD} qualifying events are required before character assignment is eligible.`,
       firstTurn,
     )
   }
@@ -481,7 +469,7 @@ export async function POST(req: NextRequest) {
     // Extract all words with 3+ letters as possible names
     const nameCandidates = Array.from(message.matchAll(namePattern)).map(m => m[1].toLowerCase())
     // Remove duplicates and common words
-    const blacklist = new Set(['relationship','relationships','between','with','and','of','the','what','is','are','to','a','in','vs','bond','connection','duo','pair','trio'])
+    const blacklist = new Set(['relationship', 'relationships', 'between', 'with', 'and', 'of', 'the', 'what', 'is', 'are', 'to', 'a', 'in', 'vs', 'bond', 'connection', 'duo', 'pair', 'trio'])
     const names = nameCandidates.filter(n => !blacklist.has(n))
     // Try all pairs
     let found = false
@@ -498,7 +486,7 @@ export async function POST(req: NextRequest) {
       if (found) break
     }
     if (!found) {
-      knowledgeExcerpts = [`No direct relationship found between ${names.slice(0,2).join(' and ') || 'the specified characters'} in the database.`]
+      knowledgeExcerpts = [`No direct relationship found between ${names.slice(0, 2).join(' and ') || 'the specified characters'} in the database.`]
     }
   } else {
     const knowledgeResults = searchKnowledge(message, 2)
@@ -511,11 +499,11 @@ export async function POST(req: NextRequest) {
 
   if (apiKey) {
     const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 6500)
+    const timeoutId = setTimeout(() => controller.abort(), 15000)
 
     try {
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${GUIDE_BOT_MODEL}:generateContent?key=${apiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/${GUIDE_BOT_MODEL}:streamGenerateContent?alt=sse&key=${apiKey}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -536,29 +524,72 @@ export async function POST(req: NextRequest) {
             ],
             generationConfig: {
               temperature: 0.3,
-              maxOutputTokens: 512, // increased to reduce cut-off
+              maxOutputTokens: 512,
             },
           }),
         },
       )
 
-      if (response.ok) {
-        const json = (await response.json()) as {
-          candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>
-        }
+      if (response.ok && response.body) {
+        clearTimeout(timeoutId)
 
-        const nextText = json.candidates?.[0]?.content?.parts
-          ?.map((part) => part.text ?? '')
-          .join('') 
-          .trim()
+        let sentActivation = false
+        let fullText = ''
+        const reader = response.body.getReader()
+        const decoder = new TextDecoder()
 
-        if (nextText) {
-          assistantText = firstTurn && !nextText.startsWith('Registry terminal active.')
-            ? `Registry terminal active.\n${nextText}`
-            : nextText
-        } else {
-          exactError = 'Gemini returned no text parts.'
-        }
+        const textStream = new ReadableStream({
+          async start(controller) {
+            let buffer = ''
+            try {
+              while (true) {
+                const { done, value } = await reader.read()
+                if (done) break
+                buffer += decoder.decode(value, { stream: true })
+                const lines = buffer.split('\n')
+                buffer = lines.pop() ?? ''
+                for (const line of lines) {
+                  const trimmed = line.trim()
+                  if (trimmed.startsWith('data: ')) {
+                    const dataStr = trimmed.slice(6)
+                    if (dataStr === '[DONE]') continue
+                    try {
+                      const json = JSON.parse(dataStr)
+                      const textChunk = json.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
+                      if (textChunk) {
+                        let toSend = textChunk
+                        if (firstTurn && !sentActivation) {
+                          if (!toSend.startsWith('Registry terminal active.')) {
+                            toSend = `Registry terminal active.\n${toSend}`
+                          }
+                          sentActivation = true
+                        }
+                        fullText += textChunk
+                        controller.enqueue(new TextEncoder().encode(toSend))
+                      }
+                    } catch (e) { }
+                  }
+                }
+              }
+              controller.close()
+
+              const finalAssistantText = firstTurn && !fullText.startsWith('Registry terminal active.')
+                ? `Registry terminal active.\n${fullText}`
+                : fullText
+
+              void supabaseAdmin.from('guide_bot_messages').insert([
+                { user_id: auth.user.id, role: 'user', content: message },
+                { user_id: auth.user.id, role: 'assistant', content: finalAssistantText },
+              ])
+            } catch (e) {
+              controller.error(e)
+            }
+          }
+        })
+
+        return new Response(textStream, {
+          headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+        })
       } else {
         const errorBody = await response.text().catch(() => '')
         exactError = `Gemini HTTP ${response.status}${errorBody ? `: ${errorBody}` : ''}`
@@ -573,7 +604,7 @@ export async function POST(req: NextRequest) {
   }
 
   if (exactError) {
-    console.error('[guide-bot] exact failure:', exactError)                             
+    console.error('[guide-bot] exact failure:', exactError)
     assistantText = `${withActivation(FALLBACK_TEXT, firstTurn)}\n\n[Exact terminal fault] ${exactError}`
   }
 

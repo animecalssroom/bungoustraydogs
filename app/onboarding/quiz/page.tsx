@@ -6,7 +6,6 @@ import { useAuth } from '@/frontend/context/AuthContext'
 import {
   resolvePostAuthPath,
 } from '@/frontend/lib/launch'
-import { Nav } from '@/frontend/components/ui/Nav'
 
 type ClientQuestion = {
   id: string
@@ -243,7 +242,7 @@ export default function QuizPage() {
           profileReady = true
           break
         }
-      } catch {}
+      } catch { }
       await new Promise((resolve) => setTimeout(resolve, 300))
       pollCount++
     }
@@ -282,27 +281,24 @@ export default function QuizPage() {
 
   if (!started) {
     return (
-      <>
-        <Nav />
-        <main
+      <div
+        style={{
+          display: 'grid',
+          placeItems: 'center',
+          background:
+            'radial-gradient(circle at center, rgba(139, 37, 0, 0.10), transparent 40%), var(--bg)',
+          padding: '36px 0 32px',
+        }}
+      >
+        <section
+          className="paper-surface diagonal-card"
           style={{
-            minHeight: '100vh',
-            display: 'grid',
-            placeItems: 'center',
-            background:
-              'radial-gradient(circle at center, rgba(139, 37, 0, 0.10), transparent 40%), var(--bg)',
-            padding: '96px 24px 32px',
+            width: '100%',
+            maxWidth: '760px',
+            padding: '4rem 3rem',
+            textAlign: 'center',
           }}
         >
-          <section
-            className="paper-surface diagonal-card"
-            style={{
-              width: '100%',
-              maxWidth: '760px',
-              padding: '4rem 3rem',
-              textAlign: 'center',
-            }}
-          >
           <div
             style={{
               fontFamily: 'Noto Serif JP, serif',
@@ -344,32 +340,28 @@ export default function QuizPage() {
           >
             Begin Registration
           </button>
-          </section>
-        </main>
-      </>
+        </section>
+      </div>
     )
   }
 
   return (
-    <>
-      <Nav />
-      <main
+    <div
+      style={{
+        display: 'grid',
+        placeItems: 'center',
+        background: 'var(--bg)',
+        padding: '36px 0 32px',
+      }}
+    >
+      <section
+        className="paper-surface diagonal-card"
         style={{
-          minHeight: '100vh',
-          display: 'grid',
-          placeItems: 'center',
-          background: 'var(--bg)',
-          padding: '96px 24px 32px',
+          width: '100%',
+          maxWidth: '760px',
+          padding: '3.5rem 3rem',
         }}
       >
-        <section
-          className="paper-surface diagonal-card"
-          style={{
-            width: '100%',
-            maxWidth: '760px',
-            padding: '3.5rem 3rem',
-          }}
-        >
         <div style={{ display: 'flex', gap: '6px', marginBottom: '2rem' }}>
           {buildPips(stepIndex + 1).map((filled, index) => (
             <span
@@ -481,8 +473,7 @@ export default function QuizPage() {
             {error}
           </p>
         )}
-        </section>
-      </main>
-    </>
+      </section>
+    </div>
   )
 }

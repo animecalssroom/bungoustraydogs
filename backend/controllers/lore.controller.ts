@@ -20,7 +20,7 @@ const CreateLoreSchema = z.object({
   content: z.string().min(10).max(12000),
   excerpt: z.string().max(300).optional(),
   tags: z.array(z.string()).max(5).optional(),
-  category: z.enum(['deep_dive','theory','character_study','arc_review','ability_analysis','real_author']),
+  category: z.enum(['deep_dive', 'theory', 'character_study', 'arc_review', 'ability_analysis', 'real_author']),
   read_time: z.number().min(1).max(60).optional(),
 })
 
@@ -30,14 +30,21 @@ export const LoreController = {
     const posts = await LoreModel.getAll(category ?? undefined)
     return NextResponse.json({ data: posts })
   },
-  
+
   async getBySlug(slug: string) {
     const post = await LoreModel.getBySlug(slug)
     if (!post) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-    await LoreModel.incrementViews(post.id)
     return NextResponse.json({ data: post })
   },
-  
+
+  async incrementViews(slug: string) {
+    const post = await LoreModel.getBySlug(slug)
+    if (post) {
+      await LoreModel.incrementViews(post.id)
+    }
+    return NextResponse.json({ data: { success: true } })
+  },
+
   async create(req: NextRequest) {
     const auth = await requireAuth(req)
     if (isNextResponse(auth)) return auth
@@ -48,11 +55,11 @@ export const LoreController = {
         { status: 403 },
       )
     }
-    
+
     const body = await req.json()
     const result = validate(CreateLoreSchema, body)
     if (!result.success) return result.response
-    
+
     const title = sanitizePlainText(result.data.title)
     const slug = sanitizeSlug(result.data.slug)
     const excerpt = result.data.excerpt ? sanitizePlainText(result.data.excerpt) : null
@@ -99,7 +106,7 @@ export const LoreController = {
       is_published: true,
       is_staff_pick: false,
     })
-    
+
     if (!post) return NextResponse.json({ error: 'Failed to create post' }, { status: 500 })
     await UserModel.addAp(auth.user.id, 'write_lore', AP_VALUES.write_lore, {
       category: result.data.category,

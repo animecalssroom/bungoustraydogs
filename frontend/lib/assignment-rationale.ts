@@ -20,10 +20,12 @@ const EVENT_LABELS: Partial<Record<UserEventType, string>> = {
   registry_save: 'registry saving',
   faction_checkin: 'faction presence logs',
   feed_view: 'faction feed review',
-  arena_vote: 'arena decisions',
-  daily_login: 'daily returns',
-  bulletin_post: 'bulletin directives',
+  arena_vote: 'arena decision',
+  daily_login: 'daily return',
+  bulletin_post: 'bulletin directive',
   join_faction: 'faction entry',
+  duel_accepted: 'duel acceptance',
+  duel_complete: 'combat engagement',
 }
 
 function topRecordEntry(record: Record<string, number>) {
@@ -77,13 +79,17 @@ export function deriveAssignmentInsights(
     .filter((eventType) => eventType && eventType !== 'character_assigned')
     .slice(0, 4)
 
+  const duelCount = (recentEvents.filter(e => e === 'duel_complete' || e === 'duel_accepted').length)
+  const duelEvidence = duelCount >= 2 ? `Active combat record: ${duelCount} recent duels.` : null
+
   const evidence = [
     `Primary signal: ${AXIS_LABELS[dominantAxis]}.`,
+    duelEvidence,
     topLoreTopic
       ? `Most repeated topic: ${humanize(topLoreTopic[0])}.`
       : null,
     topDuelStyle
-      ? `Combat tendency: ${humanize(topDuelStyle[0])}.`
+      ? `Preferred combat style: ${humanize(topDuelStyle[0])}.`
       : null,
     recentSignals.length
       ? `Recent file activity: ${recentSignals

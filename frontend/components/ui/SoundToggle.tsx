@@ -1,19 +1,15 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { usePathname } from 'next/navigation'
-import { isSoundEnabled, startRain, stopRain, startWind, stopWind, startAgency, stopAgency, toggleSound } from '@/frontend/lib/sounds'
+import { isSoundEnabled, startRain, stopRain, startWind, stopWind, startAgency, stopAgency } from '@/frontend/lib/sounds'
 import { useTheme } from '@/frontend/context/ThemeContext'
+import { useSound } from '@/frontend/context/SoundContext'
 
 export default function SoundToggle() {
   const pathname = usePathname()
-  const [enabled, setEnabled] = useState(false)
+  const { enabled, toggle } = useSound()
   const { theme } = useTheme()
-
-  useEffect(() => {
-    const next = isSoundEnabled()
-    setEnabled(next)
-  }, [])
 
   useEffect(() => {
     if (!enabled) {
@@ -63,36 +59,7 @@ export default function SoundToggle() {
   }, [enabled, pathname, theme])
 
   function handleToggle() {
-    const next = toggleSound()
-    setEnabled(next)
-
-    if (!next) {
-      stopRain()
-      stopWind()
-      stopAgency()
-      return
-    }
-
-    if (pathname === '/' && theme === 'dark') {
-      void startRain()
-      stopWind()
-      stopAgency()
-      return
-    }
-
-    if (pathname === '/' && theme === 'neutral') {
-      void startWind()
-      stopRain()
-      stopAgency()
-      return
-    }
-
-    if (pathname === '/' && theme === 'light') {
-      void startAgency()
-      stopRain()
-      stopWind()
-      return
-    }
+    toggle()
   }
 
   return (

@@ -1,8 +1,10 @@
 'use client'
 
 import Link from 'next/link'
+import { useEffect } from 'react'
 import type { LorePost } from '@/backend/types'
 import { AngoUsername } from '@/frontend/components/ango/AngoUsername'
+import { usePersistentData } from '@/frontend/hooks/usePersistentData'
 
 function LoreCard({ post }: { post: LorePost }) {
   return (
@@ -102,7 +104,16 @@ function LoreCard({ post }: { post: LorePost }) {
   )
 }
 
-export function LorePageGridWithInitialPosts({ posts }: { posts: LorePost[] }) {
+export function LorePageGridWithInitialPosts({ posts: serverPosts }: { posts: LorePost[] }) {
+  const [posts, setPosts] = usePersistentData<LorePost[]>('lore_list', serverPosts)
+
+  // Sync server posts to persistence when they change
+  useEffect(() => {
+    if (serverPosts.length) {
+      setPosts(serverPosts)
+    }
+  }, [serverPosts])
+
   if (!posts.length) {
     return (
       <div className="section-wrap" style={{ paddingBottom: '6rem' }}>

@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { requireAuth, isNextResponse } from '@/backend/middleware/auth'
 import { DuelModel } from '@/backend/models/duel.model'
 import { supabaseAdmin } from '@/backend/lib/supabase'
+import { UserModel } from '@/backend/models/user.model'
 
 const AcceptSchema = z.object({
   duel_id: z.string().uuid(),
@@ -37,6 +38,11 @@ export async function POST(request: NextRequest) {
   if ('error' in accepted) {
     return NextResponse.json({ error: accepted.error }, { status: 400 })
   }
+
+  await UserModel.addAp(auth.user.id, 'duel_accepted', 0, {
+    duel_id: duel.id,
+    challenger_id: duel.challenger_id,
+  })
 
   return NextResponse.json({ success: true, duel_id: accepted.data.id })
 }

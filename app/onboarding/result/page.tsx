@@ -8,7 +8,6 @@ import {
   privateFactionPath,
   resolvePostAuthPath,
 } from '@/frontend/lib/launch'
-import { Nav } from '@/frontend/components/ui/Nav'
 
 interface ResultPayload {
   caseNumber: string
@@ -78,7 +77,8 @@ export default function QuizResultPage() {
       router.replace('/onboarding/quiz')
       return
     }
-    if (profile?.quiz_locked && profile.quiz_completed) {
+    // Redirect users who are already placed in a faction (or placed in waitlist/observer)
+    if (profile && profile.role !== 'user') {
       router.replace(resolvePostAuthPath(profile))
       return
     }
@@ -204,27 +204,24 @@ export default function QuizResultPage() {
   }
 
   return (
-    <>
-      <Nav />
-      <main
+    <div
+      style={{
+        display: 'grid',
+        placeItems: 'center',
+        background: 'var(--bg)',
+        padding: '36px 0 32px',
+      }}
+    >
+      <section
         style={{
-          minHeight: '100vh',
-          display: 'grid',
-          placeItems: 'center',
-          background: 'var(--bg)',
-          padding: '96px 24px 32px',
+          width: '100%',
+          maxWidth: '700px',
+          padding: '3.5rem 3rem',
+          border: '1px solid var(--border)',
+          background: 'var(--card)',
+          textAlign: 'center',
         }}
       >
-        <section
-          style={{
-            width: '100%',
-            maxWidth: '700px',
-            padding: '3.5rem 3rem',
-            border: '1px solid var(--border)',
-            background: 'var(--card)',
-            textAlign: 'center',
-          }}
-        >
         {state.loading ? (
           <>
             <p
@@ -508,8 +505,7 @@ export default function QuizResultPage() {
             </p>
           </>
         )}
-        </section>
-      </main>
-    </>
+      </section>
+    </div>
   )
 }

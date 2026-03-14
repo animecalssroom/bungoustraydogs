@@ -138,6 +138,8 @@ export function calculateBehaviorDelta(
       return { loyalty: 1, control: 1 }
     case 'daily_login':
       return { loyalty: 1 }
+    case 'duel_accepted':
+      return { power: 1, loyalty: 1 }
     case 'duel_complete':
       return { power: 2 }
     case 'login_streak':

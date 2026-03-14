@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { CharacterModel } from '@/backend/models/character.model'
 import type { FactionId } from '@/backend/types'
 import { requireAuth, isNextResponse } from '@/backend/middleware/auth'
-import { CharacterAssignmentModel } from '@/backend/models/character-assignment.model'
+import { checkAssignmentTrigger } from '@/src/lib/assignment/checkAssignmentTrigger'
+import { supabaseAdmin } from '@/backend/lib/supabase'
 
 export const CharacterController = {
   async getAll(req: NextRequest) {
@@ -21,29 +22,30 @@ export const CharacterController = {
     const auth = await requireAuth(req)
     if (isNextResponse(auth)) return auth
 
-    const result = await CharacterAssignmentModel.assignIfEligible(auth.user.id)
+    await checkAssignmentTrigger(auth.user.id)
 
-    if (!result) {
-      const eventCount = await CharacterAssignmentModel.getEventCount(auth.user.id)
+    const { data: profile } = await supabaseAdmin
+      .from('profiles')
+      .select('character_name, character_match_id')
+      .eq('id', auth.user.id)
+      .single()
+
+    if (!profile || !profile.character_match_id) {
+      const { count } = await supabaseAdmin.from('user_events').select('*', { count: 'exact', head: true }).eq('user_id', auth.user.id).in('event_type', ['daily_login', 'chat_message', 'archive_read', 'lore_post', 'duel_complete', 'arena_vote'])
 
       return NextResponse.json(
         {
-            error: 'Character assignment is not available yet.',
+          error: 'Character assignment is not available yet.',
           data: {
-            eventCount,
-            threshold: 20,
-            requirements: [
-              '20 qualifying non-login events, or 10 with overwhelming trait dominance',
-              'At least 1 arena vote',
-              'At least 1 lore or transmission signal',
-              'At least 3 active participation events total',
-            ],
+            eventCount: count ?? 0,
+            threshold: 10,
+            requirements: ['10 qualifying events combined (logins, archive reads, chats, duels, votes, lore)'],
           },
         },
         { status: 409 },
       )
     }
 
-    return NextResponse.json({ data: result })
+    return NextResponse.json({ data: profile })
   },
 }

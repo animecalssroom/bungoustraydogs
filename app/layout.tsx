@@ -1,14 +1,22 @@
+import { Suspense } from 'react'
 import type { Metadata } from 'next'
 import { Cinzel, Cormorant_Garamond, Space_Mono } from 'next/font/google'
+import dynamic from 'next/dynamic'
 import '@/frontend/styles/globals.css'
 import { ANTI_FOUC_SCRIPT, ThemeProvider } from '@/frontend/context/ThemeContext'
 import { AuthProvider } from '@/frontend/context/AuthContext'
 import { AngoProvider } from '@/frontend/context/AngoContext'
+import { SoundProvider } from '@/frontend/context/SoundContext'
+import { Nav } from '@/frontend/components/ui/Nav'
+import { Footer } from '@/frontend/components/ui/Footer'
 import InkTransition from '@/frontend/components/ui/InkTransition'
 import { FloatingAPLayer } from '@/frontend/components/ui/FloatingAP'
-import DailyLoginRitual from '@/frontend/components/ui/DailyLoginRitual'
-import { GuideBotWidget } from '@/frontend/components/guide-bot/GuideBotWidget'
-import { CharacterAssignmentRedirect } from '@/frontend/components/profile/CharacterAssignmentRedirect'
+
+// Lazy-load heavy widgets to prioritize initial page load / interactivity
+const DailyLoginRitual = dynamic(() => import('@/frontend/components/ui/DailyLoginRitual'), { ssr: false })
+const GuideBotWidget = dynamic(() => import('@/frontend/components/guide-bot/GuideBotWidget').then(mod => mod.GuideBotWidget), { ssr: false })
+const CharacterAssignmentRedirect = dynamic(() => import('@/frontend/components/profile/CharacterAssignmentRedirect').then(mod => mod.CharacterAssignmentRedirect), { ssr: false })
+const GlobalDuelMatchmaker = dynamic(() => import('@/frontend/components/duels/GlobalDuelMatchmaker').then(mod => mod.GlobalDuelMatchmaker), { ssr: false })
 
 const cinzel = Cinzel({
   subsets: ['latin'],
@@ -19,7 +27,7 @@ const cinzel = Cinzel({
 const cormorant = Cormorant_Garamond({
   subsets: ['latin'],
   variable: '--font-cormorant',
-  weight: ['300', '400', '500', '600'],
+  weight: ['400', '600'],
   style: ['normal', 'italic'],
   display: 'swap',
 })
@@ -52,11 +60,22 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ThemeProvider>
           <AuthProvider>
             <AngoProvider>
-              <FloatingAPLayer />
-              <DailyLoginRitual />
-              <CharacterAssignmentRedirect />
-              <InkTransition>{children}</InkTransition>
-              <GuideBotWidget />
+              <SoundProvider>
+                <FloatingAPLayer />
+                <DailyLoginRitual />
+                <CharacterAssignmentRedirect />
+                <GlobalDuelMatchmaker />
+                <Suspense fallback={null}>
+                  <Nav />
+                </Suspense>
+                <main style={{ minHeight: '100vh', paddingTop: '60px' }}>
+                  {children}
+                </main>
+                <Footer />
+                <Suspense fallback={null}>
+                  <GuideBotWidget />
+                </Suspense>
+              </SoundProvider>
             </AngoProvider>
           </AuthProvider>
         </ThemeProvider>

@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/backend/lib/supabase'
 import { chooseBotMove, type BotDuelStrategy } from '@/lib/duels/npc-logic'
 
-// 1. PREVENT VERCEL TIMEOUTS (CRITICAL FOR QSTASH/BOT LOOPS)
-export const maxDuration = 60; 
+export const maxDuration = 60
 
 const STRATEGY_BY_CHARACTER: Record<string, BotDuelStrategy> = {
   'kenji-miyazawa': 'PATIENT_DESTRUCTION',
@@ -15,149 +14,180 @@ const STRATEGY_BY_CHARACTER: Record<string, BotDuelStrategy> = {
   'edgar-allan-poe': 'TRAP_THEN_WAIT',
 }
 
+function strategyFor(slug: string | null | undefined): BotDuelStrategy {
+  return (slug ? STRATEGY_BY_CHARACTER[slug] : null) ?? 'PATIENT_DESTRUCTION'
+}
+
+// Count how many times a user has played a specific move in a duel
+function countMove(
+  rounds: Array<{ challenger_move: string | null; defender_move: string | null }>,
+  isChallenger: boolean,
+  move: string,
+): number {
+  return rounds.filter(
+    (r) => (isChallenger ? r.challenger_move : r.defender_move) === move,
+  ).length
+}
+
+async function submitBotMove(
+  request: NextRequest,
+  secret: string,
+  duelId: string,
+  botUserId: string,
+  duel: {
+    challenger_id: string
+    current_round: number
+    challenger_hp: number
+    defender_hp: number
+    challenger_character_slug: string | null
+    defender_character_slug: string | null
+  },
+) {
+  const isChallenger = botUserId === duel.challenger_id
+  const hp = isChallenger ? duel.challenger_hp : duel.defender_hp
+  const characterSlug = isChallenger
+    ? duel.challenger_character_slug
+    : duel.defender_character_slug
+
+  // Fetch resolved rounds to count spent moves
+  const { data: priorRounds } = await supabaseAdmin
+    .from('duel_rounds')
+    .select('challenger_move, defender_move')
+    .eq('duel_id', duelId)
+    .not('resolved_at', 'is', null)
+
+  const rounds = (priorRounds ?? []) as Array<{
+    challenger_move: string | null
+    defender_move: string | null
+  }>
+
+  const gambitsUsed = countMove(rounds, isChallenger, 'gambit')
+  const specialUsed = countMove(rounds, isChallenger, 'special') > 0
+
+  const strategy = strategyFor(characterSlug)
+  const move = chooseBotMove(strategy, duel.current_round, hp, gambitsUsed, specialUsed)
+
+  await fetch(new URL('/api/duels/submit-move', request.url), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-bot-secret': secret },
+    body: JSON.stringify({ duel_id: duelId, move, bot_user_id: botUserId }),
+  }).catch(() => null)
+
+  return move
+}
+
 export async function POST(request: NextRequest) {
   const secret = request.headers.get('x-bot-secret')
   if (!process.env.BOT_DUEL_SECRET || secret !== process.env.BOT_DUEL_SECRET) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
-  
+
   const body = await request.json().catch(() => null)
   const processed: string[] = []
   const accepted: string[] = []
 
-  // --- SINGLE TARGET MANUAL INVOCATION ---
-  if (body && body.duel_id && body.bot_user_id) {
-     // ... (Your existing single-target code remains exactly the same here) ...
-     const duelId = String(body.duel_id)
-     const botUserId = String(body.bot_user_id)
-     const { data: duel } = await supabaseAdmin
-       .from('duels')
-       .select('id, challenger_id, defender_id, challenger_character_slug, defender_character_slug, current_round, challenger_hp, defender_hp')
-       .eq('id', duelId)
-       .maybeSingle()
- 
-     if (!duel) {
-       return NextResponse.json({ error: 'Duel not found' }, { status: 404 })
-     }
- 
-     const target =
-       botUserId === duel.challenger_id
-         ? { userId: duel.challenger_id, hp: duel.challenger_hp, characterSlug: duel.challenger_character_slug }
-         : { userId: duel.defender_id, hp: duel.defender_hp, characterSlug: duel.defender_character_slug }
- 
-     const strategy: BotDuelStrategy =
-       (target.characterSlug ? STRATEGY_BY_CHARACTER[target.characterSlug] : null) ?? 'PATIENT_DESTRUCTION'
-     const move = chooseBotMove(strategy, duel.current_round, target.hp)
- 
-     await fetch(new URL('/api/duels/submit-move', request.url), {
-       method: 'POST',
-       headers: {
-         'Content-Type': 'application/json',
-         'x-bot-secret': secret ?? '',
-       },
-       body: JSON.stringify({
-         duel_id: duel.id,
-         move,
-         bot_user_id: target.userId,
-       }),
-     }).catch(() => null)
- 
-     processed.push(duel.id)
-     return NextResponse.json({ success: true, processed })
+  // ── Single target (manual / direct call) ──────────────────────────────
+  if (body?.duel_id && body?.bot_user_id) {
+    const duelId = String(body.duel_id)
+    const botUserId = String(body.bot_user_id)
+
+    const { data: duel } = await supabaseAdmin
+      .from('duels')
+      .select('id, challenger_id, defender_id, challenger_character_slug, defender_character_slug, current_round, challenger_hp, defender_hp')
+      .eq('id', duelId)
+      .maybeSingle()
+
+    if (!duel) {
+      return NextResponse.json({ error: 'Duel not found' }, { status: 404 })
+    }
+
+    await submitBotMove(request, secret, duelId, botUserId, duel)
+    processed.push(duelId)
+    return NextResponse.json({ success: true, processed })
   }
 
-  // --- 2. NEW LOGIC: ACCEPT PENDING DUELS ---
-  // Find duels waiting on a defender, where the defender might be a bot
+  // ── Accept pending duels where defender is a bot ──────────────────────
   const { data: pendingDuels } = await supabaseAdmin
     .from('duels')
     .select('id, defender_id')
     .eq('status', 'pending')
-    .limit(10) // Keep batch size small to avoid timeouts
+    .limit(10)
 
-  for (const pDuel of pendingDuels ?? []) {
-    // Check if the defender is a bot
-    const { data: defenderProfile } = await supabaseAdmin
+  if (pendingDuels?.length) {
+    const defenderIds = [...new Set(pendingDuels.map((d) => d.defender_id))]
+    const { data: defenderProfiles } = await supabaseAdmin
       .from('profiles')
-      .select('is_bot')
-      .eq('id', pDuel.defender_id)
-      .maybeSingle()
+      .select('id, is_bot')
+      .in('id', defenderIds)
 
-    if (defenderProfile?.is_bot) {
-      // Ping your accept route on behalf of the bot
+    const botIds = new Set(
+      (defenderProfiles ?? []).filter((p) => p.is_bot).map((p) => p.id),
+    )
+
+    for (const pDuel of pendingDuels) {
+      if (!botIds.has(pDuel.defender_id)) continue
+
       await fetch(new URL('/api/duels/accept', request.url), {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-bot-secret': secret ?? '', // Pass secret if your accept route requires it
-        },
-        body: JSON.stringify({
-          duel_id: pDuel.id,
-          bot_user_id: pDuel.defender_id,
-        }),
-      }).catch((e) => console.error(`Failed to accept duel ${pDuel.id}:`, e))
-      
+        headers: { 'Content-Type': 'application/json', 'x-bot-secret': secret },
+        body: JSON.stringify({ duel_id: pDuel.id, bot_user_id: pDuel.defender_id }),
+      }).catch((e) => console.error(`[bot-duel] failed to accept duel ${pDuel.id}:`, e))
+
       accepted.push(pDuel.id)
     }
   }
 
-  // --- 3. EXISTING LOGIC: SUBMIT MOVES FOR ACTIVE DUELS ---
-  const { data: duels } = await supabaseAdmin
+  // ── Submit moves for active duels ─────────────────────────────────────
+  const { data: activeDuels } = await supabaseAdmin
     .from('duels')
     .select('id, challenger_id, defender_id, challenger_character_slug, defender_character_slug, current_round, challenger_hp, defender_hp')
     .eq('status', 'active')
     .limit(20)
 
-  for (const duel of duels ?? []) {
-    const { data: round } = await supabaseAdmin
+  if (activeDuels?.length) {
+    // Batch fetch all participant profiles
+    const participantIds = [
+      ...new Set(activeDuels.flatMap((d) => [d.challenger_id, d.defender_id])),
+    ]
+    const { data: profiles } = await supabaseAdmin
+      .from('profiles')
+      .select('id, is_bot')
+      .in('id', participantIds)
+
+    const botProfileIds = new Set(
+      (profiles ?? []).filter((p) => p.is_bot).map((p) => p.id),
+    )
+
+    // Batch fetch current unresolved rounds
+    const duelIds = activeDuels.map((d) => d.id)
+    const { data: allRounds } = await supabaseAdmin
       .from('duel_rounds')
-      .select('id, challenger_move_submitted_at, defender_move_submitted_at')
-      .eq('duel_id', duel.id)
-      .eq('round_number', duel.current_round)
+      .select('id, duel_id, round_number, challenger_move_submitted_at, defender_move_submitted_at')
+      .in('duel_id', duelIds)
       .is('resolved_at', null)
-      .maybeSingle()
 
-    if (!round) continue
+    const roundByDuelId = new Map(
+      (allRounds ?? []).map((r) => [r.duel_id, r]),
+    )
 
-    const { data: challenger } = await supabaseAdmin
-      .from('profiles')
-      .select('id, is_bot')
-      .eq('id', duel.challenger_id)
-      .maybeSingle()
+    for (const duel of activeDuels) {
+      const round = roundByDuelId.get(duel.id)
+      if (!round) continue
 
-    const { data: defender } = await supabaseAdmin
-      .from('profiles')
-      .select('id, is_bot')
-      .eq('id', duel.defender_id)
-      .maybeSingle()
+      type Target = { userId: string }
+      const targets: Target[] = []
 
-    const targets: Array<{ userId: string; hp: number; characterSlug: string | null }> = []
-    if (challenger?.is_bot && !round.challenger_move_submitted_at) {
-      targets.push({ userId: duel.challenger_id, hp: duel.challenger_hp, characterSlug: duel.challenger_character_slug })
-    }
-    if (defender?.is_bot && !round.defender_move_submitted_at) {
-      targets.push({ userId: duel.defender_id, hp: duel.defender_hp, characterSlug: duel.defender_character_slug })
-    }
+      if (botProfileIds.has(duel.challenger_id) && !round.challenger_move_submitted_at) {
+        targets.push({ userId: duel.challenger_id })
+      }
+      if (botProfileIds.has(duel.defender_id) && !round.defender_move_submitted_at) {
+        targets.push({ userId: duel.defender_id })
+      }
 
-    for (const target of targets) {
-      const strategy: BotDuelStrategy =
-        (target.characterSlug ? STRATEGY_BY_CHARACTER[target.characterSlug] : null) ??
-        'PATIENT_DESTRUCTION'
-      const move = chooseBotMove(strategy, duel.current_round, target.hp)
-      
-      await fetch(new URL('/api/duels/submit-move', request.url), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-bot-secret': secret ?? '',
-        },
-        body: JSON.stringify({
-          duel_id: duel.id,
-          move,
-          bot_user_id: target.userId,
-        }),
-      }).catch(() => null)
-      
-      processed.push(duel.id)
+      for (const target of targets) {
+        await submitBotMove(request, secret, duel.id, target.userId, duel)
+        processed.push(duel.id)
+      }
     }
   }
 

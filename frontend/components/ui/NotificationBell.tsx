@@ -48,6 +48,10 @@ export default function NotificationBell({ userId }: { userId: string }) {
 
     void load()
 
+    const pollInterval = setInterval(() => {
+      void load()
+    }, 20000) // Poll every 20s as fallback
+
     const channel = supabase
       .channel(`notifications:${userId}`)
       .on(
@@ -66,6 +70,7 @@ export default function NotificationBell({ userId }: { userId: string }) {
 
     return () => {
       active = false
+      clearInterval(pollInterval)
       void supabase.removeChannel(channel)
     }
   }, [supabase, userId])

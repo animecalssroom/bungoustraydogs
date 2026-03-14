@@ -8,7 +8,6 @@ import type { Profile } from '@/backend/types'
 import { createClient } from '@/frontend/lib/supabase/client'
 import { resolvePostAuthPath } from '@/frontend/lib/launch'
 import { getGoogleOAuthRedirectUrl } from '@/frontend/lib/supabase/googleOAuth'
-import { Nav } from '@/frontend/components/ui/Nav'
 
 const cardStyle: CSSProperties = {
   width: '100%',
@@ -70,8 +69,6 @@ export default function LoginPage({ initialMode }: { initialMode?: 'login' | 'si
     }
   }, [])
 
-
-
   const handleGoogleOAuth = async () => {
     setGoogleLoading(true)
     setError('')
@@ -90,105 +87,140 @@ export default function LoginPage({ initialMode }: { initialMode?: 'login' | 'si
     }
   }
 
-  const handleLogin = async () => {
+  const handleEmailSign = async () => {
     setLoading(true)
     setError('')
     setNotice('')
 
-    const { error: authError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
+    try {
+      const res = await fetch('/api/auth/send-magic-link', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ email }),
+      })
 
-    if (authError) {
-      setError(authError.message)
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setError(json.error || 'Failed to send link')
+        setLoading(false)
+        return
+      }
+
+      setNotice('Check your email. If you have an account, you will receive a sign-in link. If you are new, we will create your file.')
+    } catch (e: any) {
+      setError(e?.message || 'Network error')
+    } finally {
       setLoading(false)
-      return
     }
-
-    await loadProfileAndRoute(router)
-  }
-
-  const handleSignup = async () => {
-    setLoading(true)
-    setError('')
-    setNotice('')
-
-    if (password !== confirmPassword) {
-      setError('Passwords do not match.')
-      setLoading(false)
-      return
-    }
-
-    const { data, error: authError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: getEmailRedirectUrl(),
-        data: {
-          name: email.split('@')[0],
-        },
-      },
-    })
-
-    if (authError) {
-      setError(authError.message)
-      setLoading(false)
-      return
-    }
-
-    if (!data.session) {
-      setNotice(
-        'Your file was created, but Supabase is waiting on email confirmation. Check your inbox, verify the address, then sign in.',
-      )
-      setLoading(false)
-      return
-    }
-
-    await loadProfileAndRoute(router)
   }
 
   const handleResendConfirmation = async () => {
     if (!email) {
-      setError('Enter the email address you signed up with first.')
+      setError('Enter the email address first.')
       return
     }
 
     setResending(true)
     setError('')
 
-    const { error: resendError } = await supabase.auth.resend({
-      type: 'signup',
+    const { error: authError } = await supabase.auth.signInWithOtp({
       email,
-      options: {
-        emailRedirectTo: getEmailRedirectUrl(),
-      },
+      options: { emailRedirectTo: getEmailRedirectUrl() },
     })
 
-    if (resendError) {
-      setError(resendError.message)
+    if (authError) {
+      setError(authError.message)
       setResending(false)
       return
     }
 
-    setNotice('Confirmation mail sent again. Check inbox, spam, and promotions.')
+    setNotice('Sign-in link sent. Check inbox and spam.')
     setResending(false)
   }
 
+  const handleLogin = async () => {
+    setLoading(true)
+    setError('')
+
+    if (!password) {
+      setError('A password is required for direct entry. Request an access link below if you forgotten yours.')
+      setLoading(false)
+      return
+    }
+
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      })
+
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setError(json.error || 'Login failed')
+        setLoading(false)
+        return
+      }
+
+      await loadProfileAndRoute(router)
+    } catch (e: any) {
+      setError(e?.message || 'Network error')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleSignup = async () => {
+    setLoading(true)
+    setError('')
+
+    if (password && confirmPassword && password !== confirmPassword) {
+      setError('Passwords do not match')
+      setLoading(false)
+      return
+    }
+
+    if (!password) {
+      setError('Please set a password for your account, or use the "Signup via Magic Link" button below.')
+      setLoading(false)
+      return
+    }
+
+    try {
+      const res = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      })
+
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setError(json.error || 'Signup failed')
+        setLoading(false)
+        return
+      }
+
+      setNotice('Account created. Check your email for verification or sign-in link.')
+      setMode('login')
+    } catch (e: any) {
+      setError(e?.message || 'Network error')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
-    <>
-      <Nav />
-      <main
-        style={{
-          minHeight: '100vh',
-          display: 'grid',
-          placeItems: 'center',
-          background:
-            'radial-gradient(circle at top, rgba(212, 134, 31, 0.16), transparent 35%), var(--bg)',
-          padding: '96px 24px 32px',
-        }}
-      >
-        <div style={cardStyle}>
+    <div
+      style={{
+        minHeight: '100vh',
+        display: 'grid',
+        placeItems: 'center',
+        background:
+          'radial-gradient(circle at top, rgba(212, 134, 31, 0.16), transparent 35%), var(--bg)',
+        padding: '36px 24px 32px',
+      }}
+    >
+      <div style={cardStyle}>
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
           <p
             style={{
@@ -225,7 +257,7 @@ export default function LoginPage({ initialMode }: { initialMode?: 'login' | 'si
             横浜は、いつも雨が降っている。
           </p>
           <p style={{ marginTop: '0.6rem', color: 'var(--accent)', fontWeight: 600 }}>
-            Login or create an account using Email & Password — Google sign-in is currently unavailable.
+            Sign in with Google or use your credentials below.
           </p>
         </div>
 
@@ -251,7 +283,7 @@ export default function LoginPage({ initialMode }: { initialMode?: 'login' | 'si
               gap: '0.7em',
             }}
           >
-            <svg width="20" height="20" viewBox="0 0 48 48" style={{ verticalAlign: 'middle' }}><g><path fill="#4285F4" d="M43.611 20.083H42V20H24v8h11.303C33.962 32.083 29.418 35 24 35c-6.065 0-11-4.935-11-11s4.935-11 11-11c2.507 0 4.81.858 6.646 2.277l6.418-6.418C33.684 6.163 29.084 4 24 4 12.954 4 4 12.954 4 24s8.954 20 20 20c11.046 0 20-8.954 20-20 0-1.341-.138-2.651-.389-3.917z"/><path fill="#34A853" d="M6.306 14.691l6.571 4.819C14.655 16.108 19.001 13 24 13c2.507 0 4.81.858 6.646 2.277l6.418-6.418C33.684 6.163 29.084 4 24 4c-7.732 0-14.313 4.388-17.694 10.691z"/><path fill="#FBBC05" d="M24 44c5.356 0 10.207-1.843 13.994-4.994l-6.481-5.307C29.418 35 24 35 24 35c-5.418 0-9.962-2.917-11.303-7.083l-6.571 5.081C9.687 39.612 16.268 44 24 44z"/><path fill="#EA4335" d="M43.611 20.083H42V20H24v8h11.303C34.62 32.254 29.418 35 24 35c-6.065 0-11-4.935-11-11s4.935-11 11-11c2.507 0 4.81.858 6.646 2.277l6.418-6.418C33.684 6.163 29.084 4 24 4c-7.732 0-14.313 4.388-17.694 10.691z"/></g></svg>
+            <svg width="20" height="20" viewBox="0 0 48 48" style={{ verticalAlign: 'middle' }}><g><path fill="#4285F4" d="M43.611 20.083H42V20H24v8h11.303C33.962 32.083 29.418 35 24 35c-6.065 0-11-4.935-11-11s4.935-11 11-11c2.507 0 4.81.858 6.646 2.277l6.418-6.418C33.684 6.163 29.084 4 24 4 12.954 4 4 12.954 4 24s8.954 20 20 20c11.046 0 20-8.954 20-20 0-1.341-.138-2.651-.389-3.917z" /><path fill="#34A853" d="M6.306 14.691l6.571 4.819C14.655 16.108 19.001 13 24 13c2.507 0 4.81.858 6.646 2.277l6.418-6.418C33.684 6.163 29.084 4 24 4c-7.732 0-14.313 4.388-17.694 10.691z" /><path fill="#FBBC05" d="M24 44c5.356 0 10.207-1.843 13.994-4.994l-6.481-5.307C29.418 35 24 35 24 35c-5.418 0-9.962-2.917-11.303-7.083l-6.571 5.081C9.687 39.612 16.268 44 24 44z" /><path fill="#EA4335" d="M43.611 20.083H42V20H24v8h11.303C34.62 32.254 29.418 35 24 35c-6.065 0-11-4.935-11-11s4.935-11 11-11c2.507 0 4.81.858 6.646 2.277l6.418-6.418C33.684 6.163 29.084 4 24 4c-7.732 0-14.313 4.388-17.694 10.691z" /></g></svg>
             {googleLoading ? 'Redirecting...' : `Continue with Google`}
           </button>
           <div style={{ textAlign: 'center', color: 'var(--text3)', fontSize: '0.9em', margin: '0.5em 0' }}>or</div>
@@ -275,7 +307,7 @@ export default function LoginPage({ initialMode }: { initialMode?: 'login' | 'si
           <input
             value={password}
             onChange={(event) => setPassword(event.target.value)}
-            placeholder="Password"
+            placeholder="Password (Optional)"
             type="password"
             style={{
               width: '100%',
@@ -286,27 +318,9 @@ export default function LoginPage({ initialMode }: { initialMode?: 'login' | 'si
               fontFamily: 'Cormorant Garamond, serif',
               fontSize: '1rem',
               outline: 'none',
+              marginTop: '0.5rem',
             }}
           />
-
-          {mode === 'signup' && (
-            <input
-              value={confirmPassword}
-              onChange={(event) => setConfirmPassword(event.target.value)}
-              placeholder="Confirm password"
-              type="password"
-              style={{
-                width: '100%',
-                padding: '12px 16px',
-                background: 'var(--surface)',
-                border: '1px solid var(--border)',
-                color: 'var(--text)',
-                fontFamily: 'Cormorant Garamond, serif',
-                fontSize: '1rem',
-                outline: 'none',
-              }}
-            />
-          )}
 
           {error && (
             <p
@@ -334,17 +348,6 @@ export default function LoginPage({ initialMode }: { initialMode?: 'login' | 'si
               >
                 {notice}
               </p>
-              {mode === 'signup' && (
-                <button
-                  type="button"
-                  onClick={() => void handleResendConfirmation()}
-                  disabled={resending || loading}
-                  className="btn-secondary"
-                  style={{ width: '100%' }}
-                >
-                  {resending ? 'Resending...' : 'Resend Confirmation Email'}
-                </button>
-              )}
             </div>
           )}
 
@@ -358,8 +361,8 @@ export default function LoginPage({ initialMode }: { initialMode?: 'login' | 'si
             {loading
               ? 'Processing...'
               : mode === 'login'
-                ? 'Enter the Archive'
-                : 'Create Your File'}
+                ? 'Sign In'
+                : 'Create Account'}
           </button>
         </div>
 
@@ -372,7 +375,7 @@ export default function LoginPage({ initialMode }: { initialMode?: 'login' | 'si
             color: 'var(--text3)',
           }}
         >
-          {mode === 'login' ? 'No file yet?' : 'Already registered?'}{' '}
+          {mode === 'login' ? 'No account yet?' : 'Already have an account?'}{' '}
           <button
             type="button"
             onClick={() => {
@@ -388,40 +391,33 @@ export default function LoginPage({ initialMode }: { initialMode?: 'login' | 'si
               font: 'inherit',
             }}
           >
-            {mode === 'login' ? 'Create account' : 'Sign in'}
+            {mode === 'login' ? 'Sign up' : 'Sign in'}
           </button>
         </p>
 
-        <p
-          style={{
-            marginTop: '0.85rem',
-            textAlign: 'center',
-            fontFamily: 'Space Mono, monospace',
-            fontSize: '0.55rem',
-            letterSpacing: '0.08em',
-            color: 'var(--text4)',
-          }}
-        >
-          Public browsing is always open. Your Yokohama name is chosen on the next step.
-        </p>
-
-        <p
-          style={{
-            marginTop: '1rem',
-            textAlign: 'center',
-            fontFamily: 'Cormorant Garamond, serif',
-            fontSize: '0.95rem',
-            color: 'var(--text3)',
-          }}
-        >
-          Or keep reading the file walls from the{' '}
-          <Link href="/" style={{ color: 'var(--accent)', textDecoration: 'none' }}>
-            public archive
-          </Link>
-          .
-        </p>
+        <div style={{ marginTop: '1.5rem', paddingTop: '1.2rem', borderTop: '1px solid var(--border)', textAlign: 'center' }}>
+           <button
+             type="button"
+             onClick={handleEmailSign}
+             disabled={loading || !email}
+             style={{
+               background: 'transparent',
+               border: 'none',
+               color: 'var(--text3)',
+               textDecoration: 'underline',
+               fontSize: '0.85rem',
+               fontFamily: 'Space Mono, monospace',
+               cursor: email ? 'pointer' : 'not-allowed',
+               opacity: email ? 1 : 0.5
+             }}
+           >
+             {loading ? 'Requesting...' : mode === 'login' ? 'Request Magic Link via Email' : 'Signup via Magic Link'}
+           </button>
+           <p style={{ fontSize: '0.62rem', color: 'rgba(255,255,255,0.3)', marginTop: '0.5rem', fontFamily: 'Space Mono, monospace' }}>
+             (GLOBAL LIMIT: 3 REQUESTS / HOUR)
+           </p>
         </div>
-      </main>
-    </>
+      </div>
+    </div>
   )
 }

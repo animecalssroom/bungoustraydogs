@@ -3,8 +3,6 @@ import type { Profile } from '@/backend/types'
 import { FactionModel } from '@/backend/models/faction.model'
 import { FactionSpaceModel } from '@/backend/models/faction-space.model'
 import { RegistryModel } from '@/backend/models/registry.model'
-import { Footer } from '@/frontend/components/ui/Footer'
-import { Nav } from '@/frontend/components/ui/Nav'
 import { FactionCheckIn } from '@/frontend/components/ui/FactionCheckIn'
 import { FactionPrivateSpace } from '@/frontend/components/faction/FactionPrivateSpace'
 import {
@@ -71,8 +69,7 @@ export default async function FactionPrivateSpacePage({
   }
 
   return (
-    <>
-      <Nav />
+    <div style={{ paddingTop: '36px' }}>
       <FactionCheckIn factionId={factionId} />
       <FactionPrivateSpace
         factionId={factionId}
@@ -84,7 +81,6 @@ export default async function FactionPrivateSpacePage({
         initialWarFactions={warFactions}
         initialPendingRegistryPosts={pendingRegistryPosts}
       />
-      <Footer />
-    </>
+    </div>
   )
 }

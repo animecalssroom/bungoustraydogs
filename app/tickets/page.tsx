@@ -1,6 +1,4 @@
 import { redirect } from 'next/navigation'
-import { Nav } from '@/frontend/components/ui/Nav'
-import { Footer } from '@/frontend/components/ui/Footer'
 import { createClient } from '@/frontend/lib/supabase/server'
 import { SupportModel } from '@/backend/models/support.model'
 import { TicketDesk } from '@/frontend/components/support/TicketDesk'
@@ -20,14 +18,8 @@ export default async function TicketPage() {
   const desk = await SupportModel.getUserDesk(user.id)
 
   return (
-    <>
-      <Nav />
-      <main style={{ paddingTop: '60px', minHeight: '100vh' }}>
-        <section className="section-wrap" style={{ paddingTop: '4rem', paddingBottom: '6rem' }}>
-          <TicketDesk initialTickets={desk.tickets} initialFlags={desk.flags} />
-        </section>
-      </main>
-      <Footer />
-    </>
+    <section className="section-wrap" style={{ paddingTop: '4rem', paddingBottom: '6rem' }}>
+      <TicketDesk initialTickets={desk.tickets} initialFlags={desk.flags} />
+    </section>
   )
 }

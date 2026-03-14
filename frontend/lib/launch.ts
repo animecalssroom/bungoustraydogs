@@ -206,7 +206,7 @@ export function resolvePostAuthPath(profile: Profile | null) {
     return '/owner'
   }
 
-  if (profile.quiz_completed && !profile.quiz_locked) {
+  if (profile.quiz_completed && profile.role === 'user') {
     return '/onboarding/result'
   }
 
