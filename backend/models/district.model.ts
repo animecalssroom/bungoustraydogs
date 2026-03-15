@@ -38,4 +38,12 @@ export class DistrictModel {
     
     return data as District
   }
+
+  static async setOwner(districtId: string, factionId: string) {
+    const { supabaseAdmin } = await import('@/backend/lib/supabase')
+    await supabaseAdmin
+      .from('districts')
+      .update({ controlling_faction: factionId })
+      .eq('id', districtId)
+  }
 }

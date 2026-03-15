@@ -3,6 +3,8 @@ import type { Duel, DuelCooldown, DuelRound } from '@/backend/types'
 import { resolveDuelRound } from '@/lib/duels/engine'
 import { narrateDuelRound } from '@/backend/lib/duel-narrative'
 import { UserModel } from '@/backend/models/user.model'
+import { WarContributionModel } from '@/backend/models/war-contribution.model'
+import { FactionWarModel } from '@/backend/models/faction-war.model'
 
 import { 
   DUEL_MAX_ROUNDS, 
@@ -115,13 +117,41 @@ async function processLocalAftermath(duelId: string) {
       const winAp = isComeback ? 75 : 50
       const winnerObj = await updateApAndRank(duel.winner_id, winAp, { result: 'win', comeback: isComeback, is_war_duel: duel.is_war_duel }, true)
 
-      if (duel.is_war_duel && winnerObj?.faction) {
-        const { data: activeWar } = await supabaseAdmin.from('faction_wars').select('*').eq('status', 'active').maybeSingle()
+      if (duel.is_war_duel) {
+        const activeWar = await FactionWarModel.getActiveWar()
         if (activeWar) {
-          const updateData = activeWar.faction_a_id === winnerObj.faction
-            ? { faction_a_points: (activeWar.faction_a_points ?? 0) + 3 }
-            : { faction_b_points: (activeWar.faction_b_points ?? 0) + 3 }
-          await supabaseAdmin.from('faction_wars').update(updateData).eq('id', activeWar.id)
+          const isTagTeam = duel.is_tag_team
+          const isFactionRaid = duel.is_faction_raid
+          const isBossFight = duel.is_boss_fight
+          
+          let points = 3
+          let contributionType: 'duel_win' | 'team_fight' | 'boss_fight' | 'faction_raid' = 'duel_win'
+          
+          if (isBossFight) {
+            points = 25
+            contributionType = 'boss_fight'
+          } else if (isFactionRaid) {
+            points = 5
+            contributionType = 'faction_raid'
+          } else if (isTagTeam) {
+            points = 5
+            contributionType = 'team_fight'
+          }
+          
+          const winnerFaction = duel.winner_id === duel.challenger_id ? duel.challenger_faction : duel.defender_faction
+
+          await WarContributionModel.addContribution({
+            warId: activeWar.id,
+            userId: duel.winner_id,
+            type: contributionType,
+            points: points,
+            referenceId: duelId,
+            factionId: winnerFaction || undefined
+          })
+
+          if (contributionType === 'boss_fight') {
+            await FactionWarModel.resolveWar(activeWar.id, winnerObj?.faction)
+          }
         }
       }
     }
@@ -135,6 +165,33 @@ async function processLocalAftermath(duelId: string) {
     if (isDraw) {
       if (duel.challenger_id) await updateApAndRank(duel.challenger_id, 5, { result: 'draw', comeback: false, is_war_duel: duel.is_war_duel }, false)
       if (duel.defender_id) await updateApAndRank(duel.defender_id, 5, { result: 'draw', comeback: false, is_war_duel: duel.is_war_duel }, false)
+      
+      if (duel.is_war_duel) {
+        const activeWar = await FactionWarModel.getActiveWar()
+        if (activeWar) {
+          // In a Draw, both factions get 1 pt to acknowledge the conflict
+          if (duel.challenger_faction) {
+            await WarContributionModel.addContribution({
+              warId: activeWar.id,
+              userId: duel.challenger_id,
+              type: 'duel_win', // uses duel_win as a generic type for now
+              points: 1,
+              referenceId: duelId,
+              factionId: duel.challenger_faction
+            })
+          }
+          if (duel.defender_faction) {
+            await WarContributionModel.addContribution({
+              warId: activeWar.id,
+              userId: duel.defender_id,
+              type: 'duel_win',
+              points: 1,
+              referenceId: duelId,
+              factionId: duel.defender_faction
+            })
+          }
+        }
+      }
     }
 
     await supabaseAdmin

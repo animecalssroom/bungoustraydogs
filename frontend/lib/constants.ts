@@ -53,10 +53,9 @@ export const CHARACTERS: Character[] = CHARACTER_ASSIGNMENT_POOL.map((character)
 
 export const NAV_LINKS = [
   { href: '/duels', label: 'Duels' },
-  { href: '/registry', label: 'Registry' },
   { href: '/archive', label: 'Archive' },
+  { href: '/records', label: 'Records' },
   { href: '/districts', label: 'Districts' },
-  { href: '/lore', label: 'Lore' },
   { href: '/guide', label: 'Guide' },
   { href: '/tickets', label: 'Support' },
 ] as const

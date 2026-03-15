@@ -20,7 +20,11 @@ const FALLBACK_THRESHOLDS = [
   { rank: 6, ap_required: 10000 },
 ]
 
-export function getRankInfo(apTotal: number, explicitRank?: number): RankInfo {
+export function getRankInfo(
+  apTotal: number,
+  explicitRank?: number,
+  faction?: string | null,
+): RankInfo {
   let current = FALLBACK_THRESHOLDS[0]
   let next = FALLBACK_THRESHOLDS[1] ?? null
 
@@ -42,7 +46,7 @@ export function getRankInfo(apTotal: number, explicitRank?: number): RankInfo {
 
   return {
     rank,
-    title: getRankTitle(rank),
+    title: getRankTitle(rank, faction),
     currentAP: apTotal,
     nextThreshold,
     previousThreshold,

@@ -600,7 +600,7 @@ export function HomeShowcase() {
             </h2>
             <div className={styles.sectionDivider} />
             <p className={styles.sectionSub}>
-              Editorial layout on the home page, deeper reads in the lore route.
+              Community essays and character studies in the Hall. Deeper reads in the Records route.
             </p>
           </div>
 
@@ -608,7 +608,7 @@ export function HomeShowcase() {
             {HOME_LORE_POSTS.map((post, index) => (
               <Link
                 key={post.slug}
-                href="/lore"
+                href="/records?tab=lore"
                 className={`reveal ${styles.loreCard} ${post.featured ? styles.loreFeatured : ''
                   }`}
                 data-home-reveal
@@ -634,7 +634,7 @@ export function HomeShowcase() {
             <div className={styles.sectionDivider} />
             <p className={styles.sectionSub}>
               Launch assignment is faction-first: seven sealed questions, one
-              result, and no revisions after submission.
+              result, and character matches unlocked via city activity.
             </p>
           </div>
 

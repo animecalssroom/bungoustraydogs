@@ -9,7 +9,7 @@ import { usePersistentData } from '@/frontend/hooks/usePersistentData'
 function LoreCard({ post }: { post: LorePost }) {
   return (
     <Link
-      href={`/lore/${post.slug}`}
+      href={`/records/lore/${post.slug}`}
       style={{
         display: 'block',
         textDecoration: 'none',
@@ -136,7 +136,7 @@ export function LorePageGridWithInitialPosts({ posts: serverPosts }: { posts: Lo
             No lore posts yet. Be the first to write one.
           </p>
           <div style={{ marginTop: '1rem' }}>
-            <Link href="/lore/submit" className="btn-primary">
+            <Link href="/records/lore/submit" className="btn-primary">
               Write The First Entry
             </Link>
           </div>

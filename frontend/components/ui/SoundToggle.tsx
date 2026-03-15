@@ -42,11 +42,10 @@ export default function SoundToggle() {
     }
 
     if (pathname === '/' && theme === 'light') {
-      void startAgency()
+      // Agency sounds are currently disabled.
       stopRain()
       stopWind()
       return () => {
-        stopAgency()
         stopRain()
         stopWind()
       }

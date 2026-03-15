@@ -44,6 +44,8 @@ export const metadata: Metadata = {
     "A curated record of Yokohama's ability users. The city determines where you belong.",
 }
 
+import { NotificationProvider } from '@/frontend/context/NotificationContext'
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html
@@ -58,20 +60,22 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body suppressHydrationWarning>
         <ThemeProvider>
           <AuthProvider>
-            <AngoProvider>
-              <SoundProvider>
-                <FloatingAPLayer />
-                <DailyLoginRitual />
-                <CharacterAssignmentRedirect />
-                <GlobalDuelMatchmaker />
-                <Nav />
-                <main style={{ minHeight: '100vh', paddingTop: '60px' }}>
-                  {children}
-                </main>
-                <Footer />
-                <GuideBotWidget />
-              </SoundProvider>
-            </AngoProvider>
+            <NotificationProvider>
+              <AngoProvider>
+                <SoundProvider>
+                  <FloatingAPLayer />
+                  <DailyLoginRitual />
+                  <CharacterAssignmentRedirect />
+                  <GlobalDuelMatchmaker />
+                  <Nav />
+                  <main style={{ minHeight: '100vh', paddingTop: '60px' }}>
+                    {children}
+                  </main>
+                  <Footer />
+                  <GuideBotWidget />
+                </SoundProvider>
+              </AngoProvider>
+            </NotificationProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>

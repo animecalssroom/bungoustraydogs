@@ -610,6 +610,50 @@ export const AP_VALUES: Record<UserEventType, number> = {
   join_faction: 0,
 }
 
+export const FACTION_RANK_TITLES: Record<string, string[]> = {
+  agency: [
+    'Unaffiliated Detective',   // Rank 1 — 0 AP
+    'Field Operative',          // Rank 2 — 100 AP
+    'Senior Operative',         // Rank 3 — 500 AP
+    'Lead Detective',           // Rank 4 — 1500 AP
+    'Special Investigator',     // Rank 5 — 4000 AP
+    'Executive Agent',          // Rank 6 — 10000 AP
+  ],
+  mafia: [
+    'Foot Soldier',             // Rank 1
+    'Operative',                // Rank 2
+    'Lieutenant',               // Rank 3
+    'Captain',                  // Rank 4
+    'Executive',                // Rank 5
+    'Black Hand',               // Rank 6
+  ],
+  guild: [
+    'Associate',                // Rank 1
+    'Contractor',               // Rank 2
+    'Acquisitions Agent',       // Rank 3
+    'Senior Partner',           // Rank 4
+    'Director',                 // Rank 5
+    'Founding Member',          // Rank 6
+  ],
+  hunting_dogs: [
+    'Blade Candidate',          // Rank 1
+    'Enlisted',                 // Rank 2
+    'Sergeant',                 // Rank 3
+    'Lieutenant',               // Rank 4
+    'Commander',                // Rank 5
+    'First Hound',              // Rank 6
+  ],
+  special_div: [
+    'Flagged',                  // Rank 1
+    'Monitored',                // Rank 2
+    'Cleared',                  // Rank 3
+    'Operative',                // Rank 4
+    'Handler',                  // Rank 5
+    'Controller',               // Rank 6
+  ],
+}
+
+// Generic fallback for unassigned/wanderer users
 export const RANK_TITLES = [
   'Stray',
   'Filed Operative',
@@ -658,8 +702,13 @@ export const QUALIFYING_ASSIGNMENT_EVENTS: UserEventType[] = [
   'registry_featured',
 ]
 
-export function getRankTitle(rank: number): string {
-  return RANK_TITLES[Math.max(0, Math.min(rank - 1, RANK_TITLES.length - 1))]
+// Updated getRankTitle — now takes optional faction
+export function getRankTitle(rank: number, faction?: string | null): string {
+  const index = Math.max(0, Math.min(rank - 1, 5))
+  if (faction && FACTION_RANK_TITLES[faction]) {
+    return FACTION_RANK_TITLES[faction][index] ?? RANK_TITLES[index]
+  }
+  return RANK_TITLES[index]
 }
 
 export function apProgress(apTotal: number) {
@@ -714,6 +763,9 @@ export interface Duel {
   ap_awarded: boolean
   is_ranked: boolean
   is_war_duel: boolean
+  is_tag_team: boolean
+  is_faction_raid: boolean
+  is_boss_fight: boolean
   war_id: string | null
   challenger_came_back: boolean
   defender_came_back: boolean
@@ -777,9 +829,63 @@ export interface TerritoryControl {
   status: 'stable' | 'contested' | 'warzone'
 }
 
-export interface WarStatus {
+export type WarStatus = 'pending' | 'active' | 'day2' | 'day3' | 'complete'
+export type WarStakesType = 'district' | 'ap_multiplier' | 'registry_priority' | 'narrative'
+
+export interface FactionRanking {
+  faction: FactionId
+  score: number
+}
+
+export interface WarGlobalStatus {
+  status: WarStatus
   active_wars: number
   total_territories: number
-  faction_rankings: Array<{ faction: FactionId; score: number }>
-  last_flip_at: string | null
+  faction_rankings: FactionRanking[]
+}
+
+export interface FactionWar {
+  id: string
+  faction_a_id: string
+  faction_b_id: string
+  status: WarStatus
+  stakes: WarStakesType
+  stakes_detail: Record<string, any>
+  faction_a_points: number
+  faction_b_points: number
+  winner_id: string | null
+  war_message: string | null
+  chronicle_id: string | null
+  starts_at: string | null
+  day2_at: string | null
+  day3_at: string | null
+  ends_at: string | null
+  resolved_at: string | null
+  boss_active: boolean
+  created_at: string
+}
+
+export interface WarContribution {
+  id: string
+  war_id: string
+  user_id: string
+  contribution_type: 'duel_win' | 'registry_post' | 'daily_login' | 'team_fight' | 'boss_fight'
+  points: number
+  reference_id: string | null
+  created_at: string
+}
+
+export type ChronicleEntryType = 'chapter' | 'war_record' | 'duel_record' | 'character_event' | 'scenario_outcome' | 'player_submission'
+
+export interface ChronicleEntry {
+  id: string
+  entry_number: number
+  title: string
+  content: string
+  entry_type: ChronicleEntryType
+  faction_focus: string | null
+  author_id: string | null
+  is_featured: boolean
+  created_at: string
+  published_at: string | null
 }

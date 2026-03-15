@@ -86,7 +86,10 @@ export async function GET(request: NextRequest) {
 
   if (error) {
     console.error('[oauth_callback] exchange error:', error)
-    return NextResponse.redirect(`${origin}/login?error=oauth_failed`)
+    const redirectUrl = origin.includes('localhost') 
+      ? `${origin}/login?error=oauth_failed`
+      : `${origin.replace('http:', 'https:')}/login?error=oauth_failed`
+    return NextResponse.redirect(redirectUrl)
   }
 
   const {
@@ -94,7 +97,10 @@ export async function GET(request: NextRequest) {
   } = await supabase.auth.getUser()
 
   if (!user) {
-    return NextResponse.redirect(`${origin}/login?error=no_user`)
+    const redirectUrl = origin.includes('localhost') 
+      ? `${origin}/login?error=no_user`
+      : `${origin.replace('http:', 'https:')}/login?error=no_user`
+    return NextResponse.redirect(redirectUrl)
   }
 
   await ensureProfile(user)
@@ -105,5 +111,10 @@ export async function GET(request: NextRequest) {
     .eq('id', user.id)
     .single()
 
-  return NextResponse.redirect(`${origin}${resolvePostAuthPath(profile)}`)
+  const targetPath = resolvePostAuthPath(profile)
+  const finalRedirect = origin.includes('localhost') 
+    ? `${origin}${targetPath}`
+    : `${origin.replace('http:', 'https:')}${targetPath}`
+
+  return NextResponse.redirect(finalRedirect)
 }

@@ -1,0 +1,180 @@
+.container {
+  max-width: 1000px;
+  margin: 0 auto;
+  font-family: 'Inter', sans-serif;
+  color: #d1d1d1;
+}
+
+.title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 2rem;
+  letter-spacing: 0.1em;
+  color: #fff;
+  text-transform: uppercase;
+  margin-bottom: 2rem;
+  border-bottom: 2px solid #333;
+  padding-bottom: 0.5rem;
+}
+
+.activeWarCard {
+  background: rgba(40, 40, 40, 0.5);
+  border: 1px solid #444;
+  padding: 2rem;
+  border-radius: 8px;
+  backdrop-filter: blur(10px);
+}
+
+.warHeader {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.statusBadge {
+  background: #ff3e3e;
+  color: #fff;
+  padding: 0.4rem 1rem;
+  font-weight: 700;
+  font-size: 0.9rem;
+  letter-spacing: 0.05em;
+  border-radius: 4px;
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  margin-bottom: 2.5rem;
+}
+
+.statBox {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 1.5rem;
+  border-radius: 6px;
+  border: 1px solid #333;
+}
+
+.statBox label {
+  display: block;
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  letter-spacing: 0.1em;
+  margin-bottom: 0.5rem;
+  color: #888;
+}
+
+.pointValue {
+  font-size: 2.5rem;
+  font-weight: 800;
+  font-family: 'Outfit', sans-serif;
+}
+
+.actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.actions button {
+  padding: 0.8rem 1.5rem;
+  border-radius: 4px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: #333;
+  color: #fff;
+  border: 1px solid #444;
+}
+
+.actions button:hover:not(:disabled) {
+  background: #444;
+}
+
+.dangerBtn {
+  background: #4a0000 !important;
+}
+
+.dangerBtn:hover:not(:disabled) {
+  background: #7a0000 !important;
+}
+
+.bossBtn {
+  background: #ffcc00 !important;
+  color: #000 !important;
+  border: none !important;
+}
+
+.bossBtn:hover:not(:disabled) {
+  background: #ffdd33 !important;
+}
+
+.bossWarning {
+  background: rgba(255, 0, 0, 0.1);
+  color: #ff3e3e;
+  padding: 0.8rem;
+  border-radius: 4px;
+  font-weight: 800;
+  text-align: center;
+  border: 1px dashed #ff3e3e;
+  flex-grow: 1;
+}
+
+.declareForm {
+  background: rgba(30, 30, 30, 0.8);
+  padding: 2.5rem;
+  border-radius: 12px;
+  border: 1px solid #444;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.declareForm label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #aaa;
+}
+
+.declareForm select, .declareForm input, .declareForm textarea {
+  width: 100%;
+  background: #1a1a1a;
+  border: 1px solid #333;
+  color: #fff;
+  padding: 0.8rem;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.fullWidth {
+  margin-bottom: 2rem;
+}
+
+.declareBtn {
+  width: 100%;
+  padding: 1.2rem;
+  background: #ff3e3e;
+  border: none;
+  color: #fff;
+  font-weight: 800;
+  font-size: 1.1rem;
+  letter-spacing: 0.1em;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: transform 0.2s, background 0.2s;
+}
+
+.declareBtn:hover:not(:disabled) {
+  background: #ff5e5e;
+  transform: translateY(-2px);
+}
+
+.declareBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

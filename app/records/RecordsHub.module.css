@@ -1,0 +1,179 @@
+.wrap {
+  min-height: 100vh;
+  padding-bottom: 5rem;
+}
+
+.tabBar {
+  display: flex;
+  width: 100%;
+  border-bottom: 1px solid var(--border);
+  background: var(--card);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.tabBar::-webkit-scrollbar {
+  display: none;
+}
+
+.tab {
+  flex: 1;
+  min-width: 33.33%;
+  padding: 1rem 0;
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  font-family: var(--font-record);
+  font-size: 0.75rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+}
+
+.tabActive {
+  color: var(--text);
+  border-bottom: 2px solid var(--accent);
+}
+
+.tabContent {
+  padding-top: 1.5rem;
+}
+
+.fab {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  z-index: 100;
+  transition: transform 0.2s;
+  text-decoration: none;
+}
+
+.fab:hover {
+  transform: scale(1.1);
+}
+
+.chronicleList {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.chronicleEntry {
+  border: 1px solid var(--border);
+  background: var(--card);
+  padding: 1.5rem;
+  position: relative;
+  transition: border-color 0.2s;
+}
+
+.chronicleEntry:hover {
+  border-color: var(--accent);
+}
+
+.entryHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.entryMeta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.entryNumber {
+  font-family: var(--font-record);
+  color: var(--text-muted);
+  font-size: 0.7rem;
+}
+
+.entryType {
+  font-size: 0.6rem;
+  padding: 0.2rem 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 700;
+}
+
+.entryType_chapter { background: rgba(255, 191, 0, 0.15); color: #ffbf00; }
+.entryType_war_record { background: rgba(255, 62, 62, 0.15); color: #ff3e3e; }
+.entryType_duel_record { background: rgba(70, 130, 180, 0.15); color: #4682b4; }
+.entryType_character_event { background: var(--accent-light); color: var(--accent); }
+.entryType_player_submission { background: var(--border); color: var(--text-muted); }
+
+.entryTitle {
+  font-family: var(--font-header);
+  font-size: 1.25rem;
+  margin-bottom: 0.75rem;
+  color: var(--text);
+}
+
+.entryContent {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  text-align: center;
+}
+
+.emptyText {
+  font-family: var(--font-record);
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  letter-spacing: 0.05em;
+  margin-bottom: 2rem;
+  max-width: 400px;
+}
+
+.helperBox {
+  margin: 1rem;
+  padding: 1.5rem;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  position: relative;
+}
+
+.helperClose {
+  position: absolute;
+  top: 0.5rem;
+  right: 1rem;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+@media (max-width: 900px) {
+  .fab {
+    bottom: 1.5rem;
+    right: 1.5rem;
+  }
+}

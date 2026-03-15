@@ -11,6 +11,7 @@ export const LoreModel = {
         .select('*, profiles(username, avatar_url, role)')
         .eq('is_published', true)
         .order('created_at', { ascending: false })
+        .limit(50)
       if (category) query = query.eq('category', category)
       const { data } = await query
       return (data ?? []) as LorePost[]

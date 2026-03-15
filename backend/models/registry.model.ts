@@ -8,6 +8,8 @@ import {
 } from '@/backend/lib/registry'
 import { supabaseAdmin } from '@/backend/lib/supabase'
 import { UserModel } from '@/backend/models/user.model'
+import { FactionWarModel } from './faction-war.model'
+import { WarContributionModel } from './war-contribution.model'
 import type {
   FactionId,
   Profile,
@@ -25,6 +27,8 @@ type RegistryListOptions = {
   district?: RegistryDistrict | 'all'
   sort?: 'recent' | 'saved' | 'featured'
   viewerId?: string | null
+  limit?: number
+  page?: number
 }
 
 const REGISTRY_SELECT =
@@ -175,14 +179,17 @@ export const RegistryModel = {
   },
 
   async getPublic(options: RegistryListOptions = {}) {
-    const key = `registry:public:${options.faction || 'all'}:${options.district || 'all'}:${options.sort || 'recent'}`
+    const limit = options.limit || 50
+    const page = options.page || 0
+    const key = `registry:public:${options.faction || 'all'}:${options.district || 'all'}:${options.sort || 'recent'}:${limit}:${page}`
+    
     return cache.getOrSet(key, 120, async () => {
       try {
         let query = supabaseAdmin
           .from('registry_posts')
           .select(REGISTRY_SELECT)
           .eq('status', 'approved')
-          .limit(100)
+          .range(page * limit, (page + 1) * limit - 1)
 
         if (options.faction && options.faction !== 'all') {
           query = query.eq('author_faction', options.faction)
@@ -506,7 +513,7 @@ export const RegistryModel = {
   async reviewPost(
     reviewer: Profile,
     postId: string,
-    input: { action: 'approve' | 'review' | 'reject'; note?: string; feature?: boolean },
+    input: { action: 'approve' | 'review' | 'reject'; note?: string; feature?: boolean; is_war_related?: boolean },
   ) {
     if (reviewer.role !== 'mod' && reviewer.role !== 'owner') {
       return { error: 'Only moderators can review registry posts.' }
@@ -542,6 +549,7 @@ export const RegistryModel = {
       status: nextStatus,
       mod_note: input.note?.trim() || null,
       reviewed_by: reviewer.id,
+      is_war_related: !!input.is_war_related,
       approved_at: input.action === 'approve' ? new Date().toISOString() : null,
     }
 
@@ -562,6 +570,19 @@ export const RegistryModel = {
         await UserModel.addAp(post.author_id, 'registry_featured', AP_VALUES.registry_featured, {
           case_number: post.case_number,
         })
+      }
+
+      if (input.is_war_related) {
+        const activeWar = await FactionWarModel.getActiveWar()
+        if (activeWar) {
+          await WarContributionModel.addContribution({
+            warId: activeWar.id,
+            userId: post.author_id,
+            type: 'registry_post',
+            points: 2,
+            referenceId: post.id
+          })
+        }
       }
 
       await supabaseAdmin.from('notifications').insert({

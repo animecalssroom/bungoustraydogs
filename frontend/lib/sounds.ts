@@ -124,37 +124,9 @@ export async function startWind(): Promise<void> {
 }
 
 export async function startAgency(): Promise<void> {
-  if (!isSoundEnabled()) return
-
-  try {
-    const ctx = getContext()
-
-    if (!agencyBuffer) {
-      let response: Response | null = null
-      try {
-        response = await fetch('/sounds/agency.mp3')
-        if (!response.ok) throw new Error('mp3 not found')
-      } catch {
-        response = await fetch('/sounds/agency.wav')
-      }
-      if (!response.ok) return
-      const arrayBuffer = await response.arrayBuffer()
-      agencyBuffer = await ctx.decodeAudioData(arrayBuffer)
-    }
-
-    stopAgency()
-
-    agencySource = ctx.createBufferSource()
-    agencySource.buffer = agencyBuffer
-    agencySource.loop = true
-
-    const gainNode = ctx.createGain()
-    gainNode.gain.value = 0.2
-
-    agencySource.connect(gainNode)
-    gainNode.connect(ctx.destination)
-    agencySource.start()
-  } catch {}
+  // Agency sounds (agency.mp3/wav) are currently unavailable. 
+  // Disabling to prevent 404 errors in console.
+  return
 }
 
 export function stopRain(): void {

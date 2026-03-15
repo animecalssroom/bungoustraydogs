@@ -3,6 +3,7 @@ import type { Profile } from '@/backend/types'
 import { FactionModel } from '@/backend/models/faction.model'
 import { FactionSpaceModel } from '@/backend/models/faction-space.model'
 import { RegistryModel } from '@/backend/models/registry.model'
+import { FactionWarModel } from '@/backend/models/faction-war.model'
 import { FactionCheckIn } from '@/frontend/components/ui/FactionCheckIn'
 import { FactionPrivateSpace } from '@/frontend/components/faction/FactionPrivateSpace'
 import {
@@ -43,7 +44,7 @@ export default async function FactionPrivateSpacePage({
 
   const profile = await getViewerProfile()
 
-  if (!profile) {
+  if (!profile || !profile.faction) {
     redirect('/login')
   }
 
@@ -55,17 +56,32 @@ export default async function FactionPrivateSpacePage({
     redirect('/')
   }
 
-  const [space, bulletins, activity, messages, warFactions, pendingRegistryPosts] = await Promise.all([
+  const [space, bulletins, activity, messages, warFactions, pendingRegistryPosts, activeWar] = await Promise.all([
     FactionSpaceModel.getSpace(factionId),
     FactionSpaceModel.getBulletins(factionId),
     FactionSpaceModel.getActivity(factionId),
     FactionSpaceModel.getMessages(factionId),
     FactionModel.getAll(),
     RegistryModel.getPendingForFaction(factionId, profile),
+    FactionWarModel.getActiveWar()
   ])
 
   if (!space) {
     redirect(privateFactionPath(profile.faction ?? factionId))
+  }
+
+  async function declareWarAction(formData: { targetFactionId: string; stakes: string; stakesDetail: string; warMessage: string }) {
+    'use server'
+    const { FactionWarModel } = await import('@/backend/models/faction-war.model')
+    await FactionWarModel.startWar({
+      factionA: factionId as any,
+      factionB: formData.targetFactionId as any,
+      stakes: formData.stakes as any,
+      stakesDetail: { description: formData.stakesDetail },
+      warMessage: formData.warMessage
+    })
+    const { revalidatePath } = await import('next/cache')
+    revalidatePath(`/faction/${params.factionId}`)
   }
 
   return (
@@ -80,6 +96,8 @@ export default async function FactionPrivateSpacePage({
         initialMessages={messages}
         initialWarFactions={warFactions}
         initialPendingRegistryPosts={pendingRegistryPosts}
+        activeWar={activeWar}
+        onDeclareWar={declareWarAction}
       />
     </div>
   )

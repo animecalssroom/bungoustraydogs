@@ -231,7 +231,7 @@ body::after {
   content: '';
   position: fixed;
   inset: 0;
-  z-index: 9999;
+  z-index: 5;
   opacity: 0.06;
   pointer-events: none;
   background-image: var(--paper-grain);
@@ -1299,4 +1299,38 @@ a,
   .assignment-candidate-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* Interactive Touch Feedback */
+a, button, [role="button"] {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  outline-offset: 4px;
+}
+
+button:active, a:active, .clickable:active {
+  transform: scale(0.97);
+  filter: brightness(0.9);
+}
+
+.btn-primary:hover, .btn-secondary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  filter: brightness(1.1);
+}
+
+.btn-primary:active, .btn-secondary:active {
+  transform: translateY(1px) scale(0.98);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Glass Interactive */
+.paper-surface button:hover, 
+.paper-surface a:hover {
+  background: var(--surface2);
+  border-color: var(--accent);
+}
+
+/* Tap Highlight for Mobile */
+* {
+  -webkit-tap-highlight-color: transparent;
 }

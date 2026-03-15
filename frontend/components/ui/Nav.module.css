@@ -177,10 +177,26 @@
 
 .factionLink {
   color: var(--faction-link-color, var(--accent));
+  display: flex !important;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .factionLink::after {
   background: var(--faction-link-color, var(--accent));
+}
+
+.factionKanji {
+  font-family: 'Noto Serif JP', serif;
+  font-size: 0.85rem;
+  line-height: 1;
+}
+
+.factionChatText {
+  font-size: 0.55rem;
+  letter-spacing: 0.1em;
+  font-weight: 700;
+  opacity: 0.8;
 }
 
 .right {

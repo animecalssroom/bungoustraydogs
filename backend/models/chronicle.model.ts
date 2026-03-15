@@ -1,51 +1,88 @@
 import { createClient } from '@/frontend/lib/supabase/server'
+import { ChronicleEntry } from '@/backend/types'
 
-export interface Chronicle {
-  id: string
-  title: string
-  title_jp?: string
-  slug: string
-  content: string
-  excerpt?: string
-  author_id?: string
-  category?: string
-  is_published: boolean
-  created_at: string
-  updated_at: string
-}
+export const ChronicleModel = {
+  async getAll(): Promise<ChronicleEntry[]> {
+    const supabase = await createClient()
+    const { data, error } = await supabase
+      .from('chronicle_entries')
+      .select('*')
+      .order('entry_number', { ascending: false })
 
-export class ChronicleModel {
-  static async getAll(publishedOnly = true): Promise<Chronicle[]> {
-    const supabase = createClient()
-    let query = supabase.from('chronicles').select('*').order('created_at', { ascending: false })
-    
-    if (publishedOnly) {
-      query = query.eq('is_published', true)
-    }
-    
-    const { data, error } = await query
-    
     if (error) {
-      console.error('Error fetching chronicles:', error)
+      console.error('Error fetching chronicle entries:', error)
       return []
     }
-    
-    return data as Chronicle[]
-  }
 
-  static async getBySlug(slug: string): Promise<Chronicle | null> {
-    const supabase = createClient()
+    return data as ChronicleEntry[]
+  },
+
+  async getPublished(): Promise<ChronicleEntry[]> {
+    const supabase = await createClient()
     const { data, error } = await supabase
-      .from('chronicles')
+      .from('chronicle_entries')
       .select('*')
-      .eq('slug', slug)
-      .single()
-    
+      .not('published_at', 'is', null)
+      .order('entry_number', { ascending: false })
+
     if (error) {
-      console.error(`Error fetching chronicle ${slug}:`, error)
+      console.error('Error fetching published chronicle entries:', error)
+      return []
+    }
+
+    return data as ChronicleEntry[]
+  },
+
+  async getById(id: string): Promise<ChronicleEntry | null> {
+    const supabase = await createClient()
+    const { data, error } = await supabase
+      .from('chronicle_entries')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle()
+
+    if (error) {
+      console.error('Error fetching chronicle entry by id:', error)
       return null
     }
+
+    return data as ChronicleEntry | null
+  },
+
+  async create(params: {
+    title: string
+    title_jp?: string
+    content: string
+    excerpt?: string
+    category?: string
+    faction_focus?: string
+  }) {
+    const { supabaseAdmin } = await import('@/backend/lib/supabase')
     
-    return data as Chronicle
+    // Get latest entry number
+    const { data: latest } = await supabaseAdmin
+      .from('chronicle_entries')
+      .select('entry_number')
+      .order('entry_number', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    
+    const nextNumber = (latest?.entry_number || 0) + 1
+
+    const { data, error } = await supabaseAdmin
+      .from('chronicle_entries')
+      .insert({
+        entry_number: nextNumber,
+        title: params.title,
+        content: params.content,
+        entry_type: params.category || 'chapter',
+        faction_focus: params.faction_focus,
+        published_at: new Date().toISOString()
+      })
+      .select('*')
+      .single()
+    
+    if (error) throw error
+    return data as ChronicleEntry
   }
 }

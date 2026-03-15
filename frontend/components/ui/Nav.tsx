@@ -27,17 +27,21 @@ const MOBILE_THEME_META = {
   dark: 'Mafia hours',
 } as const
 
+import { useNotifications } from '@/frontend/context/NotificationContext'
+
 export function Nav() {
   const router = useRouter()
   const pathname = usePathname()
   const { theme, setTheme, resetThemeToAuto, isAutoTheme, currentTimeLabel } = useTheme()
   const { user, profile, signOut } = useAuth()
+  const { pendingDuelChallenges } = useNotifications()
   const [menuOpen, setMenuOpen] = useState(false)
-  const [pendingDuelChallenges, setPendingDuelChallenges] = useState(0)
   const activeProfile = profile
   const factionMeta = activeProfile?.faction ? FACTION_META[activeProfile.faction] : null
   const isAngoOperator =
     user && activeProfile?.role === 'mod' && activeProfile.faction === 'special_div'
+  
+  // Always define privateFactionHref to avoid ReferenceError
   const privateFactionHref =
     activeProfile?.faction &&
       (activeProfile.role === 'member' ||
@@ -45,64 +49,19 @@ export function Nav() {
         activeProfile.role === 'owner')
       ? `/faction/${toPrivateFactionRouteId(activeProfile.faction)}`
       : null
+
   const profileHref = activeProfile
     ? `/profile/${activeProfile.username}`
     : resolvePostAuthPath(activeProfile)
+
   const accountStyle = factionMeta
     ? ({ '--account-accent': factionMeta.color } as CSSProperties)
     : undefined
-  const mobileFactionLabel = factionMeta ? `${factionMeta.name} Room` : 'Faction Room'
+  const mobileFactionLabel = factionMeta ? `${factionMeta.name} Chat` : 'Faction Chat'
 
   useEffect(() => {
     setMenuOpen(false)
   }, [pathname])
-
-  useEffect(() => {
-    if (!user) {
-      setPendingDuelChallenges(0)
-      return
-    }
-
-    // Load once on mount, then update in real-time via Supabase channel
-    const supabase = createSupabaseClient()
-    let active = true
-
-    const load = async () => {
-      const response = await fetch('/api/notifications?limit=20', { cache: 'no-store' })
-      const json = await response.json().catch(() => ({}))
-      if (!active) return
-      const rows = response.ok && Array.isArray(json.data) ? json.data : []
-      const count = rows.filter(
-        (item: { type?: string; read_at?: string | null }) =>
-          item.type === 'duel_challenge' && !item.read_at,
-      ).length
-      setPendingDuelChallenges(count)
-    }
-
-    void load()
-
-    const debounceTimer = { current: null as any }
-    const channel = supabase
-      .channel(`nav-duel-count:${user.id}`)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },
-        () => {
-          // Debounce 1s to handle chat/notification bursts without redundant fetches
-          if (debounceTimer.current) clearTimeout(debounceTimer.current)
-          debounceTimer.current = setTimeout(() => {
-            if (active) void load()
-          }, 1000)
-        },
-      )
-      .subscribe()
-
-    return () => {
-      active = false
-      if (debounceTimer.current) clearTimeout(debounceTimer.current)
-      void supabase.removeChannel(channel)
-    }
-  }, [user])
 
   return (
     <>
@@ -141,17 +100,18 @@ export function Nav() {
           })}
           {privateFactionHref && factionMeta ? (
             <li className={styles.linkItem}>
-              <Link
-                href={privateFactionHref}
-                onMouseEnter={() => router.prefetch(privateFactionHref)}
-                className={`${styles.link} ${styles.factionLink} ${pathname === privateFactionHref || pathname.startsWith(`${privateFactionHref}/`)
-                  ? styles.linkActive
-                  : ''
-                  }`}
-                style={{ '--faction-link-color': factionMeta.color } as CSSProperties}
-              >
-                {factionMeta.kanji}
-              </Link>
+                <Link
+                  href={privateFactionHref}
+                  onMouseEnter={() => router.prefetch(privateFactionHref)}
+                  className={`${styles.link} ${styles.factionLink} ${pathname === privateFactionHref || pathname.startsWith(`${privateFactionHref}/`)
+                    ? styles.linkActive
+                    : ''
+                    }`}
+                  style={{ '--faction-link-color': factionMeta.color } as CSSProperties}
+                >
+                  <span className={styles.factionKanji}>{factionMeta.kanji}</span>
+                  <span className={styles.factionChatText}>CHAT</span>
+                </Link>
             </li>
           ) : null}
         </ul>

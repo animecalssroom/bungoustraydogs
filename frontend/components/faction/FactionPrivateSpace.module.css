@@ -536,6 +536,49 @@
   }
 }
 
+.declareWarBtn {
+  background: #ff3e3e;
+  border: 1px solid #ff5e5e;
+  color: #fff;
+  font-family: var(--font-record);
+  font-size: 0.65rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  padding: 0.2rem 0.6rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.declareWarBtn:hover {
+  background: #ff5e5e;
+  box-shadow: 0 0 10px rgba(255, 62, 62, 0.4);
+}
+
+.declareForm {
+  margin-top: 1.5rem;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.declareSubmitBtn {
+  width: 100%;
+  margin-top: 1.5rem;
+  padding: 1rem;
+  font-family: var(--font-record) !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.1em !important;
+}
+
 @media (max-width: 900px) {
   .wrap {
     width: 100%;
@@ -642,5 +685,105 @@
 @media (min-width: 901px) {
   .mobileOnly {
     display: none;
+  }
+}
+
+.strikeCommand {
+  margin-top: 1rem;
+  padding: 1.5rem;
+  border: 1px solid var(--border);
+  background: var(--card);
+  box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.2);
+}
+
+.targetGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  margin-top: 1.5rem;
+}
+
+.subHead {
+  font-family: var(--font-record);
+  font-size: 0.58rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--text4);
+  margin-bottom: 1rem;
+}
+
+.strikeCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+  margin-bottom: 0.75rem;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--border2);
+  transition: all 0.2s ease;
+}
+
+.strikeCard:hover {
+  border-color: var(--faction-color);
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.strikeInfo {
+  min-width: 0;
+}
+
+.strikeName {
+  display: flex;
+  align-items: center;
+  font-family: var(--font-heading);
+  font-size: 1.1rem;
+  color: var(--text);
+  margin-bottom: 0.25rem;
+}
+
+.strikeRank, .strikeMsg {
+  font-family: var(--font-record);
+  font-size: 0.52rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text4);
+}
+
+.strikeMsg {
+  font-style: italic;
+  text-transform: none;
+  font-family: var(--font-literary);
+  font-size: 0.85rem;
+  color: var(--text3);
+}
+
+.strikeBtn {
+  flex-shrink: 0;
+  padding: 0.5rem 1rem;
+  background: transparent;
+  border: 1px solid #8B0000;
+  color: #8B0000;
+  font-family: var(--font-record);
+  font-size: 0.65rem;
+  letter-spacing: 0.15em;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.strikeBtn:hover:not(:disabled) {
+  background: #8B0000;
+  color: #fff;
+  box-shadow: 0 0 15px rgba(139, 0, 0, 0.5);
+}
+
+.strikeBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (max-width: 900px) {
+  .targetGrid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
   }
 }

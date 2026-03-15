@@ -35,7 +35,12 @@ export function GlobalDuelMatchmaker() {
             .channel(`global-matchmaker:${user.id}`)
             .on(
                 'postgres_changes',
-                { event: '*', schema: 'public', table: 'duels' },
+                { 
+                    event: '*', 
+                    schema: 'public', 
+                    table: 'duels',
+                    filter: `defender_id=eq.${user.id}`
+                },
                 (payload) => {
                     const raw = payload.new as Duel | undefined
                     if (!raw) {

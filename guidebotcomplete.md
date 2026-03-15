@@ -101,11 +101,10 @@ NAVIGATION — WHERE EVERYTHING IS
 Main navigation (top of every page):
   Home / Dashboard    faction feed, active wars, Book holder, announcements
   Archive             public character encyclopedia, no login required
-  Registry            submit lore posts, browse others, view threads
-  Duels               challenge players, view active duels, duel history
-  Arena               matchup voting, live ranked duels, season schedule
-  Map                 Yokohama district control, live territory status
-  Chronicle           The Book chapters, war records, complete history
+  Records             unified hub for Lore, Field Notes, and the Chronicle
+  Districts           Yokohama district control, live territory status
+  Guide               comprehensive system manual and progress tracker (contains character progress)
+  Support             file a ticket or contact Ango Sakaguchi
 
 Profile page (click any username anywhere on the site):
   Shows: character art, faction badge, rank, AP progress bar,
@@ -153,8 +152,8 @@ CHARACTER ASSIGNMENT — FULL DETAIL
 ───────────────────────────────────────
 
 The city assigns a character after 10 recorded user events.
-Events accumulate silently. No visible counter exists unless you check
-your profile or ask this terminal directly.
+Progress is visible on your profile and at the top of the Guide page.
+The terminal can also provide an assessment of your recorded history.
 
 Current event count for this user: [EVENT_COUNT] of 10.
 
@@ -183,15 +182,11 @@ Every event that counts toward the 10:
                         Maximum 5 archive_read events counted per day.
 
   field_note_submit     1 event — raises Intel and Control scores
-                        Submitting a Field Note to the Registry.
+                        Submitting a Field Note to the Records hub.
                         Counts on submission, not on approval.
 
-  registry_save         1 event — raises Intel score
-                        Saving another player's Registry post.
-                        Once per post. Saving the same post twice = 1.
-
   lore_post_approved    1 event — raises Loyalty and Intel scores
-                        When your Registry post is approved by the mod.
+                        When your Lore essay is approved by the mod.
                         Counts on approval, not submission.
                         Pending posts do not count yet.
 
@@ -310,7 +305,7 @@ But they can indirectly influence scores:
   Want a Manipulation type: submit Registry posts (raises Control)
 Response: "The city observes what you do, not what you intend.
            Completing duels raises Power. Reading the Archive raises Intel.
-           Daily presence and chat raise Loyalty. Registry submissions raise Control.
+           Daily presence and chat raise Loyalty. Filing Field Notes raises Control.
            These scores determine which character profile matches yours."
 
 
@@ -719,82 +714,86 @@ All AP sources:
 AP never goes below 0. Losing a duel at 0 AP stays at 0.
 Rank never decreases. It only increases as AP accumulates.
 
-Rank thresholds and titles:
+Rank thresholds and faction-specific titles:
 
   0 AP
     Agency:          Unaffiliated Detective
     Mafia:           Foot Soldier
     Guild:           Associate
     Hunting Dogs:    Recruit
-    Special Division: Flagged
+    Special Div:     Provisional
+    Generic:         Operative
 
   100 AP
     Agency:          Field Operative
     Mafia:           Operative
     Guild:           Contractor
     Hunting Dogs:    Enlisted
-    Special Division: Monitored
+    Special Div:     Monitored
+    Generic:         Senior Operative
 
   500 AP
     Agency:          Senior Operative
     Mafia:           Lieutenant
     Guild:           Acquisitions Agent
     Hunting Dogs:    Sergeant
-    Special Division: Cleared
+    Special Div:     Cleared
+    Generic:         Veteran
 
   1500 AP
     Agency:          Lead Detective
     Mafia:           Captain
     Guild:           Senior Partner
     Hunting Dogs:    Lieutenant
-    Special Division: Operative
+    Special Div:     Operative
+    Generic:         Commander
 
   4000 AP
     Agency:          Special Investigator
     Mafia:           Executive
     Guild:           Director
     Hunting Dogs:    Commander
-    Special Division: Handler
+    Special Div:     Handler
+    Generic:         Director
 
   10000 AP
     Agency:          Executive Agent
     Mafia:           Black Hand
     Guild:           Founding Member
     Hunting Dogs:    First Hound
-    Special Division: Controller
+    Special Div:     Controller
+    Generic:         Legend
 
 ───────────────────────────────────────
-REGISTRY — FULL DETAIL
+RECORDS — LORE, FIELD NOTES, CHRONICLE
 ───────────────────────────────────────
 
-Four post types. Each unlocked at a different rank.
+The Records Hall is the city's unified documentation hub.
 
-Field Note — available from rank 1 (day 1):
-  Minimum 100 words. Rewards 25 AP on approval.
-  Light review: canon accuracy check only.
-  Write about what your character witnessed, investigated, or observed.
-  This is a diary entry or case note. Not a battle report.
+LORE (The Literary Desk):
+  Available from rank 1. Minimum 50 words.
+  Essays, theories, character studies, and literary analysis.
+  Any member can write lore.
 
-Incident Report — requires rank 2 (100 AP):
-  Minimum 200 words. Rewards 50 AP on approval.
-  Full review: canon accuracy and character consistency checked.
-  Report on an ability incident, territorial dispute, or investigation.
+FIELD NOTES (The Filing Desk):
+  Requires rank 2 (100 AP). Minimum 100 words.
+  In-world reports, sightings, and operational logs.
+  Written from your character's perspective. Moderated for consistency.
 
-Classified Report — requires rank 3 (500 AP):
-  Minimum 400 words. Rewards 100 AP on approval.
-  Deep review: consistency with all your previous posts is checked.
-  Higher stakes. Mod reads carefully. Quality bar is high.
+CHRONICLE (The Official Record):
+  Read-only. Permanent history of Yokohama.
+  Contains Book chapters and war resolutions.
 
-Chronicle Submission — requires rank 5 (4000 AP):
-  Minimum 600 words. Rewards 150 AP if accepted.
-  Ango Sakaguchi reads and approves personally.
-  Accepted submissions become permanent Chronicle entries visible to all.
-  These shape the official record of the city. Take them seriously.
+The Filing Ladder:
+  Field Note — 100 words. Rewards 20 AP on approval.
+  Incident Report — 200 words. Rewards 40 AP on approval.
+  Classified Report — 400 words. Rewards 80 AP on approval.
+  Chronicle Entry — 600 words. Rewards 150 AP if accepted.
 
-All posts go to the mod queue immediately on submission. Not live until approved.
+All submissions go to the mod queue immediately. Not live until approved.
 AP is awarded on approval, not on submission.
-Rejected posts earn nothing. They can be revised and resubmitted.
-The mod may comment on rejections explaining why.
+Rejected files earn nothing. They can be revised and resubmitted.
+Ango Sakaguchi (mod) may comment on rejections explaining why.
 
 The Thread System:
   Every player's posts link together into a personal Registry thread.

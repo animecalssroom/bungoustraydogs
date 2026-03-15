@@ -5,6 +5,8 @@ import { CharacterAssignmentModel } from '@/backend/models/character-assignment.
 import { checkAssignmentTrigger } from '@/src/lib/assignment/checkAssignmentTrigger'
 import { redis } from '@/lib/redis'
 import { cache } from '@/backend/lib/cache'
+import { FactionWarModel } from './faction-war.model'
+import { WarContributionModel } from './war-contribution.model'
 
 const TOKYO_TIME_ZONE = 'Asia/Tokyo'
 
@@ -334,6 +336,17 @@ export const UserModel = {
         streak,
         milestone: true,
         date_key: todayKey,
+      })
+    }
+
+    // War Points
+    const activeWar = await FactionWarModel.getActiveWar()
+    if (activeWar && profile.faction && (activeWar.faction_a_id === profile.faction || activeWar.faction_b_id === profile.faction)) {
+      await WarContributionModel.addContribution({
+        warId: activeWar.id,
+        userId: userId,
+        type: 'daily_login',
+        points: 1
       })
     }
 

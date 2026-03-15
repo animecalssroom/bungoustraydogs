@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import type { TerritoryControl, WarStatus, FactionId, RegistryDistrict } from '@/backend/types'
+import type { TerritoryControl, WarStatus, FactionId, RegistryDistrict, WarGlobalStatus } from '@/backend/types'
 import { FACTION_META } from '@/frontend/lib/launch'
 
 const DISTRICT_COORDS: Record<RegistryDistrict, { x: number; y: number; size: number }> = {
@@ -16,7 +16,7 @@ const DISTRICT_COORDS: Record<RegistryDistrict, { x: number; y: number; size: nu
 }
 
 export function FactionWarMap() {
-    const [data, setData] = useState<{ territories: TerritoryControl[]; status: WarStatus } | null>(null)
+    const [data, setData] = useState<{ territories: TerritoryControl[]; status: WarGlobalStatus } | null>(null)
     const [loading, setLoading] = useState(true)
     const [hovered, setHovered] = useState<RegistryDistrict | null>(null)
 
@@ -156,9 +156,9 @@ export function FactionWarMap() {
                     <div className="font-cinzel" style={{ fontSize: '1.2rem', fontWeight: 800 }}>{data?.status.total_territories ?? 0}</div>
                 </div>
                 {data?.status.faction_rankings.slice(0, 2).map((rank, i) => (
-                    <div key={rank.faction} style={{ border: '1.5px solid #d4c5b3', padding: '0.75rem', background: `${FACTION_META[rank.faction].color}08` }}>
-                        <div className="font-space-mono" style={{ fontSize: '0.45rem', color: FACTION_META[rank.faction].color, textTransform: 'uppercase', fontWeight: 700 }}>{i === 0 ? 'City Leader' : 'Contender'}</div>
-                        <div className="font-cinzel" style={{ fontSize: '1rem', fontWeight: 800 }}>{FACTION_META[rank.faction].name}</div>
+                    <div key={rank.faction} style={{ border: '1.5px solid #d4c5b3', padding: '0.75rem', background: `${FACTION_META[rank.faction as FactionId].color}08` }}>
+                        <div className="font-space-mono" style={{ fontSize: '0.45rem', color: FACTION_META[rank.faction as FactionId].color, textTransform: 'uppercase', fontWeight: 700 }}>{i === 0 ? 'City Leader' : 'Contender'}</div>
+                        <div className="font-cinzel" style={{ fontSize: '1rem', fontWeight: 800 }}>{FACTION_META[rank.faction as FactionId].name}</div>
                         <div className="font-space-mono" style={{ fontSize: '0.45rem', color: '#8b7d6b' }}>{rank.score} SEC. CONTROLLED</div>
                     </div>
                 ))}

@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import type { FactionId, Profile } from '@/backend/types'
+import { getRankTitle, type FactionId, type Profile } from '@/backend/types'
 import { FactionModel } from '@/backend/models/faction.model'
 import { AngoUsername } from '@/frontend/components/ango/AngoUsername'
 import { createClient } from '@/frontend/lib/supabase/server'
@@ -229,7 +229,7 @@ export default async function FactionDossierPage({
                     <div>
                       <p className={styles.rosterName}>{displayName(member)}</p>
                       <p className={styles.rosterMeta}>
-                        {member.role} · rank {member.rank} · {member.ap_total} AP
+                        {getRankTitle(member.rank, member.faction)} · {member.ap_total} AP
                       </p>
                       <p className={styles.rosterMeta}>
                         <AngoUsername userId={member.id} username={member.username} />
@@ -258,7 +258,7 @@ export default async function FactionDossierPage({
                   <div>
                     <p className={styles.leaderName}>{displayName(leader)}</p>
                     <p className={styles.leaderMeta}>
-                      {leader.role} · rank {leader.rank} · {leader.ap_total} AP
+                      {getRankTitle(leader.rank, leader.faction)} · {leader.ap_total} AP
                     </p>
                     <p className={styles.leaderMeta}>
                       <AngoUsername userId={leader.id} username={leader.username} />

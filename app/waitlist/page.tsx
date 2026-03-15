@@ -273,7 +273,7 @@ export default function WaitlistPage() {
             <Link href="/archive" className="btn-secondary">
               Read the Archive
             </Link>
-            <Link href="/lore" className="btn-secondary">
+            <Link href="/records?tab=lore" className="btn-secondary">
               Read Lore
             </Link>
             <Link href="/arena" className="btn-secondary">

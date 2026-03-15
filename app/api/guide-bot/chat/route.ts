@@ -40,47 +40,8 @@ async function loadSystemPrompt() {
 loadSystemPrompt()
 loadKnowledgeFiles()
 
-const RANK_TITLES_BY_FACTION: Record<string, Array<{ ap: number; title: string }>> = {
-  agency: [
-    { ap: 0, title: 'Unaffiliated Detective' },
-    { ap: 100, title: 'Field Operative' },
-    { ap: 500, title: 'Senior Operative' },
-    { ap: 1500, title: 'Lead Detective' },
-    { ap: 4000, title: 'Special Investigator' },
-    { ap: 10000, title: 'Executive Agent' },
-  ],
-  mafia: [
-    { ap: 0, title: 'Foot Soldier' },
-    { ap: 100, title: 'Operative' },
-    { ap: 500, title: 'Lieutenant' },
-    { ap: 1500, title: 'Captain' },
-    { ap: 4000, title: 'Executive' },
-    { ap: 10000, title: 'Black Hand' },
-  ],
-  guild: [
-    { ap: 0, title: 'Associate' },
-    { ap: 100, title: 'Contractor' },
-    { ap: 500, title: 'Acquisitions Agent' },
-    { ap: 1500, title: 'Senior Partner' },
-    { ap: 4000, title: 'Director' },
-    { ap: 10000, title: 'Founding Member' },
-  ],
-  hunting_dogs: [
-    { ap: 0, title: 'Recruit' },
-    { ap: 100, title: 'Enlisted' },
-    { ap: 500, title: 'Sergeant' },
-    { ap: 1500, title: 'Lieutenant' },
-    { ap: 4000, title: 'Commander' },
-    { ap: 10000, title: 'First Hound' },
-  ],
-  special_div: [
-    { ap: 0, title: 'Flagged' },
-    { ap: 100, title: 'Monitored' },
-    { ap: 500, title: 'Cleared' },
-    { ap: 1500, title: 'Operative' },
-    { ap: 4000, title: 'Handler' },
-    { ap: 10000, title: 'Controller' },
-  ],
+function getFactionRankTitle(profile: Profile) {
+  return getRankTitle(profile.rank, profile.faction)
 }
 
 function getFactionLabel(profile: Profile) {
@@ -104,22 +65,6 @@ function getFactionLabel(profile: Profile) {
     default:
       return 'Not yet assigned'
   }
-}
-
-function getFactionRankTitle(profile: Profile) {
-  const thresholds = profile.faction ? RANK_TITLES_BY_FACTION[profile.faction] : null
-  if (!thresholds?.length) {
-    return getRankTitle(profile.rank)
-  }
-
-  let title = thresholds[0].title
-  for (const entry of thresholds) {
-    if (profile.ap_total >= entry.ap) {
-      title = entry.title
-    }
-  }
-
-  return title
 }
 
 

@@ -1,0 +1,121 @@
+.strip {
+  background: linear-gradient(90deg, #4a0000 0%, #7a0000 50%, #4a0000 100%);
+  padding: 0.75rem 1.5rem;
+  border-radius: 4px;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-family: 'Inter', sans-serif;
+}
+
+.warMeta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+.activeLabel {
+  background: #ff0000;
+  padding: 0.2rem 0.5rem;
+  border-radius: 2px;
+  animation: pulse 2s infinite;
+  text-shadow: 0 0 10px rgba(255, 0, 0, 0.8);
+}
+
+.statusGroup {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.escalationLabel {
+  background: #ff9900;
+  color: #000;
+  padding: 0.2rem 0.5rem;
+  border-radius: 2px;
+  font-weight: 900;
+  font-size: 0.65rem;
+}
+
+.climaxLabel {
+  background: #ffff00;
+  color: #000;
+  padding: 0.2rem 0.5rem;
+  border-radius: 2px;
+  font-weight: 900;
+  font-size: 0.65rem;
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.7; }
+  100% { opacity: 1; }
+}
+
+.timer {
+  font-family: 'Courier New', Courier, monospace;
+}
+
+.battleLine {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.factionLabel {
+  display: flex;
+  flex-direction: column;
+  min-width: 80px;
+}
+
+.factionName {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.points {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.25rem;
+  font-weight: 900;
+}
+
+.progressTrack {
+  flex-grow: 1;
+  height: 8px;
+  background: rgba(0, 0, 0, 0.3);
+  display: flex;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.barA {
+  background: #fff;
+  transition: width 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.barB {
+  background: #000;
+  transition: width 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.stakes {
+  font-size: 0.8rem;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.7);
+  font-style: italic;
+}
+
+.stakeDetail {
+  color: #fff;
+  font-weight: 600;
+  font-style: normal;
+}

@@ -233,7 +233,7 @@ export default function QuizResultPage() {
                 textTransform: 'uppercase',
               }}
             >
-              Calculating registry placement...
+              Calculating your designation...
             </p>
             <div
               style={{
@@ -372,7 +372,7 @@ export default function QuizResultPage() {
                       Faction chat post &nbsp;&nbsp; ×3 per day max<br />
                       Archive read &nbsp;&nbsp; ×5 per day max<br />
                       Profile views &nbsp;&nbsp; ×1 per unique profile per day<br />
-                      Registry post &nbsp;&nbsp; counts on approval<br />
+                      Field Notes filing &nbsp;&nbsp; counts on submission<br />
                       Duel completion &nbsp;&nbsp; win or loss, both count<br />
                       Arena vote &nbsp;&nbsp; ×1 per vote
                     </div>

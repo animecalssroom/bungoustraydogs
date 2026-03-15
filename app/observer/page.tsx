@@ -86,7 +86,7 @@ export default function ObserverPage() {
             <Link href="/archive" className="btn-secondary">
               Browse Characters
             </Link>
-            <Link href="/lore" className="btn-secondary">
+            <Link href="/records?tab=lore" className="btn-secondary">
               Browse Lore
             </Link>
             <Link href="/" className="btn-primary">

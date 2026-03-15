@@ -146,7 +146,20 @@ export const DuelModel = {
       return { error: 'You already have too many active or pending duels on file.' as const }
     }
 
+    
     const challengeExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+
+    // Check for active war between these factions
+    const { data: activeWar } = await supabaseAdmin
+      .from('faction_wars')
+      .select('id')
+      .neq('status', 'complete')
+      .or(`and(faction_a_id.eq.${challenger.faction},faction_b_id.eq.${defender.faction}),and(faction_a_id.eq.${defender.faction},faction_b_id.eq.${challenger.faction})`)
+      .maybeSingle()
+
+    const isWarDuel = !!activeWar
+    const warId = activeWar?.id || null
+
     const { data, error } = await supabaseAdmin
       .from('duels')
       .insert({
@@ -166,6 +179,8 @@ export const DuelModel = {
         challenger_hp: computeDuelMaxHp(challenger.character_match_id),
         defender_hp: computeDuelMaxHp(defender.character_match_id),
         challenge_expires_at: challengeExpiresAt,
+        is_war_duel: isWarDuel,
+        war_id: warId,
       })
       .select(DUEL_SELECT)
       .single()
@@ -211,7 +226,20 @@ export const DuelModel = {
       return { error: 'You already have too many active or pending duels on file.' as const }
     }
 
+    
     const challengeExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+
+    // Check for active war between these factions
+    const { data: activeWar } = await supabaseAdmin
+      .from('faction_wars')
+      .select('id')
+      .neq('status', 'complete')
+      .or(`and(faction_a_id.eq.${challenger.faction},faction_b_id.eq.${defender.faction}),and(faction_a_id.eq.${defender.faction},faction_b_id.eq.${challenger.faction})`)
+      .maybeSingle()
+
+    const isWarDuel = !!activeWar
+    const warId = activeWar?.id || null
+
     const { data, error } = await supabaseAdmin
       .from('duels')
       .insert({
@@ -231,6 +259,8 @@ export const DuelModel = {
         challenger_hp: computeDuelMaxHp(challenger.character_match_id),
         defender_hp: computeDuelMaxHp(defender.character_match_id),
         challenge_expires_at: challengeExpiresAt,
+        is_war_duel: isWarDuel,
+        war_id: warId,
       })
       .select(DUEL_SELECT)
       .single()

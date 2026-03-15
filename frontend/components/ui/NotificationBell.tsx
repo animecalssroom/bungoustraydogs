@@ -8,103 +8,33 @@ import { createClient } from '@/frontend/lib/supabase/client'
 import type { Notification } from '@/backend/types'
 import { formatRemainingTime } from '@/lib/duels/shared'
 
+import { useNotifications } from '@/frontend/context/NotificationContext'
+
 export default function NotificationBell({ userId }: { userId: string }) {
   const pathname = usePathname()
   const router = useRouter()
-  const supabase = useMemo(() => createClient(), [])
+  const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications()
   const [open, setOpen] = useState(false)
-  const [notifications, setNotifications] = useState<Notification[]>([])
 
-  useEffect(() => {
-    let active = true
+  const orderedNotifications = useMemo(() => {
+    return [...notifications].sort((left, right) => {
+      if (left.type === 'duel_challenge' && right.type !== 'duel_challenge') return -1
+      if (left.type !== 'duel_challenge' && right.type === 'duel_challenge') return 1
+      return new Date(right.created_at).getTime() - new Date(left.created_at).getTime()
+    })
+  }, [notifications])
 
-    const load = async () => {
-      const response = await fetch('/api/notifications?limit=10', {
-        cache: 'no-store',
-      })
-      const json = await response.json().catch(() => ({}))
+  const unreadSpecialInvite = useMemo(() => 
+    notifications.find((item) => item.type === 'special_division_invite' && !item.read_at)
+  , [notifications])
 
-      if (!active) {
-        return
-      }
-
-      const rows = ((response.ok ? json.data : []) ?? []) as Array<
-        Notification & {
-          action_url?: string | null
-          reference_id?: string | null
-          read_at?: string | null
-        }
-      >
-
-      setNotifications(
-        rows.map((row) => ({
-          ...row,
-          action_url: row.action_url ?? null,
-          reference_id: row.reference_id ?? null,
-          read_at: row.read_at ?? null,
-        })),
-      )
-    }
-
-    void load()
-
-    const pollInterval = setInterval(() => {
-      void load()
-    }, 20000) // Poll every 20s as fallback
-
-    const channel = supabase
-      .channel(`notifications:${userId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${userId}`,
-        },
-        () => {
-          void load()
-        },
-      )
-      .subscribe()
-
-    return () => {
-      active = false
-      clearInterval(pollInterval)
-      void supabase.removeChannel(channel)
-    }
-  }, [supabase, userId])
-
-  const unreadCount = notifications.filter((item) => !item.read_at).length
-  const orderedNotifications = [...notifications].sort((left, right) => {
-    if (left.type === 'duel_challenge' && right.type !== 'duel_challenge') return -1
-    if (left.type !== 'duel_challenge' && right.type === 'duel_challenge') return 1
-    return new Date(right.created_at).getTime() - new Date(left.created_at).getTime()
-  })
-  const unreadSpecialInvite = notifications.find(
-    (item) => item.type === 'special_division_invite' && !item.read_at,
-  )
   const specialInvitePath =
     typeof unreadSpecialInvite?.payload?.redirect_to === 'string'
       ? unreadSpecialInvite.payload.redirect_to
       : '/faction/special_div'
 
   const markSingleRead = async (notificationId: string) => {
-    const now = new Date().toISOString()
-    const response = await fetch('/api/notifications/acknowledge', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: notificationId }),
-    })
-
-    if (!response.ok) {
-      return false
-    }
-
-    setNotifications((current) =>
-      current.map((item) => (item.id === notificationId ? { ...item, read_at: now } : item)),
-    )
-    return true
+    return await markAsRead(notificationId)
   }
 
   useEffect(() => {
@@ -119,24 +49,12 @@ export default function NotificationBell({ userId }: { userId: string }) {
     void markSingleRead(unreadSpecialInvite.id)
   }, [pathname, specialInvitePath, unreadSpecialInvite])
 
-  const markRead = async () => {
-    const nonDuelUnreadIds = notifications
-      .filter((item) => !item.read_at && item.type !== 'duel_challenge')
-      .map((item) => item.id)
-
-    if (nonDuelUnreadIds.length === 0) {
-      return
-    }
-
-    await Promise.all(nonDuelUnreadIds.map((notificationId) => markSingleRead(notificationId)))
-  }
-
   const toggle = () => {
     const next = !open
     setOpen(next)
 
     if (next && unreadCount > 0) {
-      void markRead()
+      void markAllAsRead()
     }
   }
 
