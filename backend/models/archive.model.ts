@@ -40,24 +40,13 @@ function normalizeEntry(entry: Partial<ArchiveEntry> & { slug: string }): Archiv
 
 export const ArchiveModel = {
   async getAll(): Promise<ArchiveEntry[]> {
-    try {
-      const { data, error } = await supabaseAdmin
-        .from('archive_entries')
-        .select('*')
-        .order('character_name')
-
-      if (error || !data?.length) {
-        return ARCHIVE_FALLBACK_CATALOG
-      }
-
-      return data.map((entry) => normalizeEntry(entry))
-    } catch {
-      return ARCHIVE_FALLBACK_CATALOG
-    }
+    // Return local catalog immediately for free-tier architecture
+    return ARCHIVE_FALLBACK_CATALOG
   },
 
   async getBySlug(slug: string): Promise<ArchiveEntry | null> {
-    const fallback = ARCHIVE_FALLBACK_CATALOG.find((entry) => entry.slug === slug) ?? null
+    const local = ARCHIVE_FALLBACK_CATALOG.find((entry) => entry.slug === slug)
+    if (local) return local
     
     try {
       const { data, error } = await supabaseAdmin
@@ -67,30 +56,12 @@ export const ArchiveModel = {
         .single()
 
       if (error || !data) {
-        return fallback
+        return null
       }
 
-      const normalized = normalizeEntry(data)
-      
-      // Merge strategy: if fallback has more data than DB (e.g. new fields added to catalog but not migration yet)
-      if (fallback) {
-        return {
-          ...fallback,
-          ...normalized,
-          // Explicitly fallback if DB field is null/empty but fallback has it
-          designation: normalized.designation || fallback.designation,
-          clearance_level: normalized.clearance_level || fallback.clearance_level,
-          ability_analysis: normalized.ability_analysis || fallback.ability_analysis,
-          lore_background: normalized.lore_background || fallback.lore_background,
-          physical_evidence: normalized.physical_evidence || fallback.physical_evidence,
-          narrative_hook: normalized.narrative_hook || fallback.narrative_hook,
-          registry_note: normalized.registry_note || fallback.registry_note,
-        }
-      }
-
-      return normalized
+      return normalizeEntry(data)
     } catch {
-      return fallback
+      return null
     }
   },
 }

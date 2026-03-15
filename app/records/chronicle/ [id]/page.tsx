@@ -3,7 +3,15 @@ import Link from 'next/link'
 import { ChronicleModel } from '@/backend/models/chronicle.model'
 import { ErrorBoundary } from '@/frontend/components/ui/ErrorBoundary'
 
-export const dynamic = 'force-dynamic'
+// Static pre-rendering for chronicles
+export const revalidate = 604800
+
+export async function generateStaticParams() {
+  const entries = await ChronicleModel.getPublished()
+  return entries.map((entry) => ({
+    id: entry.id,
+  }))
+}
 
 export default async function ChronicleDetailPage({ params }: { params: { id: string } }) {
   const entry = await ChronicleModel.getById(params.id)

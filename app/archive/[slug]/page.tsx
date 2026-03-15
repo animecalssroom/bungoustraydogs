@@ -11,7 +11,14 @@ import { AbilityTypeIcon } from '@/frontend/components/character/AbilityTypeIcon
 
 const RESERVED_SLUGS = ['mori-ogai', 'fukuzawa-yukichi', 'fyodor-dostoyevsky', 'fitzgerald']
 
-export const revalidate = 300
+export const revalidate = 604800 // Weekly revalidation, but mostly static
+
+export async function generateStaticParams() {
+  const entries = await ArchiveModel.getAll()
+  return entries.map((entry) => ({
+    slug: entry.slug,
+  }))
+}
 
 function renderTraitBar(label: string, value: number | null, isReserved: boolean) {
   const safeValue = value ?? 0

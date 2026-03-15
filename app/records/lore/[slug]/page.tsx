@@ -6,8 +6,15 @@ import { CommentThread } from '@/frontend/components/discussion/CommentThread'
 import { FlagFileButton } from '@/frontend/components/support/FlagFileButton'
 import { LoreViewTracker } from '@/frontend/components/lore/LoreViewTracker'
 
-// Incremental Static Regeneration: 5 minutes
-export const revalidate = 300
+// Incremental Static Regeneration: Weekly revalidation for static feel
+export const revalidate = 604800
+
+export async function generateStaticParams() {
+  const posts = await LoreModel.getAll()
+  return posts.map((post) => ({
+    slug: post.slug,
+  }))
+}
 
 export default async function LorePostPage({
   params,

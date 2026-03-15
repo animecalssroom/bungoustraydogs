@@ -60,6 +60,8 @@ export const ARCHIVE_FALLBACK_CATALOG: ArchiveEntry[] = [
     notable_works: 'Sangetsuki, Light Wind and Dreams',
     ability_literary_connection:
       'The tiger form draws directly from Sangetsuki, where a man is consumed by the beast hidden inside his own pride and fear. BSD turns that inner metamorphosis into a visible combat signature.',
+    designation: 'YKH-001',
+    clearance_level: 'Level 1 (Active Asset)',
     registry_note:
       'The file reads as if the city caught a frightened soul mid-transformation and chose not to look away.',
     status: 'active',
@@ -86,6 +88,8 @@ export const ARCHIVE_FALLBACK_CATALOG: ArchiveEntry[] = [
     notable_works: 'No Longer Human, The Setting Sun',
     ability_literary_connection:
       'No Longer Human becomes an erasure power because the original novel is already about estrangement from ordinary humanity. In BSD, that alienation is weaponized into direct negation.',
+    designation: 'YKH-002',
+    clearance_level: 'Level 4 (Disruptive Asset)',
     registry_note:
       'The city keeps this file open because too many other files change shape around it.',
     status: 'active',
@@ -112,8 +116,8 @@ export const ARCHIVE_FALLBACK_CATALOG: ArchiveEntry[] = [
     notable_works: 'Musashino, Aitei Tsushin',
     ability_literary_connection:
       'BSD reimagines the writer\'s disciplined interior life as literal materialization through the notebook. The ability turns written intention into concrete form.',
-    designation: 'The Idealist / The Keystone',
-    clearance_level: 'Level 3 (Field Commander)',
+    designation: 'YKH-003',
+    clearance_level: 'Level 3 (Senior Operative)',
     ability_analysis: 'A manifestation ability tied to his physical notebook. By writing the name of an object and tearing out a page, he can materialize that object into reality. Limitation: The object cannot be larger than the notebook itself.',
     lore_background: 'A former math teacher with a rigid moral compass. He is the Agency’s primary disciplinarian and the successor-designate to Director Fukuzawa. His life is governed by his "Ideals"—a series of notebooks detailing how the world should be. While he finds Dazai infuriating, their partnership remains the most effective tactical duo in the city’s history.',
     physical_evidence: [
@@ -151,6 +155,8 @@ export const ARCHIVE_FALLBACK_CATALOG: ArchiveEntry[] = [
     notable_works: 'The Human Chair, The Beast in the Shadows',
     ability_literary_connection:
       'Ultra-Deduction lifts Ranpo\'s status as a master mystery architect into a near-supernatural investigative faculty. BSD translates genre-defining deduction into institutional authority.',
+    designation: 'YKH-004',
+    clearance_level: 'Level 4 (Elite Analyst)',
     registry_note:
       'Some files solve themselves when he enters the room. The registry resents this and benefits from it.',
     status: 'active',
@@ -177,6 +183,8 @@ export const ARCHIVE_FALLBACK_CATALOG: ArchiveEntry[] = [
     notable_works: 'Midaregami, Thou Shalt Not Die',
     ability_literary_connection:
       'The ability borrows its name from Yosano\'s anti-war poem and twists it into battlefield medicine. BSD keeps the command against death but expresses it through brutal intervention.',
+    designation: 'YKH-005',
+    clearance_level: 'Level 3 (Specialist Physician)',
     registry_note:
       'The city calls this healing only because it has no word for rescue that arrives like a threat.',
     status: 'active',
@@ -203,6 +211,8 @@ export const ARCHIVE_FALLBACK_CATALOG: ArchiveEntry[] = [
     notable_works: 'The Makioka Sisters, In Praise of Shadows',
     ability_literary_connection:
       'Light Snow takes the refined atmosphere of The Makioka Sisters and turns it into visual deception. The softness of the title becomes camouflage rather than comfort.',
+    designation: 'YKH-006',
+    clearance_level: 'Level 2 (Active Operative)',
     registry_note:
       'This file prefers angles, screens, and the single second in which certainty slips.',
     status: 'active',
@@ -229,6 +239,8 @@ export const ARCHIVE_FALLBACK_CATALOG: ArchiveEntry[] = [
     notable_works: 'Classified',
     ability_literary_connection:
       'This file functions as an in-world extension of the Tanizaki literary orbit rather than a direct author adaptation. Its public record remains intentionally incomplete.',
+    designation: 'YKH-007',
+    clearance_level: 'Level 2 (Staff)',
     registry_note:
       'Some files are retained not for clarity but because omission itself becomes part of the pattern.',
     status: 'active',
@@ -255,6 +267,8 @@ export const ARCHIVE_FALLBACK_CATALOG: ArchiveEntry[] = [
     notable_works: 'The Holy Man of Mount Koya, Demon Pond',
     ability_literary_connection:
       'Demon Snow channels Izumi\'s supernatural elegance into a murder spirit with ceremonial poise. The result feels less like a weapon than a ghost obeying paperwork.',
+    designation: 'YKH-008',
+    clearance_level: 'Level 2 (Probationary)',
     registry_note:
       'Snow is only innocent from a distance; this file insists on the distinction.',
     status: 'active',
@@ -281,6 +295,8 @@ export const ARCHIVE_FALLBACK_CATALOG: ArchiveEntry[] = [
     notable_works: 'Night on the Galactic Railroad, Ame ni mo Makezu',
     ability_literary_connection:
       'The title comes from Miyazawa\'s famous poem about endurance, humility, and service. BSD recasts those values as impossible bodily force that never loses its moral softness.',
+    designation: 'YKH-009',
+    clearance_level: 'Level 1 (Active Asset)',
     registry_note:
       'The file looks harmless until the city remembers that weather can level whole districts.',
     status: 'active',
@@ -307,6 +323,8 @@ export const ARCHIVE_FALLBACK_CATALOG: ArchiveEntry[] = [
     notable_works: 'An Encouragement of Learning',
     ability_literary_connection:
       'The ability turns Fukuzawa\'s political and educational philosophy into organizational equilibrium. Equality becomes the condition that lets talent function without collapse.',
+    designation: 'YKH-010',
+    clearance_level: 'Level 5 (Director)',
     registry_note:
       'Some authority looks loud. This file proves the more durable version rarely is.',
     status: 'active',
@@ -333,6 +351,8 @@ export const ARCHIVE_FALLBACK_CATALOG: ArchiveEntry[] = [
     notable_works: 'Poems of the Goat, For the Tainted Sorrow',
     ability_literary_connection:
       'BSD transforms a poem of contamination and grief into literal gravitational ruin. Sorrow becomes mass, pressure, and collapse.',
+    designation: 'YKH-011',
+    clearance_level: 'Level 4 (Calamity Class)',
     registry_note:
       'The city measures this file in damaged pavement and the seconds before impact.',
     status: 'active',
@@ -359,6 +379,8 @@ export const ARCHIVE_FALLBACK_CATALOG: ArchiveEntry[] = [
     notable_works: 'Rashomon, In a Grove, Hell Screen',
     ability_literary_connection:
       'Rashomon borrows the name of a story already bound to desperation and moral collapse. BSD turns that atmosphere into a predatory extension of the self.',
+    designation: 'YKH-012',
+    clearance_level: 'Level 4 (High Lethality)',
     registry_note:
       'This file does not ask whether the world is cruel; it enters the room assuming the answer.',
     status: 'active',
@@ -385,6 +407,8 @@ export const ARCHIVE_FALLBACK_CATALOG: ArchiveEntry[] = [
     notable_works: 'Vita Sexualis, The Wild Geese',
     ability_literary_connection:
       'BSD takes the introspective and controversial title Vita Sexualis and converts it into a remote-controlled projection. Interior observation becomes outward manipulation.',
+    designation: 'YKH-013',
+    clearance_level: 'Level 5 (Director)',
     registry_note:
       'The file never raises its voice. That is usually when the city loses the most ground.',
     status: 'active',
@@ -411,6 +435,8 @@ export const ARCHIVE_FALLBACK_CATALOG: ArchiveEntry[] = [
     notable_works: 'The Gold Demon',
     ability_literary_connection:
       'The Gold Demon becomes Golden Demon, shifting melodramatic obsession into an obedient killing apparition. Emotional excess is recast as weapon discipline.',
+    designation: 'YKH-014',
+    clearance_level: 'Level 4 (Executive)',
     registry_note:
       'The public file calls it elegance because the more accurate words are harder to print.',
     status: 'active',
@@ -437,6 +463,8 @@ export const ARCHIVE_FALLBACK_CATALOG: ArchiveEntry[] = [
     notable_works: 'Poems associated with winter and memory',
     ability_literary_connection:
       'Midwinter Memento translates lyric coldness and fragile remembrance into metal control. The ability feels less forged than remembered into shape.',
+    designation: 'YKH-015',
+    clearance_level: 'Level 3 (Black Lizard Lead)',
     registry_note:
       'This file always sounds like it belongs wholly to someone else until the metal starts moving.',
     status: 'active',
@@ -463,6 +491,8 @@ export const ARCHIVE_FALLBACK_CATALOG: ArchiveEntry[] = [
     notable_works: 'The Black Cat, The Murders in the Rue Morgue, The Raven',
     ability_literary_connection:
       'BSD fuses two Poe titles into a closed narrative trap, honoring both the detective blueprint and the haunted atmosphere. Reading becomes the condition of escape.',
+    designation: 'YKH-016',
+    clearance_level: 'Level 3 (Asset)',
     registry_note:
       'This file does not imprison bodies first. It imprisons interpretation.',
     status: 'active',
@@ -489,6 +519,8 @@ export const ARCHIVE_FALLBACK_CATALOG: ArchiveEntry[] = [
     notable_works: 'The Great Gatsby, Tender Is the Night',
     ability_literary_connection:
       'The Great Fitzgerald turns the glamour and currency of Fitzgerald\'s literary world into a literal transaction engine. Wealth stops symbolizing power and simply becomes it.',
+    designation: 'YKH-017',
+    clearance_level: 'Level 5 (Chairman)',
     registry_note:
       'The city distrusts any file that can write checks directly onto the battlefield.',
     status: 'active',
@@ -515,6 +547,8 @@ export const ARCHIVE_FALLBACK_CATALOG: ArchiveEntry[] = [
     notable_works: 'Anne of Green Gables, Emily of New Moon',
     ability_literary_connection:
       'BSD darkens Anne of Green Gables into Anne of Abyssal Red, preserving imagination while draining away safety. The domestic room becomes a prison domain.',
+    designation: 'YKH-018',
+    clearance_level: 'Level 2 (Asset)',
     registry_note:
       'This file proves that a room can feel like childhood and captivity at the same time.',
     status: 'active',
@@ -541,6 +575,8 @@ export const ARCHIVE_FALLBACK_CATALOG: ArchiveEntry[] = [
     notable_works: 'The Grapes of Wrath, Of Mice and Men, East of Eden',
     ability_literary_connection:
       'The title becomes literal agricultural force in BSD. The novel\'s anger at displacement and pressure is recast as living terrain that closes in on the enemy.',
+    designation: 'YKH-019',
+    clearance_level: 'Level 3 (Component)',
     registry_note:
       'The city has seen quieter violence than this. It usually grows first.',
     status: 'active',
@@ -567,6 +603,8 @@ export const ARCHIVE_FALLBACK_CATALOG: ArchiveEntry[] = [
     notable_works: 'Little Women, Work',
     ability_literary_connection:
       'BSD transforms domestic interiority into an accelerated creation chamber. The room of writing becomes a weaponized production schedule.',
+    designation: 'YKH-020',
+    clearance_level: 'Level 3 (Strategist)',
     registry_note:
       'This file wins by leaving the clock outside and taking the manuscript with it.',
     status: 'active',
@@ -593,6 +631,8 @@ export const ARCHIVE_FALLBACK_CATALOG: ArchiveEntry[] = [
     notable_works: 'Works associated with mystery and women\'s popular fiction',
     ability_literary_connection:
       'Even with the public mechanism redacted, the file aligns literary investigation with state force. Suspense is converted into command tempo.',
+    designation: 'YKH-021',
+    clearance_level: 'Level 4 (Military Lead)',
     registry_note:
       'Some files are less frightening for what they do than for how calmly they expect obedience.',
     status: 'active',
@@ -619,6 +659,8 @@ export const ARCHIVE_FALLBACK_CATALOG: ArchiveEntry[] = [
     notable_works: 'Plum Blossoms in Snow',
     ability_literary_connection:
       'BSD treats the title as a paradox of beauty within severity. Snow and blossom become a blade logic that remains elegant even while tearing through matter.',
+    designation: 'YKH-022',
+    clearance_level: 'Level 4 (Military Asset)',
     registry_note:
       'The file is orderly enough to frighten military staff and strange enough to keep them watching.',
     status: 'active',
@@ -645,6 +687,8 @@ export const ARCHIVE_FALLBACK_CATALOG: ArchiveEntry[] = [
     notable_works: 'Works associated with lyrical observation',
     ability_literary_connection:
       'Priceless Tears reworks emotional refinement into forensic cruelty. The title\'s sentiment survives only as a polished surface over surveillance violence.',
+    designation: 'YKH-023',
+    clearance_level: 'Level 4 (Military Asset)',
     registry_note:
       'This file listens to panic the way other people listen to rainfall.',
     status: 'active',
@@ -671,6 +715,8 @@ export const ARCHIVE_FALLBACK_CATALOG: ArchiveEntry[] = [
     notable_works: 'Kagami Jishi and related dramatic writing',
     ability_literary_connection:
       'Mirror Lion takes theatrical ferocity and turns it into command-level warfare. The adaptation keeps spectacle but removes any distance from consequence.',
+    designation: 'YKH-024',
+    clearance_level: 'Level 5 (Supreme Commander)',
     registry_note:
       'The city archives this file under command, theater, and the moment they become indistinguishable.',
     status: 'active',
@@ -697,6 +743,8 @@ export const ARCHIVE_FALLBACK_CATALOG: ArchiveEntry[] = [
     notable_works: 'Discourse on Decadence, In the Forest, Under Cherries in Full Bloom',
     ability_literary_connection:
       'BSD turns Sakaguchi\'s meditation on degeneration into forensic memory extraction. Decadence becomes evidence rather than theory.',
+    designation: 'YKH-025',
+    clearance_level: 'Level 5 (Administrator)',
     registry_note:
       'The city trusts this file because it remembers even when everyone involved would prefer not to.',
     status: 'active',
