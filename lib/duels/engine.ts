@@ -1,3 +1,5 @@
+import { DUEL_MAX_ROUNDS } from './shared'
+
 export type EngineMove = 'strike' | 'stance' | 'gambit' | 'special' | 'recover'
 
 export type EngineActor = {
@@ -553,7 +555,7 @@ export function resolveDuelRound(input: EngineInput): EngineOutput {
     }
   }
 
-  const duelOver = challengerHpAfter <= 0 || defenderHpAfter <= 0 || input.roundNumber >= 5
+  const duelOver = challengerHpAfter <= 0 || defenderHpAfter <= 0 || input.roundNumber >= DUEL_MAX_ROUNDS
   const winnerId = challengerHpAfter === defenderHpAfter ? null : challengerHpAfter > defenderHpAfter ? input.challenger.id : input.defender.id
   const loserId = winnerId === input.challenger.id ? input.defender.id : winnerId === input.defender.id ? input.challenger.id : null
 

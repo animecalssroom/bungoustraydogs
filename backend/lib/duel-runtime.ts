@@ -4,9 +4,11 @@ import { resolveDuelRound } from '@/lib/duels/engine'
 import { narrateDuelRound } from '@/backend/lib/duel-narrative'
 import { UserModel } from '@/backend/models/user.model'
 
-export const DUEL_MAX_ROUNDS = 7
-export const DUEL_SUDDEN_DEATH_ROUND = 8
-export const DUEL_ROUND_DURATION_MS = 20 * 60 * 1000
+import { 
+  DUEL_MAX_ROUNDS, 
+  DUEL_SUDDEN_DEATH_ROUND, 
+  DUEL_ROUND_DURATION_MS 
+} from '@/lib/duels/shared'
 
 function duelSelect() {
   return 'id, challenger_id, defender_id, challenger_character, defender_character, challenger_character_slug, defender_character_slug, status, current_round, challenger_hp, defender_hp, challenger_max_hp, defender_max_hp, challenger_came_back, defender_came_back'
