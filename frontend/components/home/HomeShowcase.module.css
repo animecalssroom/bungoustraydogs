@@ -321,7 +321,8 @@
   padding: 1rem 2.5rem;
   border-top: 1px solid var(--border);
   background: var(--surface);
-  backdrop-filter: blur(20px);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   overflow-x: auto;
 }
 
@@ -601,12 +602,126 @@
     box-shadow 0.35s ease;
 }
 
-.characterCard:hover {
+.characterCard:hover:not(.factionCardLocked) {
   transform: translateY(-3px);
   border-color: var(--border);
   background: var(--surface);
   box-shadow: 0 16px 36px rgba(0, 0, 0, 0.05);
   z-index: 1;
+}
+
+.factionCard[data-faction="agency"]::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(139, 96, 32, 0.05) 0%, transparent 40%);
+  background-image: radial-gradient(var(--shoji) 1px, transparent 1px);
+  background-size: 20px 20px;
+  pointer-events: none;
+}
+
+.factionCard[data-faction="mafia"]::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(204, 26, 26, 0.08) 0%, transparent 100%);
+  background-image: linear-gradient(rgba(0,0,0,0.2) 1px, transparent 1px);
+  background-size: 100% 4px;
+  pointer-events: none;
+}
+
+.factionCard[data-faction="guild"]::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(45deg, rgba(200, 160, 32, 0.05) 0%, transparent 60%);
+  background-image: 
+    radial-gradient(circle at 2px 2px, rgba(200, 160, 32, 0.1) 1px, transparent 0);
+  background-size: 12px 12px;
+  pointer-events: none;
+}
+
+.factionCard[data-faction="hunting_dogs"]::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 10px,
+    rgba(74, 106, 138, 0.03) 10px,
+    rgba(74, 106, 138, 0.03) 20px
+  );
+  pointer-events: none;
+}
+
+.factionCard[data-faction="special_div"]::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to right, rgba(74, 90, 106, 0.1), transparent);
+  background-image: linear-gradient(90deg, var(--border2) 1px, transparent 1px);
+  background-size: 10px 100%;
+  pointer-events: none;
+}
+
+.factionCard[data-faction="rats"]::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, rgba(106, 26, 106, 0.05) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.factionCard[data-faction="decay"]::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    -45deg,
+    rgba(58, 90, 122, 0.02) 0 2px,
+    transparent 2px 20px
+  );
+  pointer-events: none;
+}
+
+.factionCard[data-faction="clock_tower"]::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(90, 74, 42, 0.08) 0%, transparent 50%);
+  background-image: repeating-radial-gradient(circle at 0 0, transparent 0, transparent 10px, rgba(90, 74, 42, 0.03) 10px, rgba(90, 74, 42, 0.03) 11px);
+  pointer-events: none;
+}
+
+.factionCardLocked {
+  opacity: 0.6;
+  filter: grayscale(0.8);
+  cursor: default;
+  background-image: repeating-linear-gradient(
+    -45deg,
+    transparent,
+    transparent 5px,
+    var(--border2) 5px,
+    var(--border2) 6px
+  ) !important;
+}
+
+.factionCardLocked::after {
+  content: 'EXISTENCE UNCONFIRMED';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-15deg);
+  font-family: 'Space Mono', monospace;
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: var(--text4);
+  background: var(--bg);
+  padding: 0.4rem 0.8rem;
+  border: 1px solid var(--border);
+  letter-spacing: 0.2em;
+  z-index: 10;
 }
 
 .characterCard::before {

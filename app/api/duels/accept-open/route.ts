@@ -9,17 +9,27 @@ const AcceptOpenSchema = z.object({
 })
 
 export async function POST(request: NextRequest) {
-  const auth = await requireAuth(request)
-  if (isNextResponse(auth)) return auth
-
+  // --- BOT AUTH BYPASS ---
+  const secret = request.headers.get('x-bot-secret')
   const body = await request.json().catch(() => null)
-  const parsed = AcceptOpenSchema.safeParse(body)
+  const isBot = secret && process.env.BOT_DUEL_SECRET && secret === process.env.BOT_DUEL_SECRET
+  const botUserId = body?.bot_user_id
 
+  let userId: string
+  if (isBot && botUserId) {
+    userId = botUserId
+  } else {
+    const auth = await requireAuth(request)
+    if (isNextResponse(auth)) return auth
+    userId = auth.user.id
+  }
+
+  const parsed = AcceptOpenSchema.safeParse(body)
   if (!parsed.success) {
     return NextResponse.json({ error: 'Invalid open challenge payload.' }, { status: 400 })
   }
 
-  const defender = await DuelModel.getParticipant(auth.user.id)
+  const defender = await DuelModel.getParticipant(userId)
   if (!defender) {
     return NextResponse.json({ error: 'Profile not found.' }, { status: 404 })
   }
@@ -29,7 +39,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: accepted.error }, { status: 400 })
   }
 
-  await UserModel.addAp(auth.user.id, 'duel_accepted', 0, {
+  await UserModel.addAp(userId, 'duel_accepted', 0, {
     duel_id: accepted.data.id,
     open_challenge_id: parsed.data.open_challenge_id,
   })

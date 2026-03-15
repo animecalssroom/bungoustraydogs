@@ -11,6 +11,7 @@ function FactionCard({
   faction: Faction
 }) {
   const { profile } = useAuth()
+  const isHidden = ['rats', 'decay', 'clock_tower'].includes(faction.id)
   const canEnterHub =
     profile &&
     (profile.role === 'owner' ||
@@ -26,8 +27,42 @@ function FactionCard({
         position: 'relative',
         overflow: 'hidden',
         transition: 'all 0.4s ease',
+        filter: isHidden ? 'grayscale(0.8) contrast(1.1)' : 'none',
+        opacity: isHidden ? 0.85 : 1,
       }}
     >
+      {isHidden && (
+        <div 
+          style={{
+            position: 'absolute',
+            inset: 0,
+            zIndex: 10,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'rgba(0,0,0,0.1)',
+            backdropFilter: 'blur(2px)',
+            pointerEvents: 'none',
+          }}
+        >
+          <div 
+            style={{
+              padding: '0.5rem 1rem',
+              border: '2px solid var(--accent)',
+              color: 'var(--accent)',
+              fontFamily: 'var(--font-record)',
+              fontSize: '0.62rem',
+              fontWeight: 800,
+              textTransform: 'uppercase',
+              letterSpacing: '0.2em',
+              background: 'var(--card)',
+              transform: 'rotate(-12deg)',
+            }}
+          >
+            EXISTENCE UNCONFIRMED
+          </div>
+        </div>
+      )}
       <div
         style={{
           position: 'absolute',

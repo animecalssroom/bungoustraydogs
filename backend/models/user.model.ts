@@ -26,7 +26,8 @@ function getTokyoDateKey(value: string | Date) {
 
 export const UserModel = {
   async getById(id: string): Promise<Profile | null> {
-    return cache.getOrSet(`profile:id:${id}`, 30, async () => {
+    // Increased TTL to 1 hour for profile data, as it changes rarely and is invalidated manually.
+    return cache.getOrSet(`profile:id:${id}`, 3600, async () => {
       const { data } = await supabaseAdmin
         .from('profiles')
         .select('*')
@@ -107,58 +108,65 @@ export const UserModel = {
       return false
     }
 
-    const now = new Date()
-    const todayStart = new Date(now)
+    const todayKey = getTokyoDateKey(new Date())
+    const cacheKey = `throttle:${userId}:${eventType}:${todayKey}`
+
+    try {
+      // Fast path: Check and update Redis throttling counters
+      if (eventType === 'feed_view') {
+        const count = await redis.incr(cacheKey)
+        if (count === 1) await redis.expire(cacheKey, 86400)
+        return count > 1
+      }
+
+      if (eventType === 'archive_read') {
+        const slug = String(metadata.slug || '').trim().toLowerCase()
+        if (!slug) return true
+        
+        const setKey = `${cacheKey}:slugs`
+        const [isNew, total] = await Promise.all([
+          redis.sadd(setKey, slug),
+          redis.scard(setKey)
+        ])
+        if (isNew === 1) await redis.expire(setKey, 86400)
+        // Throttle if already read today OR if they've already hit 10 unique slugs
+        return isNew === 0 || total > 10
+      }
+
+      if (eventType === 'profile_view') {
+        const username = String(metadata.username || '').trim().toLowerCase()
+        if (!username) return true
+
+        const setKey = `${cacheKey}:users`
+        const isNew = await redis.sadd(setKey, username)
+        if (isNew === 1) await redis.expire(setKey, 86400)
+        return isNew === 0
+      }
+    } catch (e) {
+      console.warn(`[UserModel] Redis throttle failed, falling back to DB:`, e)
+    }
+
+    // Fallback: DB count (expensive but safe)
+    const todayStart = new Date()
     todayStart.setUTCHours(0, 0, 0, 0)
 
     const { data } = await supabaseAdmin
       .from('user_events')
-      .select('event_type, metadata, created_at')
+      .select('event_type, metadata')
       .eq('user_id', userId)
       .eq('event_type', eventType)
       .gte('created_at', todayStart.toISOString())
-      .order('created_at', { ascending: false })
 
-    const events =
-      (data as Array<{
-        event_type: UserEventType
-        metadata?: Record<string, unknown> | null
-        created_at: string
-      }> | null) ?? []
+    const events = (data ?? []) as any[]
 
-    if (eventType === 'feed_view') {
-      return events.length > 0
-    }
-
-    if (eventType === 'archive_read') {
-      const targetSlug = typeof metadata.slug === 'string' ? metadata.slug.trim().toLowerCase() : ''
-      if (!targetSlug) return false
-
-      const alreadyReadToday = events.some((event) => {
-        const eventSlug = typeof event.metadata?.slug === 'string' ? event.metadata.slug.trim().toLowerCase() : ''
-        return eventSlug === targetSlug
-      })
-
-      // If they already got AP for this character today, throttle it.
-      // We also enforce a max of 10 unique character reads per day to prevent farming.
-      return alreadyReadToday || events.length >= 10
-    }
-
+    if (eventType === 'feed_view') return events.length > 0
     if (eventType === 'profile_view') {
-      const targetUsername =
-        typeof metadata.username === 'string' ? metadata.username.trim().toLowerCase() : ''
-
-      if (!targetUsername) {
-        return false
-      }
-
-      return events.some((event) => {
-        const eventUsername =
-          typeof event.metadata?.username === 'string'
-            ? event.metadata.username.trim().toLowerCase()
-            : ''
-        return eventUsername === targetUsername
-      })
+      const target = String(metadata.username || '').trim().toLowerCase()
+      return events.some(e => String(e.metadata?.username || '').toLowerCase() === target)
+    }
+    if (eventType === 'archive_read') {
+      const target = String(metadata.slug || '').trim().toLowerCase()
+      return events.some(e => String(e.metadata?.slug || '').toLowerCase() === target) || events.length >= 10
     }
 
     return false

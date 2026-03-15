@@ -3,6 +3,8 @@ import { requireAuth, isNextResponse } from '@/backend/middleware/auth'
 import { DuelModel } from '@/backend/models/duel.model'
 import { supabaseAdmin } from '@/backend/lib/supabase'
 
+export const dynamic = 'force-dynamic'
+
 function buildFallbackSummary(duel: Awaited<ReturnType<typeof DuelModel.getDuelById>>) {
   if (!duel) {
     return 'The registry cannot locate this duel record.'

@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import type { CSSProperties } from 'react'
 import Link from 'next/link'
@@ -25,7 +25,15 @@ import { RegistryModQueue } from '@/frontend/components/registry/RegistryModQueu
 import { FactionFeedPing } from '@/frontend/components/ui/FactionFeedPing'
 import { AngoUsername } from '@/frontend/components/ango/AngoUsername'
 
-type PrivateTab = 'bulletin' | 'feed' | 'roster' | 'chat'
+type PrivateTab = 'bulletin' | 'feed' | 'roster' | 'chat' | 'waitlist'
+
+type WaitlistEntry = {
+  user_id: string
+  username: string
+  character_name: string | null
+  joined_at: string
+  position: number
+}
 
 type RosterEntry = Pick<
   Profile,
@@ -50,11 +58,12 @@ type WarSegment = JoinableFactionSummary & {
   colorVar: string
 }
 
-const MOBILE_TABS: { id: PrivateTab; label: string }[] = [
+const MOBILE_TABS: Array<{ id: PrivateTab; label: string }> = [
   { id: 'bulletin', label: 'Bulletin' },
   { id: 'feed', label: 'Feed' },
   { id: 'roster', label: 'Roster' },
-  { id: 'chat', label: 'Chat' },
+  { id: 'chat', label: 'Log' },
+  { id: 'waitlist', label: 'Waitlist' },
 ]
 
 const FACTION_COLOR_VARS: Record<FactionId, string> = {
@@ -152,6 +161,8 @@ export function FactionPrivateSpace({
   const [activity, setActivity] = useState<FactionActivity[]>(initialActivity)
   const [roster, setRoster] = useState<RosterEntry[]>(initialRoster)
   const [messages, setMessages] = useState<FactionMessage[]>(initialMessages)
+  const [pendingPosts, setPendingPosts] = useState<RegistryPost[]>(initialPendingRegistryPosts)
+  const [waitlist, setWaitlist] = useState<WaitlistEntry[]>([])
   const [warSegments, setWarSegments] = useState<WarSegment[]>(() => {
     const joinable = initialWarFactions.filter((row) =>
       ['agency', 'mafia', 'guild', 'hunting_dogs'].includes(row.id),
@@ -201,68 +212,6 @@ export function FactionPrivateSpace({
     [factionId],
   )
 
-  const loadBulletins = useCallback(async () => {
-    const { data, error: requestError } = await supabase
-      .from('faction_bulletins')
-      .select('*')
-      .eq('faction_id', factionId)
-      .order('pinned', { ascending: false })
-      .order('created_at', { ascending: false })
-      .limit(10)
-
-    if (requestError) {
-      throw requestError
-    }
-
-    setBulletins((data as FactionBulletin[] | null) ?? [])
-  }, [factionId, supabase])
-
-  const loadActivity = useCallback(async () => {
-    const { data, error: requestError } = await supabase
-      .from('faction_activity')
-      .select('*')
-      .eq('faction_id', factionId)
-      .order('created_at', { ascending: false })
-      .limit(20)
-
-    if (requestError) {
-      throw requestError
-    }
-
-    setActivity((data as FactionActivity[] | null) ?? [])
-  }, [factionId, supabase])
-
-  const loadRoster = useCallback(async () => {
-    const { data, error: requestError } = await supabase
-      .from('profiles')
-      .select('id, username, role, rank, ap_total, character_match_id, faction, behavior_scores, last_seen')
-      .eq('faction', factionId)
-      .in('role', ['member', 'mod'])
-      .order('ap_total', { ascending: false })
-      .order('updated_at', { ascending: true })
-
-    if (requestError) {
-      throw requestError
-    }
-
-    setRoster((data as RosterEntry[] | null) ?? [])
-  }, [factionId, supabase])
-
-  const loadMessages = useCallback(async () => {
-    const { data, error: requestError } = await supabase
-      .from('faction_messages')
-      .select('id, faction_id, user_id, sender_character, sender_rank, content, created_at')
-      .eq('faction_id', factionId)
-      .order('created_at', { ascending: true })
-      .limit(50)
-
-    if (requestError) {
-      throw requestError
-    }
-
-    setMessages(((data as Record<string, unknown>[] | null) ?? []).map(normalizeMessage))
-  }, [factionId, supabase])
-
   const loadWarStrip = useCallback(async () => {
     const response = await fetch('/api/faction', { cache: 'no-store' })
     const json = await response.json().catch(() => ({}))
@@ -293,26 +242,51 @@ export function FactionPrivateSpace({
     )
   }, [factionId, profile.ap_total, profile.faction])
 
+  const loadRoster = useCallback(async () => {
+    const { data, error: requestError } = await supabase
+      .from('profiles')
+      .select('id, username, role, rank, ap_total, character_match_id, faction, behavior_scores, last_seen')
+      .eq('faction', factionId)
+      .in('role', ['member', 'mod'])
+      .order('ap_total', { ascending: false })
+      .order('updated_at', { ascending: true })
+
+    if (requestError) {
+      throw requestError
+    }
+
+    setRoster((data as RosterEntry[] | null) ?? [])
+  }, [factionId, supabase])
+
   const loadSpace = useCallback(async () => {
     setLoading(true)
     setError(null)
 
     try {
-      await Promise.all([
-        loadBulletins(),
-        loadActivity(),
-        loadRoster(),
-        loadMessages(),
-        loadWarStrip(),
-      ])
+      const { data: consolidated, error: rpcError } = await supabase.rpc('get_faction_space_data', {
+        p_faction_id: factionId,
+        p_viewer_id: profile.id
+      })
+
+      if (rpcError) throw rpcError
+
+      if (consolidated) {
+        setBulletins(consolidated.bulletins || [])
+        setActivity(consolidated.activity || [])
+        setRoster(consolidated.roster || [])
+        setMessages((consolidated.messages || []).map(normalizeMessage))
+        setPendingPosts(consolidated.pending_posts || [])
+        setWaitlist(consolidated.waitlist || [])
+      }
+
+      await loadWarStrip()
     } catch (requestError) {
-      const message =
-        requestError instanceof Error ? requestError.message : 'Unable to open faction space.'
+      const message = requestError instanceof Error ? requestError.message : 'Unable to open faction space.'
       setError(message)
     } finally {
       setLoading(false)
     }
-  }, [loadActivity, loadBulletins, loadMessages, loadRoster, loadWarStrip])
+  }, [factionId, profile.id, supabase, loadWarStrip])
 
   useEffect(() => {
     if (
@@ -530,6 +504,52 @@ export function FactionPrivateSpace({
     }
   }
 
+  const handleActivateFile = async (targetUserId: string) => {
+    if (!canModerateRegistry) return
+    setError(null)
+
+    try {
+      const response = await fetch(`/api/faction/${factionId}/waitlist`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'activate', targetUserId })
+      })
+
+      if (!response.ok) {
+        const json = await response.json()
+        throw new Error(json.error || 'Failed to activate file.')
+      }
+
+      await loadSpace()
+      await playSound('stamp')
+    } catch (e: any) {
+      setError(e.message)
+    }
+  }
+
+  const handleRejectFile = async (targetUserId: string) => {
+    if (!canModerateRegistry) return
+    if (!confirm('Are you sure you want to remove this candidate from the waitlist?')) return
+    setError(null)
+
+    try {
+      const response = await fetch(`/api/faction/${factionId}/waitlist`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'reject', targetUserId })
+      })
+
+      if (!response.ok) {
+        const json = await response.json()
+        throw new Error(json.error || 'Failed to remove entry.')
+      }
+
+      await loadSpace()
+    } catch (e: any) {
+      setError(e.message)
+    }
+  }
+
   if (loading) {
     return (
       <section className={styles.shell} style={pageStyle}>
@@ -627,7 +647,7 @@ export function FactionPrivateSpace({
                     No registry reports are waiting for review.
                   </p>
                 ) : (
-                  <RegistryModQueue initialPosts={initialPendingRegistryPosts} />
+                  <RegistryModQueue initialPosts={pendingPosts} />
                 )}
               </div>
             ) : null}
@@ -737,6 +757,56 @@ export function FactionPrivateSpace({
               )}
             </div>
           </section>
+
+          {canModerateRegistry && (
+            <section
+              className={`${styles.column} ${
+                activeTab === 'waitlist' ? styles.mobilePanelVisible : styles.mobilePanelHidden
+              }`}
+            >
+              <div className={styles.sectionHead}>
+                <span className={styles.sectionTitle}>Waitlist</span>
+                <span className={styles.sectionMeta}>{waitlist.length} candidates</span>
+              </div>
+              <div className={styles.rosterList}>
+                {waitlist.length === 0 ? (
+                  <p className={styles.empty}>No files awaiting activation.</p>
+                ) : (
+                  waitlist.map((entry) => (
+                    <article key={entry.user_id} className={styles.rosterRow} style={{ cursor: 'default' }}>
+                      <div className={styles.rosterLeft}>
+                        <div className={styles.nameStack}>
+                          <div className={styles.rosterNameLine}>
+                             <span className={styles.rosterName}>{entry.character_name ?? entry.username}</span>
+                          </div>
+                          <div className={styles.rosterMeta}>
+                            Joined {formatStamp(entry.joined_at)} · Position #{entry.position}
+                          </div>
+                        </div>
+                      </div>
+                      <div className={styles.sectionActions}>
+                        <button
+                          type="button"
+                          className={styles.pinButton}
+                          onClick={() => handleActivateFile(entry.user_id)}
+                        >
+                          Activate
+                        </button>
+                        <button
+                          type="button"
+                          className={styles.pinButton}
+                          style={{ color: 'var(--red)' }}
+                          onClick={() => handleRejectFile(entry.user_id)}
+                        >
+                          Reject
+                        </button>
+                      </div>
+                    </article>
+                  ))
+                )}
+              </div>
+            </section>
+          )}
         </div>
 
         <section

@@ -88,6 +88,8 @@ export interface Profile {
   exam_retake_used: boolean
   ap_total: number
   rank: number
+  duel_wins: number
+  duel_losses: number
   is_bot?: boolean | null
   login_streak: number
   guide_bot_dismissed?: boolean | null
@@ -112,11 +114,24 @@ export interface Character {
   author_note: string
   real_author: string
   real_author_years: string
+  notable_works: string | null
+  ability_type: AbilityType | null
+  duel_voice: string | null
+  literary_link: string | null
+  special_mechanic: string | null
   stat_power: number
   stat_speed: number
+  stat_intel: number
+  stat_loyalty: number
   stat_control: number
   kanji_symbol: string
   role_id: CharacterArchetype | null
+  designation?: string | null
+  clearance_level?: string | null
+  ability_analysis?: string | null
+  lore_background?: string | null
+  physical_evidence?: string[] | null
+  narrative_hook?: string | null
   is_lore_locked: boolean
   created_at: string
 }
@@ -141,6 +156,15 @@ export interface ArchiveEntry {
   literary_movement: string | null
   notable_works: string | null
   ability_literary_connection: string | null
+  duel_voice: string | null
+  literary_link: string | null
+  special_mechanic: string | null
+  designation: string | null
+  clearance_level: string | null
+  ability_analysis: string | null
+  lore_background: string | null
+  physical_evidence: string[] | null
+  narrative_hook: string | null
   registry_note: string | null
   status: string | null
   created_at: string

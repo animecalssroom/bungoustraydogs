@@ -1,6 +1,8 @@
 import { FactionPageGrid } from '@/frontend/components/faction/FactionCard'
 import { FactionModel } from '@/backend/models/faction.model'
 
+export const dynamic = 'force-dynamic'
+
 export default async function FactionsPage() {
   const factions = await FactionModel.getAll()
 

@@ -345,26 +345,19 @@ export const RegistryModel = {
       threadId = createdThread.id
     }
 
-    const { count } = await supabaseAdmin
-      .from('registry_posts')
-      .select('id', { count: 'exact', head: true })
-
-    const sequenceCount =
-      input.postType === 'field_note'
-        ? await supabaseAdmin
-          .from('registry_posts')
-          .select('id', { count: 'exact', head: true })
-          .eq('post_type', 'field_note')
-          .then(({ count: fieldCount }) => fieldCount ?? 0)
-        : (count ?? 0) + 1
-
-    const caseNumber = generateRegistryCaseNumber(
-      profile.faction,
-      input.postType === 'field_note' ? sequenceCount + 1 : sequenceCount,
-      input.postType,
-    )
     const authorCharacter = profile.character_name ?? profile.character_match_id ?? profile.username
     const authorRank = getRankTitle(profile.rank)
+
+    // Atomic Case Number generation via RPC (removes 2-3 heavy database roundtrips)
+    const { data: caseNumber, error: caseError } = await supabaseAdmin
+      .rpc('generate_registry_case_number', {
+        p_faction: profile.faction,
+        p_post_type: input.postType
+      })
+
+    if (caseError || !caseNumber) {
+      return { error: 'Registry sequence is not ready. Apply the performance migration first.' }
+    }
 
     const payload = {
       case_number: caseNumber,

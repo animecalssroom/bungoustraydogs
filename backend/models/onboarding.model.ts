@@ -90,11 +90,14 @@ export const OnboardingModel = {
       return false
     }
 
+    // Include 'owner', 'mod', and 'member' in the count to prevent overfilling.
+    // Exclude bots (if the column exists) to ensure human slots are reserved.
     const { count, error } = await supabaseAdmin
       .from('profiles')
       .select('id', { count: 'exact', head: true })
       .eq('faction', faction)
-      .in('role', ['member', 'mod'])
+      .in('role', ['member', 'mod', 'owner'])
+      .eq('is_bot', false)
 
     if (error) {
       console.error(`[Faction Capacity] Error counting members for ${faction}:`, error)
@@ -103,7 +106,7 @@ export const OnboardingModel = {
 
     const currentHumanCount = count ?? 0
 
-    // Auto-Heal the database: update the broken counter so the frontend is accurate
+    // Auto-Heal the database counter for frontend accuracy
     await supabaseAdmin
       .from('faction_slots')
       .update({ active_count: currentHumanCount })

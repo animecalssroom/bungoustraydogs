@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import type { Character } from '@/backend/types'
+import { AbilityTypeIcon } from './AbilityTypeIcon'
 
 export const FACTION_COLORS: Record<string, string> = {
   agency:  '#8B6020',
@@ -113,14 +114,13 @@ export function CharCard({ char }: { char: Character }) {
     <div
       ref={cardRef}
       className="bsd-card p-7"
-      style={{ '--c-color': color } as React.CSSProperties}
+      style={{ '--c-color': color, '--faction-color': color } as React.CSSProperties}
     >
+      <div className="faction-bleed" />
+
       <div className="faction-badge">
         <span
           style={{
-            width: 5, height: 5,
-            borderRadius: '9999px',
-            background: color,
             flexShrink: 0,
             display: 'inline-block',
           }}
@@ -148,10 +148,15 @@ export function CharCard({ char }: { char: Character }) {
       </div>
 
       <div
-        className="font-fell italic mb-[3px]"
-        style={{ fontSize: '0.98rem', color: color }}
+        className="flex items-center gap-2 mb-[3px]"
       >
-        {char.ability_name}
+        <span
+          className="font-fell italic"
+          style={{ fontSize: '0.98rem', color: color }}
+        >
+          {char.ability_name}
+        </span>
+        <AbilityTypeIcon type={char.ability_type} size={16} />
       </div>
       <div
         className="font-noto font-light text-text3 mb-3"
@@ -182,12 +187,13 @@ export function CharCard({ char }: { char: Character }) {
         className="italic text-text3 mb-3.5"
         style={{ fontSize: '0.76rem', fontFamily: 'Cormorant Garamond, serif' }}
       >
-        Real Author: {char.real_author} ({char.real_author_years})
+        {char.real_author} ({char.real_author_years}) · {char.notable_works}
       </div>
 
-      <div className="flex gap-3 mb-3.5">
+      <div className="grid grid-cols-2 gap-x-4 gap-y-2 mb-3.5">
         <StatBar label="Power" value={char.stat_power} color={color} isVisible={visible} />
-        <StatBar label="Speed" value={char.stat_speed} color={color} isVisible={visible} />
+        <StatBar label="Intel" value={char.stat_intel} color={color} isVisible={visible} />
+        <StatBar label="Loyalty" value={char.stat_loyalty} color={color} isVisible={visible} />
         <StatBar label="Control" value={char.stat_control} color={color} isVisible={visible} />
       </div>
 

@@ -30,29 +30,38 @@ export const cache = {
             return memEntry.value
         }
 
-        // 2. Check Redis (L2)
-        try {
-            const cached = await redis.get<string>(key)
-            if (cached) {
-                const value = typeof cached === 'string' ? JSON.parse(cached) : cached
-                // Populate L1 for future fast lookups
-                memoryStore.set(key, { value, expiresAt: now + ttlSeconds * 1000 })
-                return value as T
+        // 2. Check Redis (L2) - ONLY if redis is configured
+        if (redis) {
+            try {
+                const cached = await redis.get<string>(key)
+                if (cached) {
+                    const value = typeof cached === 'string' ? JSON.parse(cached) : cached
+                    // Populate L1 for future fast lookups
+                    memoryStore.set(key, { value, expiresAt: now + ttlSeconds * 1000 })
+                    return value as T
+                }
+            } catch (err) {
+                // Only warn in non-build environments or if specifically enabled
+                if (process.env.NODE_ENV !== 'production' || process.env.DEBUG_CACHE) {
+                    console.warn(`[cache] redis get failed for ${key}:`, err)
+                }
             }
-        } catch (err) {
-            console.warn(`[cache] redis get failed for ${key}:`, err)
         }
 
         // 3. Fetch from Source
         const value = await fetcher()
 
-        // 4. Save to Redis
-        try {
-            await redis.set(key, JSON.stringify(value), {
-                ex: ttlSeconds,
-            })
-        } catch (err) {
-            console.warn(`[cache] redis set failed for ${key}:`, err)
+        // 4. Save to Redis - ONLY if redis is configured
+        if (redis) {
+            try {
+                await redis.set(key, JSON.stringify(value), {
+                    ex: ttlSeconds,
+                })
+            } catch (err) {
+                if (process.env.NODE_ENV !== 'production' || process.env.DEBUG_CACHE) {
+                    console.warn(`[cache] redis set failed for ${key}:`, err)
+                }
+            }
         }
 
         // 5. Save to Memory
@@ -64,10 +73,12 @@ export const cache = {
     /** Invalidate a key across both layers. */
     async invalidate(key: string) {
         memoryStore.delete(key)
-        try {
-            await redis.del(key)
-        } catch (err) {
-            console.warn(`[cache] redis del failed for ${key}:`, err)
+        if (redis) {
+            try {
+                await redis.del(key)
+            } catch (err) {
+                console.warn(`[cache] redis del failed for ${key}:`, err)
+            }
         }
     },
 

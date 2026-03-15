@@ -81,17 +81,25 @@ export function Nav() {
 
     void load()
 
+    const debounceTimer = { current: null as any }
     const channel = supabase
       .channel(`nav-duel-count:${user.id}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },
-        () => { void load() },
+        () => {
+          // Debounce 1s to handle chat/notification bursts without redundant fetches
+          if (debounceTimer.current) clearTimeout(debounceTimer.current)
+          debounceTimer.current = setTimeout(() => {
+            if (active) void load()
+          }, 1000)
+        },
       )
       .subscribe()
 
     return () => {
       active = false
+      if (debounceTimer.current) clearTimeout(debounceTimer.current)
       void supabase.removeChannel(channel)
     }
   }, [user])
@@ -121,7 +129,12 @@ export function Nav() {
                   className={`${styles.link} ${active ? styles.linkActive : ''}`}
                 >
                   {item.label}
-                  {item.href === '/duels' && pendingDuelChallenges > 0 ? ` | ${pendingDuelChallenges}` : ''}
+                  {item.href === '/duels' && pendingDuelChallenges > 0 && (
+                    <span className={styles.navBadge}>{pendingDuelChallenges}</span>
+                  )}
+                  {item.href === '/tickets' && (
+                    <span className={styles.navBadge} style={{ background: 'var(--blue)', fontSize: '0.6rem' }}>NEW</span>
+                  )}
                 </Link>
               </li>
             )

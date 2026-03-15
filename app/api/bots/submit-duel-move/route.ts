@@ -174,22 +174,79 @@ export async function POST(request: NextRequest) {
       const round = roundByDuelId.get(duel.id)
       if (!round) continue
 
-      type Target = { userId: string }
-      const targets: Target[] = []
-
+      const botTargets: string[] = []
       if (botProfileIds.has(duel.challenger_id) && !round.challenger_move_submitted_at) {
-        targets.push({ userId: duel.challenger_id })
+        botTargets.push(duel.challenger_id)
       }
       if (botProfileIds.has(duel.defender_id) && !round.defender_move_submitted_at) {
-        targets.push({ userId: duel.defender_id })
+        botTargets.push(duel.defender_id)
       }
 
-      for (const target of targets) {
-        await submitBotMove(request, secret, duel.id, target.userId, duel)
+      for (const botUserId of botTargets) {
+        await submitBotMove(request, secret, duel.id, botUserId, duel)
         processed.push(duel.id)
       }
     }
   }
 
+  // ── Scavenge open challenges where a bot could participate ────────────
+  const { data: openChallenges } = await supabaseAdmin
+    .from('open_challenges')
+    .select('id, challenger_id, faction')
+    .eq('status', 'open')
+    .gt('expires_at', new Date().toISOString())
+    .limit(10)
+
+  if (openChallenges?.length) {
+    // Fetch all bot profiles to find candidates
+    const { data: botProfiles } = await supabaseAdmin
+      .from('profiles')
+      .select('id, faction, username')
+      .eq('is_bot', true)
+      .eq('is_bot_paused', false)
+
+    if (botProfiles?.length) {
+      // BATCH: Pre-fetch current duel counts for all candidate bots (removes loop query)
+      const botProfileIds = botProfiles.map(b => b.id)
+      const { data: counts } = await supabaseAdmin
+        .from('duels')
+        .select('challenger_id, defender_id')
+        .or(`challenger_id.in.(${botProfileIds.join(',')}),defender_id.in.(${botProfileIds.join(',')})`)
+        .in('status', ['pending', 'active'])
+
+      const duelCounts = new Map<string, number>()
+      botProfileIds.forEach(id => duelCounts.set(id, 0))
+      
+      counts?.forEach(d => {
+        if (duelCounts.has(d.challenger_id)) duelCounts.set(d.challenger_id, (duelCounts.get(d.challenger_id) || 0) + 1)
+        if (duelCounts.has(d.defender_id)) duelCounts.set(d.defender_id, (duelCounts.get(d.defender_id) || 0) + 1)
+      })
+
+      for (const challenge of openChallenges) {
+        // Find a bot candidate who: 
+        // 1. Is in a different faction
+        // 2. Has < 3 active duels (checked via local map)
+        const candidate = botProfiles.find((b) => {
+          if (b.faction === challenge.faction || b.id === challenge.challenger_id) return false
+          const count = duelCounts.get(b.id) || 0
+          return count < 3
+        })
+
+        if (!candidate) continue
+
+        // Update local counter so we don't over-assign in this same loop
+        duelCounts.set(candidate.id, (duelCounts.get(candidate.id) || 0) + 1)
+
+        await fetch(new URL('/api/duels/accept-open', request.url), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-bot-secret': secret },
+          body: JSON.stringify({ open_challenge_id: challenge.id, bot_user_id: candidate.id }),
+        }).catch((e) => console.error(`[bot-duel] failed to scavenge challenge ${challenge.id}:`, e))
+
+        accepted.push(challenge.id)
+      }
+    }
+  }
+
   return NextResponse.json({ success: true, accepted, processed })
-}
+}

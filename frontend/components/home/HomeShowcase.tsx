@@ -35,30 +35,30 @@ const HOME_QUIZ_PREVIEW = {
 } as const
 
 const OPENING_SEQUENCE = [
-  { text: 'SIGNAL INTERCEPTED. TRACING ORIGIN...', delay: 0.2, duration: 0.7, emphasis: false },
-  { text: '03:00 JST. THE RAIN REFUSES TO LET UP.', delay: 1.1, duration: 0.6, emphasis: false },
+  { text: 'TERMINAL ONLINE. ESTABLISHING SECURE UPLINK...', delay: 0.2, duration: 0.7, emphasis: false },
+  { text: '03:14 JST. RAIN CONTINUES TO OBSCURRY THE HARBOR.', delay: 1.1, duration: 0.6, emphasis: false },
   {
-    text: 'MULTIPLE ABILITY SIGNATURES DETECTED. SECTOR 4.',
+    text: 'MULTIPLE ABILITY SIGNATURES LOGGED. SECTOR 4.',
     delay: 1.9,
     duration: 0.8,
     emphasis: false,
   },
   {
-    text: 'THIS IS NOT A FAN SITE. THIS IS THE REGISTRY.',
+    text: 'THIS IS NOT AN OPEN FORUM. THIS IS THE ARCHIVE.',
     delay: 3.5,
     duration: 0.8,
     emphasis: false,
   },
   {
-    text: 'ACCESSING SPECIAL DIVISION RECORDS... DECRYPTION ACTIVE.',
+    text: 'ACCESSING SPECIAL DIVISION CLASSIFIED RECORDS...',
     delay: 4.4,
     duration: 0.8,
     emphasis: false,
   },
-  { text: 'THE CITY REMEMBERS EVERY GHOST.', delay: 6.5, duration: 0.8, emphasis: true },
-  { text: 'USER IDENTIFIED. ASSIGNMENT PENDING.', delay: 7.4, duration: 0.7, emphasis: true },
+  { text: 'THE CITY NEVER FORGETS A CRIMSON DEED.', delay: 6.5, duration: 0.8, emphasis: true },
+  { text: 'SUBJECT IDENTIFIED. DOSSIER ACCESS GRANTED.', delay: 7.4, duration: 0.7, emphasis: true },
   {
-    text: "REGISTRY CASE YKH-2025-001 IS NOW OPEN.",
+    text: "REGISTRY CASE YKH-2026-X IS NOW ACTIVE.",
     delay: 8.2,
     duration: 0.7,
     emphasis: true,
@@ -225,68 +225,72 @@ export function HomeShowcase() {
 
         <div className={styles.heroCity} aria-hidden="true">
           <svg
-            viewBox="0 0 1400 320"
+            viewBox="0 0 1400 400"
             xmlns="http://www.w3.org/2000/svg"
             preserveAspectRatio="xMidYMax meet"
             className={styles.skylineSvg}
           >
             <defs>
                <filter id="glow">
-                  <feGaussianBlur stdDeviation="1.5" result="coloredBlur"/>
+                  <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
                   <feMerge>
                       <feMergeNode in="coloredBlur"/>
                       <feMergeNode in="SourceGraphic"/>
                   </feMerge>
               </filter>
+              <linearGradient id="skyGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="transparent" />
+                <stop offset="100%" stopColor="currentColor" stopOpacity="0.4" />
+              </linearGradient>
             </defs>
-            <g fill="currentColor" opacity="var(--city-opacity, 0.16)">
-              {/* Warehouse & Port structures */}
-              <rect x="0" y="210" width="80" height="110" />
-              <rect x="30" y="180" width="20" height="30" />
-              <rect x="100" y="190" width="120" height="130" />
+            <g fill="currentColor" opacity="var(--city-opacity, 0.18)">
+              {/* Port & Warehouse Base */}
+              <rect x="0" y="320" width="1400" height="80" opacity="0.1" />
               
-              {/* Typical 1930s Industrial silhouettes */}
-              <rect x="240" y="150" width="40" height="170" />
-              <rect x="290" y="120" width="10" height="200" /> {/* Power line pole suggestion */}
-              <rect x="285" y="125" width="20" height="2" />
-              
-              {/* Main skyline buildings */}
-              <rect x="340" y="170" width="90" height="150" />
-              <polygon points="340,170 385,130 430,170" />
-              
-              {/* Torii/Shrine suggestion */}
-              <g transform="translate(480, 200)">
-                <rect x="0" y="0" width="60" height="6" />
-                <rect x="5" y="-8" width="50" height="4" />
-                <rect x="12" y="0" width="6" height="120" />
-                <rect x="42" y="0" width="6" height="120" />
+              {/* Left Industrial Block (Warehouse) */}
+              <rect x="50" y="240" width="120" height="160" />
+              <rect x="60" y="220" width="100" height="25" />
+              <circle cx="110" cy="205" r="8" /> {/* Industrial Vent */}
+
+              {/* Power Lines & Poles */}
+              <g className={styles.skylinePowerLines} stroke="currentColor" strokeWidth="0.5" opacity="0.6">
+                <line x1="180" y1="360" x2="180" y2="160" strokeWidth="2" />
+                <line x1="170" y1="170" x2="190" y2="170" strokeWidth="1" />
+                <line x1="180" y1="180" x2="400" y2="200" opacity="0.4" />
+                <line x1="180" y1="170" x2="400" y2="190" opacity="0.4" />
+                
+                <line x1="400" y1="360" x2="400" y2="180" strokeWidth="2" />
+                <line x1="390" y1="190" x2="410" y2="190" strokeWidth="1" />
               </g>
 
-              {/* Distant port cranes */}
-              <g transform="translate(600, 160)">
-                 <rect x="0" y="0" width="4" height="160" />
-                 <rect x="-40" y="10" width="80" height="3" transform="rotate(-30)" />
+              {/* Central City Profile (1930s silhouettes) */}
+              <rect x="520" y="160" width="80" height="240" />
+              <rect x="530" y="130" width="60" height="35" />
+              <rect x="555" y="80" width="10" height="60" />
+
+              <rect x="650" y="220" width="140" height="180" />
+              <polygon points="650,220 720,180 790,220" />
+
+              {/* Port Cranes (Enriched) */}
+              <g transform="translate(850, 180)" stroke="currentColor" strokeWidth="1.5">
+                 <line x1="0" y1="0" x2="0" y2="220" strokeWidth="3" />
+                 <line x1="0" y1="20" x2="-80" y2="-20" strokeWidth="2" />
+                 <line x1="-80" y1="-20" x2="-80" y2="10" />
+                 <rect x="-5" y="-5" width="10" height="10" />
               </g>
 
-              <rect x="700" y="140" width="80" height="180" />
-              <rect x="730" y="100" width="20" height="40" />
-              
-              {/* Large central structure */}
-              <rect x="820" y="110" width="110" height="210" />
-              <rect x="850" y="80" width="50" height="30" />
-              <rect x="870" y="40" width="10" height="40" />
+              {/* Distant Watchtower */}
+              <rect x="1050" y="140" width="40" height="260" />
+              <rect x="1045" y="130" width="50" height="15" />
+              <circle cx="1070" cy="115" r="10" opacity="0.5" />
 
-              <rect x="980" y="180" width="90" height="140" />
-              <rect x="1100" y="160" width="70" height="160" />
-              
-              {/* Coastal light/Tower */}
-              <rect x="1220" y="130" width="40" height="190" />
-              <rect x="1225" y="110" width="30" height="20" opacity="0.4" />
-              
-              <rect x="1300" y="200" width="100" height="120" />
+              {/* Right Wharf Structures */}
+              <rect x="1150" y="280" width="200" height="120" />
+              <rect x="1170" y="260" width="40" height="25" />
+              <rect x="1230" y="250" width="40" height="35" />
             </g>
-            {/* Ground line */}
-            <rect x="0" y="318" width="1400" height="2" fill="currentColor" opacity="0.1" />
+
+            {/* Rain lines removed for hydration safety */}
           </svg>
         </div>
 
@@ -554,10 +558,14 @@ export function HomeShowcase() {
               <Link
                 key={faction.id}
                 href="/factions"
-                className={`reveal ${styles.factionCard}`}
+                className={`reveal ${styles.factionCard} ${
+                  ['rats', 'decay', 'clock_tower'].includes(faction.id) ? styles.factionCardLocked : ''
+                }`}
                 data-home-reveal
+                data-faction={faction.id}
                 style={{ transitionDelay: `${index * 60}ms` }}
               >
+                <div className="faction-bleed" />
                 <span className={styles.factionRank}>{faction.rank}</span>
                 <p className={styles.factionStatus}>{faction.status}</p>
                 <h3 className={styles.factionName}>{faction.name}</h3>
@@ -581,95 +589,6 @@ export function HomeShowcase() {
         </div>
       </section>
 
-      <section className={styles.section} id="fandom">
-        <div className={styles.sectionWrap}>
-          <div className={`reveal ${styles.sectionHead}`} data-home-reveal>
-            <p className={styles.sectionEyebrow}>能力者図鑑 · The Ability Registry</p>
-            <h2 className={styles.sectionTitle}>
-              Characters & <em>Their Gifts</em>
-            </h2>
-            <div className={styles.sectionDivider} />
-            <p className={styles.sectionSub}>
-              The homepage archive carries the full roster now. Filter by faction
-              and read the file before you enter the deeper pages.
-            </p>
-          </div>
-
-          <div className={`reveal ${styles.archiveControls}`} data-home-reveal>
-            {HOME_CHARACTER_FILTERS.map((filter) => (
-              <button
-                key={filter.id}
-                type="button"
-                onClick={() => setActiveFilter(filter.id)}
-                className={`${styles.filterButton} ${activeFilter === filter.id ? styles.filterButtonActive : ''
-                  }`}
-              >
-                {filter.label}
-              </button>
-            ))}
-          </div>
-
-          <div className={styles.archiveGrid}>
-            {visibleCharacters.map((character, index) => (
-              <article
-                key={character.slug}
-                className={`reveal ${styles.characterCard} faction-corner faction-bleed`}
-                data-home-reveal
-                style={{
-                  transitionDelay: `${Math.min(index, 11) * 45}ms`,
-                  '--card-accent': character.accentColor,
-                } as any}
-              >
-                <div className={styles.characterHeader}>
-                  <span className={styles.characterBadge}>{character.factionBadge}</span>
-                  <span className={styles.abilityBadge} data-type={character.abilityType}>
-                    {character.abilityType}
-                  </span>
-                </div>
-                <h3 className={styles.characterName}>{character.name}</h3>
-                <p className={styles.characterNameJp}>{character.nameJp}</p>
-                <p className={styles.characterAbility}>{character.ability}</p>
-                <p className={styles.characterAbilityJp}>{character.abilityJp}</p>
-                <p className={styles.characterSummary}>{character.summary}</p>
-                <p className={styles.characterQuote}>{character.quote}</p>
-
-                <div className={styles.characterStats}>
-                  {[
-                    { label: 'POWER', value: character.stats.power },
-                    { label: 'INTEL', value: character.stats.intel },
-                    { label: 'LOYALTY', value: character.stats.loyalty },
-                    { label: 'CONTROL', value: character.stats.control },
-                  ].map((stat) => (
-                    <div key={stat.label} className={styles.statBox}>
-                      <div className={styles.statLine}>
-                        <span className={styles.statLabel}>{stat.label}</span>
-                        <span className={styles.statValue}>{stat.value}</span>
-                      </div>
-                      <div className={styles.characterStatTrack}>
-                        <div
-                           className={styles.characterStatFill}
-                           style={{ width: `${stat.value}%` }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {RESERVED_SLUGS.includes(character.slug) && (
-                  <div className={styles.classifiedStamp}>
-                    <div className="ink-stamp">CLASSIFIED</div>
-                  </div>
-                )}
-
-                <p className={styles.characterAuthor}>
-                  <span>{character.authorNote}</span>
-                </p>
-                <span className={styles.characterSymbol}>{character.symbol}</span>
-              </article>
-            ))}
-          </div>
-        </div>
-      </section>
 
 
       <section className={styles.section} id="lore">
@@ -742,12 +661,109 @@ export function HomeShowcase() {
                 </div>
               ))}
             </div>
-
             <div className={styles.examCallToAction}>
               <Link href="/login" className="btn-primary">
                 Enter the Registry
               </Link>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <section className={styles.section} id="fandom">
+        <div className={styles.sectionWrap}>
+          <div className={`reveal ${styles.sectionHead}`} data-home-reveal>
+            <p className={styles.sectionEyebrow}>能力者図鑑 · The Ability Registry</p>
+            <h2 className={styles.sectionTitle}>
+              Characters & <em>Their Gifts</em>
+            </h2>
+            <div className={styles.sectionDivider} />
+            <p className={styles.sectionSub}>
+              The homepage archive carries the full roster now. Filter by faction
+              and read the file before you enter the deeper pages.
+            </p>
+          </div>
+
+          <div className={`reveal ${styles.archiveControls}`} data-home-reveal>
+            {HOME_CHARACTER_FILTERS.map((filter) => (
+              <button
+                key={filter.id}
+                type="button"
+                onClick={() => setActiveFilter(filter.id)}
+                className={`${styles.filterButton} ${activeFilter === filter.id ? styles.filterButtonActive : ''
+                  }`}
+              >
+                {filter.label}
+              </button>
+            ))}
+          </div>
+
+          <div className={styles.archiveGrid}>
+            {visibleCharacters.map((character, index) => (
+              <article
+                key={character.slug}
+                className={`reveal ${styles.characterCard} faction-corner`}
+                data-home-reveal
+                style={{
+                  transitionDelay: `${Math.min(index, 11) * 45}ms`,
+                  '--card-accent': character.accentColor,
+                } as any}
+              >
+                <div className="faction-bleed" />
+                <div className={styles.characterHeader}>
+                  <span className={styles.characterBadge}>{character.factionBadge}</span>
+                  <span className={styles.abilityBadge} data-type={character.abilityType}>
+                    {character.abilityType}
+                  </span>
+                </div>
+                <h3 className={styles.characterName}>{character.name}</h3>
+                <p className={styles.characterNameJp}>{character.nameJp}</p>
+                <p className={styles.characterAbility}>{character.ability}</p>
+                <p className={styles.characterAbilityJp}>{character.abilityJp}</p>
+                <p className={styles.characterSummary}>{character.summary}</p>
+                <p className={styles.characterQuote}>{character.quote}</p>
+
+                <div className={styles.characterStats}>
+                  {[
+                    { label: 'POWER', value: character.stats.power },
+                    { label: 'INTEL', value: character.stats.intel },
+                    { label: 'LOYALTY', value: character.stats.loyalty },
+                    { label: 'CONTROL', value: character.stats.control },
+                  ].map((stat) => (
+                    <div key={stat.label} className={styles.statBox}>
+                      <div className={styles.statLine}>
+                        <span className={styles.statLabel}>{stat.label}</span>
+                        <span className={styles.statValue}>
+                          {RESERVED_SLUGS.includes(character.slug) ? '░░░' : stat.value}
+                        </span>
+                      </div>
+                      <div className={styles.characterStatTrack}>
+                        <div
+                           className={styles.characterStatFill}
+                           style={{ 
+                             width: RESERVED_SLUGS.includes(character.slug) ? '100%' : `${stat.value}%`,
+                             opacity: RESERVED_SLUGS.includes(character.slug) ? 0.3 : 1
+                           }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {RESERVED_SLUGS.includes(character.slug) && (
+                  <div className={styles.classifiedStamp}>
+                    <div className="ink-stamp" style={{ fontSize: '0.45rem', padding: '0.2rem 0.4rem', borderStyle: 'double' }}>
+                      CLASSIFIED / RESERVED
+                    </div>
+                  </div>
+                )}
+
+                <p className={styles.characterAuthor}>
+                  <span>{character.authorNote}</span>
+                </p>
+                <span className={styles.characterSymbol}>{character.symbol}</span>
+              </article>
+            ))}
           </div>
         </div>
       </section>

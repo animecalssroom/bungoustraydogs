@@ -16,6 +16,7 @@ export interface FactionMeta {
   theme: BSDTheme
   isJoinable: boolean
   isHidden: boolean
+  ranks: string[]
 }
 
 export const VISIBLE_FACTIONS: VisibleFactionId[] = [
@@ -59,6 +60,7 @@ export const FACTION_META: Record<FactionId, FactionMeta> = {
     theme: 'light',
     isJoinable: true,
     isHidden: false,
+    ranks: ['Unaffiliated Detective', 'Field Operative', 'Senior Operative', 'Lead Detective', 'Special Investigator', 'Executive Agent'],
   },
   mafia: {
     name: 'Port Mafia',
@@ -72,6 +74,7 @@ export const FACTION_META: Record<FactionId, FactionMeta> = {
     theme: 'dark',
     isJoinable: true,
     isHidden: false,
+    ranks: ['Foot Soldier', 'Operative', 'Lieutenant', 'Captain', 'Executive', 'Black Hand'],
   },
   guild: {
     name: 'The Guild',
@@ -85,6 +88,7 @@ export const FACTION_META: Record<FactionId, FactionMeta> = {
     theme: 'neutral',
     isJoinable: true,
     isHidden: false,
+    ranks: ['Associate', 'Contractor', 'Acquisitions Agent', 'Senior Partner', 'Director', 'Founding Member'],
   },
   hunting_dogs: {
     name: 'Hunting Dogs',
@@ -98,6 +102,7 @@ export const FACTION_META: Record<FactionId, FactionMeta> = {
     theme: 'dark',
     isJoinable: true,
     isHidden: false,
+    ranks: ['Recruit', 'Enlisted', 'Sergeant', 'Lieutenant', 'Commander', 'First Hound'],
   },
   special_div: {
     name: 'Special Division',
@@ -111,6 +116,7 @@ export const FACTION_META: Record<FactionId, FactionMeta> = {
     theme: 'light',
     isJoinable: false,
     isHidden: true,
+    ranks: ['Flagged', 'Monitored', 'Cleared', 'Operative', 'Handler', 'Controller'],
   },
   rats: {
     name: 'Rats in the House of the Dead',
@@ -123,6 +129,7 @@ export const FACTION_META: Record<FactionId, FactionMeta> = {
     theme: 'dark',
     isJoinable: false,
     isHidden: true,
+    ranks: ['Initiate', 'Cell Member', 'Zealot', 'High Rat', 'The Infallible', 'The Cleansed'],
   },
   decay: {
     name: 'Decay of the Angel',
@@ -135,6 +142,7 @@ export const FACTION_META: Record<FactionId, FactionMeta> = {
     theme: 'neutral',
     isJoinable: false,
     isHidden: true,
+    ranks: ['Actor', 'Saboteur', 'Spectacle', 'Master of Chaos', 'The Free', 'God of Ruin'],
   },
   clock_tower: {
     name: 'Order of the Clock Tower',
@@ -147,6 +155,7 @@ export const FACTION_META: Record<FactionId, FactionMeta> = {
     theme: 'neutral',
     isJoinable: false,
     isHidden: true,
+    ranks: ['Page', 'Squire', 'Knight', 'Vanguard', 'Sentinel', 'Tower Guardian'],
   },
 }
 

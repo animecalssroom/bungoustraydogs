@@ -85,6 +85,16 @@
   letter-spacing: 0.04em;
 }
 
+.territoryLine {
+  margin-top: 0.5rem;
+  font-family: var(--font-record);
+  font-size: 0.58rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--banner-accent, var(--accent));
+  opacity: 0.8;
+}
+
 .heroPhilosophy {
   margin: 1rem 0 0;
   font-family: var(--font-literary);
@@ -288,29 +298,44 @@
 }
 
 .heroAgency {
-  --banner-accent: var(--color-agency);
-  --banner-bg:
-    linear-gradient(135deg, rgba(139, 96, 32, 0.17), transparent 42%),
-    linear-gradient(180deg, rgba(245, 239, 227, 0.96), rgba(237, 227, 204, 0.98)),
-    linear-gradient(90deg, rgba(139, 96, 32, 0.08), transparent 22%);
+  --banner-accent: #8b6020;
+  --banner-bg: 
+    linear-gradient(135deg, rgba(212, 134, 31, 0.12), transparent 45%),
+    linear-gradient(180deg, #f5efe3, #ede3cc);
   --banner-text: #24140a;
-  --banner-muted: rgba(92, 58, 30, 0.9);
-  --banner-mark: rgba(110, 80, 32, 0.08);
-  --banner-rule: rgba(139, 96, 32, 0.08);
-  --banner-glow: rgba(212, 134, 31, 0.18);
+  --banner-muted: rgba(92, 58, 30, 0.75);
+  --banner-mark: rgba(110, 80, 32, 0.06);
+  --banner-rule: rgba(139, 96, 32, 0.06);
+  --banner-glow: rgba(212, 134, 31, 0.1);
+}
+
+.heroAgency .heroTitle {
+  font-family: var(--font-record);
+  text-transform: uppercase;
+  letter-spacing: -0.02em;
 }
 
 .heroMafia {
-  --banner-accent: var(--color-mafia);
-  --banner-bg:
-    radial-gradient(circle at left center, rgba(204, 26, 26, 0.28), transparent 38%),
-    linear-gradient(135deg, rgba(13, 6, 8, 0.98), rgba(35, 8, 10, 0.98)),
-    linear-gradient(90deg, rgba(204, 26, 26, 0.18), transparent 20%);
+  --banner-accent: #cc1a1a;
+  --banner-bg: #0d0608;
   --banner-text: #f2e3dc;
-  --banner-muted: rgba(232, 180, 170, 0.82);
-  --banner-mark: rgba(204, 26, 26, 0.11);
-  --banner-rule: rgba(204, 26, 26, 0.08);
-  --banner-glow: rgba(204, 26, 26, 0.2);
+  --banner-muted: rgba(232, 180, 170, 0.65);
+  --banner-mark: rgba(204, 26, 26, 0.08);
+  --banner-rule: rgba(204, 26, 26, 0.05);
+  --banner-glow: rgba(204, 26, 26, 0.15);
+  position: relative;
+}
+
+.heroMafia::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at -5% 105%, #cc1a1a 0%, transparent 45%);
+  opacity: 0.45;
+  pointer-events: none;
 }
 
 .heroGuild {

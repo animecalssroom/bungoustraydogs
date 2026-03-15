@@ -1,7 +1,7 @@
 import { RegistryModel } from '@/backend/models/registry.model'
 import RegistryPageClient from './RegistryPageClient'
 
-export const revalidate = 120
+export const dynamic = 'force-dynamic'
 
 export default async function RegistryPage() {
   const posts = await RegistryModel.getPublic()

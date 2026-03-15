@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { WarModel } from '@/backend/models/war.model'
 import { requireAuth } from '@/backend/middleware/auth'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(req: NextRequest) {
     try {
         const territories = await WarModel.getTerritoryControl()

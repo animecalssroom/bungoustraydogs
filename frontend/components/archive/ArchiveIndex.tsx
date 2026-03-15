@@ -12,6 +12,8 @@ import {
   getArchiveFactionLabel,
   matchesArchiveFactionFilter,
 } from '@/frontend/lib/archive'
+import { RESERVED_SLUGS } from '@/frontend/lib/home-content'
+import { AbilityTypeIcon } from '@/frontend/components/character/AbilityTypeIcon'
 import styles from './Archive.module.css'
 
 const ABILITY_FILTERS: Array<'all' | AbilityType> = [
@@ -131,9 +133,47 @@ export function ArchiveIndex({ entries }: ArchiveIndexProps) {
               <h3 className={styles.cardTitle}>{entry.character_name}</h3>
               <p className={styles.cardAbility}>{entry.ability_name}</p>
               <div className={styles.cardRow}>
-                <span className={styles.cardBadge}>{entry.ability_type ?? 'classified'}</span>
-                <span className={styles.cardAuthor}>{entry.real_author_name}</span>
+                <div className="flex items-center gap-1.5">
+                  <span className={styles.cardBadge} data-type={entry.ability_type}>
+                    {entry.ability_type ?? 'classified'}
+                  </span>
+                  <AbilityTypeIcon type={entry.ability_type ?? 'classified' as any} size={11} />
+                </div>
+                <div className={styles.cardAuthorBlock}>
+                  <p className={styles.cardAuthor}>
+                    {entry.real_author_name} {entry.real_author_dates ? `(${entry.real_author_dates})` : ''}
+                  </p>
+                  {entry.notable_works && (
+                    <p className={styles.cardNotableWorks}>Ref: {entry.notable_works.split(',')[0]}</p>
+                  )}
+                </div>
               </div>
+
+              <div className={styles.cardStats}>
+                {[
+                  { label: 'P', value: entry.trait_power },
+                  { label: 'I', value: entry.trait_intel },
+                  { label: 'L', value: entry.trait_loyalty },
+                  { label: 'C', value: entry.trait_control },
+                ].map((stat) => (
+                  <div key={stat.label} className={styles.statMini}>
+                    <span className={styles.statLabel}>{stat.label}</span>
+                    <div className={styles.statTrack}>
+                      <div 
+                        className={styles.statFill} 
+                        style={{ 
+                          width: RESERVED_SLUGS.includes(entry.slug) ? '100%' : `${stat.value ?? 50}%`,
+                          opacity: RESERVED_SLUGS.includes(entry.slug) ? 0.3 : 1
+                        }} 
+                      />
+                    </div>
+                    {RESERVED_SLUGS.includes(entry.slug) && (
+                      <span className={styles.statRedacted}>░</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+
               <p className={styles.cardTeaser}>
                 {entry.ability_description?.split('. ')[0] ?? 'File retained in public circulation.'}
               </p>

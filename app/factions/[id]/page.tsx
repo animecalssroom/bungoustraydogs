@@ -60,6 +60,17 @@ const LEADER_NOTES: Record<FactionId, string> = {
   clock_tower: 'Command in this file appears only after it has already been exercised.',
 }
 
+const TERRITORIES: Record<FactionId, string> = {
+  agency: 'Kannai District',
+  mafia: 'Yokohama Harbor / Motomachi Delta',
+  guild: 'Waterfront / Minato Mirai',
+  hunting_dogs: 'Military Administration Sector',
+  special_div: 'Classified / Observer Perimeter',
+  rats: 'Honmoku Industrial Annex',
+  decay: 'Tsurumi / Abandoned Transit',
+  clock_tower: 'Foreign Settlement Exclusion Zone'
+}
+
 function displayName(member: {
   character_name?: string | null
   character_match_id: string | null
@@ -120,6 +131,9 @@ export default async function FactionDossierPage({
               <p className={styles.heroTag}>{dossierLabel}</p>
               <p className={styles.heroJp}>{faction.name_jp}</p>
               <h1 className={styles.heroTitle}>{faction.name}</h1>
+              <div className={styles.territoryLine}>
+                TERRITORY: {TERRITORIES[factionId]}
+              </div>
               <p className={styles.heroPhilosophy}>{bannerMeta.philosophy}</p>
               <p className={styles.heroDescription}>{faction.description}</p>
 
@@ -157,11 +171,13 @@ export default async function FactionDossierPage({
 
             <aside className={styles.heroAside}>
               <div className={styles.classification}>
-                {factionId === 'special_div' && !canInspectSpecialDivision
-                  ? 'sealed circulation'
-                  : faction.is_joinable
-                    ? 'joinable public file'
-                    : 'restricted annex'}
+                {['rats', 'decay', 'clock_tower'].includes(factionId)
+                  ? 'existence unconfirmed'
+                  : factionId === 'special_div' && !canInspectSpecialDivision
+                    ? 'sealed circulation'
+                    : faction.is_joinable
+                      ? 'joinable public file'
+                      : 'restricted annex'}
               </div>
 
               <div className={styles.metrics}>
@@ -180,7 +196,9 @@ export default async function FactionDossierPage({
                 <div className={styles.metric}>
                   <div className={styles.metricLabel}>Faction AP</div>
                   <div className={styles.metricValue}>
-                    {canInspectSpecialDivision ? faction.ap.toLocaleString() : 'Classified'}
+                    {canInspectSpecialDivision && !['rats', 'decay', 'clock_tower'].includes(factionId) 
+                      ? faction.ap.toLocaleString() 
+                      : 'Classified'}
                   </div>
                 </div>
               </div>

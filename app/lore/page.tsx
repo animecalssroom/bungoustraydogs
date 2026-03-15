@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { LoreModel } from '@/backend/models/lore.model'
 import { LorePageGridWithInitialPosts } from '@/frontend/components/lore/LoreCard'
 
-export const revalidate = 120
+export const dynamic = 'force-dynamic'
 
 export default async function LorePage() {
   const posts = await LoreModel.getAll()

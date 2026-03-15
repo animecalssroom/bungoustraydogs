@@ -3,13 +3,38 @@ import type { ArchiveEntry, FactionId } from '@/backend/types'
 const CREATED_AT = '2026-03-12T00:00:00.000Z'
 
 function makeEntry(
-  entry: Omit<ArchiveEntry, 'id' | 'created_at'> & { faction: FactionId },
+  entry: Omit<Partial<ArchiveEntry>, 'id' | 'created_at'> & { slug: string; character_name: string; faction: FactionId; ability_name: string },
 ): ArchiveEntry {
   return {
     id: entry.slug,
     created_at: CREATED_AT,
+    character_name_jp: null,
+    ability_name_jp: null,
+    ability_type: null,
+    ability_description: null,
+    trait_power: null,
+    trait_intel: null,
+    trait_loyalty: null,
+    trait_control: null,
+    real_author_name: null,
+    real_author_dates: null,
+    real_author_bio: null,
+    literary_movement: null,
+    notable_works: null,
+    ability_literary_connection: null,
+    duel_voice: null,
+    literary_link: null,
+    special_mechanic: null,
+    designation: null,
+    clearance_level: null,
+    ability_analysis: null,
+    lore_background: null,
+    physical_evidence: null,
+    narrative_hook: null,
+    registry_note: null,
+    status: 'active',
     ...entry,
-  }
+  } as ArchiveEntry
 }
 
 export const ARCHIVE_FALLBACK_CATALOG: ArchiveEntry[] = [
@@ -87,9 +112,22 @@ export const ARCHIVE_FALLBACK_CATALOG: ArchiveEntry[] = [
     notable_works: 'Musashino, Aitei Tsushin',
     ability_literary_connection:
       'BSD reimagines the writer\'s disciplined interior life as literal materialization through the notebook. The ability turns written intention into concrete form.',
+    designation: 'The Idealist / The Keystone',
+    clearance_level: 'Level 3 (Field Commander)',
+    ability_analysis: 'A manifestation ability tied to his physical notebook. By writing the name of an object and tearing out a page, he can materialize that object into reality. Limitation: The object cannot be larger than the notebook itself.',
+    lore_background: 'A former math teacher with a rigid moral compass. He is the Agency’s primary disciplinarian and the successor-designate to Director Fukuzawa. His life is governed by his "Ideals"—a series of notebooks detailing how the world should be. While he finds Dazai infuriating, their partnership remains the most effective tactical duo in the city’s history.',
+    physical_evidence: [
+      'One (1) "Ideals" Notebook: Custom-bound, currently on volume #72.',
+      'A Precision Stopwatch: Calibrated daily to the millisecond.',
+      'A Broken Fountain Pen: Replaced frequently due to "stress-induced gripping" during arguments with Dazai.'
+    ],
+    narrative_hook: 'Kunikida doesn\'t just want to save the city; he wants to save it according to a schedule. He is the bridge between the Agency\'s chaos and the city\'s order. If his notebook ever runs out of pages, the Agency loses its compass.',
     registry_note:
-      'A practical idealist is more dangerous than a dreamer; the city files this one under proof.',
+      'This ability is unique because its power is directly proportional to the Subject\'s mental discipline. If his resolve wavers, the manifestations fail.',
     status: 'active',
+    duel_voice: null,
+    literary_link: null,
+    special_mechanic: null,
   }),
   makeEntry({
     slug: 'ranpo-edogawa',

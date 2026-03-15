@@ -1,0 +1,32 @@
+.stamp {
+  display: inline-flex;
+  padding: 0.4rem 0.8rem;
+  border: 3px solid var(--stamp-color);
+  color: var(--stamp-color);
+  font-family: var(--font-record);
+  font-size: 0.9rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  border-radius: 4px;
+  position: relative;
+  mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E");
+  mask-size: 150px;
+  mix-blend-mode: multiply;
+  user-select: none;
+  pointer-events: none;
+}
+
+.inner {
+  position: relative;
+  z-index: 1;
+}
+
+.stamp::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border: 1px solid var(--stamp-color);
+  opacity: 0.4;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+}

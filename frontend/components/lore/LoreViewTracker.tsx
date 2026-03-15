@@ -7,13 +7,18 @@ export function LoreViewTracker({ postSlug }: { postSlug: string }) {
 
     useEffect(() => {
         if (tracked.current) return
-        tracked.current = true
 
-        // Non-blocking view increment
-        void fetch(`/api/lore/${encodeURIComponent(postSlug)}/view`, {
-            method: 'POST',
-            cache: 'no-store',
-        }).catch(() => { })
+        // 5-second debounce: only count a view if the user actually stays on the page
+        // Reduces POST traffic for quick browsing/clicking.
+        const timer = setTimeout(() => {
+            tracked.current = true
+            void fetch(`/api/lore/${encodeURIComponent(postSlug)}/view`, {
+                method: 'POST',
+                cache: 'no-store',
+            }).catch(() => { })
+        }, 5000)
+
+        return () => clearTimeout(timer)
     }, [postSlug])
 
     return null

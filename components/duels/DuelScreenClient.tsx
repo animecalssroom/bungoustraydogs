@@ -13,6 +13,11 @@ import { NarrativePanel } from '@/components/duels/NarrativePanel'
 import { PreAssignmentMessage } from '@/components/duels/PreAssignmentMessage'
 import { RoundHistory } from '@/components/duels/RoundHistory'
 import { getDisplayRoundNarrative } from '@/lib/duels/presentation'
+import { 
+  CHARACTER_ABILITY_NAMES, 
+  getAbilityTypeForCharacter, 
+  ABILITY_TYPE_LABELS 
+} from '@/frontend/lib/ability-types'
 import type { MoveConstraints } from '@/app/duels/[duelId]/page'
 
 // ── Faction tokens ────────────────────────────────────────────────────────
@@ -169,6 +174,8 @@ function FighterCard({
   align,
   showHp,
   isComeback,
+  characterAbility,
+  characterSlug,
 }: {
   name: string
   characterName: string | null | undefined
@@ -178,9 +185,20 @@ function FighterCard({
   align: 'left' | 'right'
   showHp: boolean
   isComeback: boolean
+  characterAbility?: string | null
+  characterSlug?: string | null
 }) {
   const color = factionColor(faction)
   const isRight = align === 'right'
+
+  const resolvedAbilityType = getAbilityTypeForCharacter(characterSlug)
+  const resolvedAbilityName = characterAbility || (characterSlug ? CHARACTER_ABILITY_NAMES[characterSlug] : null)
+
+  const abilityLabel = resolvedAbilityName || (resolvedAbilityType ? ABILITY_TYPE_LABELS[resolvedAbilityType] :
+    (faction === 'agency' || faction === 'special_div' ? 'Analysis' :
+     faction === 'hunting_dogs' ? 'Destruction' :
+     faction === 'mafia' ? 'Destruction' :
+     faction === 'guild' ? 'Manipulation' : 'Operative'))
 
   return (
     <div
@@ -245,13 +263,10 @@ function FighterCard({
               color,
               borderRadius: '1px',
             }}
-          >
-            {faction === 'agency' || faction === 'special_div' ? 'Analysis' :
-              faction === 'hunting_dogs' ? 'Destruction' :
-                faction === 'mafia' ? 'Destruction' :
-                  faction === 'guild' ? 'Manipulation' : 'Operative'}
+            >
+              {abilityLabel}
+            </div>
           </div>
-        </div>
       </div>
     </div>
   )
@@ -287,6 +302,12 @@ export function DuelScreenClient({
   const [aftermathApLabel, setAftermathApLabel] = useState<string | null>(null)
   const [challengerDisplay, setChallengerDisplay] = useState<string | null>(null)
   const [defenderDisplay, setDefenderDisplay] = useState<string | null>(null)
+  
+  const [challengerAbilityVal, setChallengerAbilityVal] = useState<string | null>(null)
+  const [defenderAbilityVal, setDefenderAbilityVal] = useState<string | null>(null)
+  const [challengerSlugVal, setChallengerSlugVal] = useState<string | null>(null)
+  const [defenderSlugVal, setDefenderSlugVal] = useState<string | null>(null)
+
   const lastApRef = useRef<HTMLDivElement | null>(null)
 
   // ── Derived (memoized for performance) ─────────────────────────
@@ -370,51 +391,79 @@ export function DuelScreenClient({
     setSpecialAvailable(!usedSpecial)
   }, [rounds, isChallenger])
 
-  // ── Display name resolution ───────────────────────────────────────────
+  // ── Display name and ability resolution ───────────────────────────
   useEffect(() => {
     let active = true
     const load = async () => {
       try {
-        const missingC = !duel.challenger_character
-        const missingD = !duel.defender_character
         const fallbackC = duel.challenger_character ?? duel.challenger_faction ?? 'Unregistered'
         const fallbackD = duel.defender_character ?? duel.defender_faction ?? 'Unregistered'
 
-        if (!missingC && !missingD) {
-          if (active) { setChallengerDisplay(fallbackC); setDefenderDisplay(fallbackD) }
+        // If characters are already embedded in the duel object, use them and look up names
+        if (duel.challenger_character && duel.defender_character) {
+          if (active) {
+            setChallengerDisplay(duel.challenger_character)
+            setDefenderDisplay(duel.defender_character)
+            setChallengerAbilityVal(duel.challenger_character_slug ? CHARACTER_ABILITY_NAMES[duel.challenger_character_slug] : null)
+            setDefenderAbilityVal(duel.defender_character_slug ? CHARACTER_ABILITY_NAMES[duel.defender_character_slug] : null)
+            setChallengerSlugVal(duel.challenger_character_slug)
+            setDefenderSlugVal(duel.defender_character_slug)
+          }
           return
         }
 
         const ids: string[] = []
-        if (missingC && duel.challenger_id) ids.push(duel.challenger_id)
-        if (missingD && duel.defender_id) ids.push(duel.defender_id)
+        if (duel.challenger_id) ids.push(duel.challenger_id)
+        if (duel.defender_id) ids.push(duel.defender_id)
 
         if (!ids.length) {
-          if (active) { setChallengerDisplay(fallbackC); setDefenderDisplay(fallbackD) }
+          if (active) {
+            setChallengerDisplay(fallbackC); setDefenderDisplay(fallbackD)
+            setChallengerSlugVal(duel.challenger_character_slug)
+            setDefenderSlugVal(duel.defender_character_slug)
+          }
           return
         }
 
         const { data, error } = await supabase
-          .from('profiles').select('id, username, character_name').in('id', ids)
+          .from('profiles')
+          .select('id, username, character_name, character_ability, character_match_id')
+          .in('id', ids)
 
         if (!active) return
-        if (error || !data) { setChallengerDisplay(fallbackC); setDefenderDisplay(fallbackD); return }
+
+        if (error || !data) {
+          setChallengerDisplay(fallbackC); setDefenderDisplay(fallbackD)
+          setChallengerSlugVal(duel.challenger_character_slug)
+          setDefenderSlugVal(duel.defender_character_slug)
+          return
+        }
 
         const map = new Map(
-          (data as Array<{ id: string; username: string; character_name: string | null }>)
+          (data as Array<{ id: string; username: string; character_name: string | null; character_ability: string | null; character_match_id: string | null }>)
             .map((r) => [r.id, r]),
         )
 
+        const cProf = map.get(duel.challenger_id ?? '')
+        const dProf = map.get(duel.defender_id ?? '')
+
         setChallengerDisplay(
-          duel.challenger_character ?? map.get(duel.challenger_id ?? '')?.character_name ?? map.get(duel.challenger_id ?? '')?.username ?? fallbackC,
+          duel.challenger_character ?? cProf?.character_name ?? cProf?.username ?? fallbackC,
         )
         setDefenderDisplay(
-          duel.defender_character ?? map.get(duel.defender_id ?? '')?.character_name ?? map.get(duel.defender_id ?? '')?.username ?? fallbackD,
+          duel.defender_character ?? dProf?.character_name ?? dProf?.username ?? fallbackD,
         )
+
+        setChallengerAbilityVal(duel.challenger_character_slug ? CHARACTER_ABILITY_NAMES[duel.challenger_character_slug] : (cProf?.character_ability ?? null))
+        setDefenderAbilityVal(duel.defender_character_slug ? CHARACTER_ABILITY_NAMES[duel.defender_character_slug] : (dProf?.character_ability ?? null))
+        setChallengerSlugVal(duel.challenger_character_slug ?? cProf?.character_match_id ?? null)
+        setDefenderSlugVal(duel.defender_character_slug ?? dProf?.character_match_id ?? null)
       } catch {
         if (!active) return
         setChallengerDisplay(duel.challenger_character ?? duel.challenger_faction ?? 'Unregistered')
         setDefenderDisplay(duel.defender_character ?? duel.defender_faction ?? 'Unregistered')
+        setChallengerSlugVal(duel.challenger_character_slug)
+        setDefenderSlugVal(duel.defender_character_slug)
       }
     }
     void load()
@@ -422,7 +471,9 @@ export function DuelScreenClient({
   }, [
     duel.challenger_character, duel.defender_character,
     duel.challenger_id, duel.defender_id,
-    duel.challenger_faction, duel.defender_faction, supabase,
+    duel.challenger_faction, duel.defender_faction, 
+    duel.challenger_character_slug, duel.defender_character_slug,
+    supabase,
   ])
 
   // ── Countdown timer ───────────────────────────────────────────────────
@@ -659,6 +710,8 @@ export function DuelScreenClient({
             align="left"
             showHp={isChallenger}
             isComeback={isChallenger && isComeback}
+            characterAbility={challengerAbilityVal}
+            characterSlug={challengerSlugVal}
           />
 
           <div
@@ -691,6 +744,8 @@ export function DuelScreenClient({
             align="right"
             showHp={!isChallenger}
             isComeback={!isChallenger && isComeback}
+            characterAbility={defenderAbilityVal}
+            characterSlug={defenderSlugVal}
           />
         </section>
 

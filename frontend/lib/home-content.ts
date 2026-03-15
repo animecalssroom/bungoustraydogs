@@ -31,6 +31,7 @@ export interface HomeFactionCard {
   theme: BSDTheme
   joinable: boolean
   philosophy: string
+  rankTitle: string
 }
 
 export interface HomeCharacterCard {
@@ -258,7 +259,7 @@ const characterOverrides: Record<
     authorNote:
        'Based on Nikolai Gogol (1809-1852) — A master of surrealism and absurdism whose work breaks the boundaries of reality.',
     abilityType: 'Special',
-    stats: { power: 75, intel: 88, loyalty: 30, control: 65 },
+    stats: { power: 25, intel: 98, loyalty: 25, control: 95 },
     symbol: '外',
   },
 }
@@ -353,6 +354,7 @@ export const HOME_FACTIONS: HomeFactionCard[] = [
     color: '#cc1a1a',
     status: 'Joinable · Dark',
     rank: '01',
+    rankTitle: 'Foot Soldier',
     apDisplay: '92,441 AP',
     memberDisplay: '2,841 members',
     barPercent: 92,
@@ -369,6 +371,7 @@ export const HOME_FACTIONS: HomeFactionCard[] = [
     color: '#8b6020',
     status: 'Joinable · Light',
     rank: '02',
+    rankTitle: 'Unaffiliated Detective',
     apDisplay: '78,230 AP',
     memberDisplay: '3,412 members',
     barPercent: 88,
@@ -385,6 +388,7 @@ export const HOME_FACTIONS: HomeFactionCard[] = [
     color: '#c8a020',
     status: 'Joinable · Neutral',
     rank: '03',
+    rankTitle: 'Associate',
     apDisplay: '61,880 AP',
     memberDisplay: '1,955 members',
     barPercent: 64,
@@ -401,6 +405,7 @@ export const HOME_FACTIONS: HomeFactionCard[] = [
     color: '#4a6a8a',
     status: 'Joinable · Dark',
     rank: '04',
+    rankTitle: 'Recruit',
     apDisplay: '55,120 AP',
     memberDisplay: '842 members',
     barPercent: 41,
@@ -417,6 +422,7 @@ export const HOME_FACTIONS: HomeFactionCard[] = [
     color: '#4a5a6a',
     status: 'Joinable · Light',
     rank: '05',
+    rankTitle: 'Flagged',
     apDisplay: '42,660 AP',
     memberDisplay: '1,102 members',
     barPercent: 28,
@@ -433,6 +439,7 @@ export const HOME_FACTIONS: HomeFactionCard[] = [
     color: '#6a1a6a',
     status: 'Lore · Dark · Unlock Required',
     rank: '—',
+    rankTitle: 'Initiate',
     apDisplay: '???',
     memberDisplay: '---',
     barPercent: 12,
@@ -449,6 +456,7 @@ export const HOME_FACTIONS: HomeFactionCard[] = [
     color: '#3a5a7a',
     status: 'Lore · Neutral · Unlock Required',
     rank: '—',
+    rankTitle: 'Actor',
     apDisplay: '???',
     memberDisplay: '---',
     barPercent: 8,
@@ -465,6 +473,7 @@ export const HOME_FACTIONS: HomeFactionCard[] = [
     color: '#5a4a2a',
     status: 'Lore · Neutral · Unlock Required',
     rank: '—',
+    rankTitle: 'Page',
     apDisplay: '???',
     memberDisplay: '---',
     barPercent: 4,
