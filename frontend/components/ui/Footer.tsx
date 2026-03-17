@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 
 const footerColumns = [
   {
@@ -71,16 +72,16 @@ export function Footer() {
               width: 'fit-content',
             }}
           >
-            <img 
-              src="/images/logo.jpg" 
-              alt="Logo" 
-              style={{ 
-                width: '40px', 
-                height: '40px', 
-                objectFit: 'cover', 
+            <Image
+              src="/images/logo.jpg"
+              alt="Logo"
+              width={40}
+              height={40}
+              style={{
+                objectFit: 'cover',
                 border: '1.5px solid var(--border)',
                 borderRadius: '4px'
-              }} 
+              }}
             />
             <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1 }}>
               <span
@@ -98,7 +99,7 @@ export function Footer() {
                 style={{
                   marginTop: '4px',
                   fontFamily: 'Noto Serif JP, serif',
-                  fontSize: '0.5rem',
+                  fontSize: '0.65rem',
                   letterSpacing: '0.2em',
                   color: 'var(--text3)',
                 }}
@@ -147,8 +148,14 @@ export function Footer() {
               e.currentTarget.style.background = 'color-mix(in srgb, var(--accent) 5%, transparent)'
             }}
           >
-            <img src="/images/logo.jpg" alt="Telegram" style={{ width: '20px', height: '20px', borderRadius: '50%' }} />
-            <span style={{ fontFamily: 'Space Mono, monospace', fontSize: '0.55rem', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text2)' }}>
+            <Image
+              src="/images/logo.jpg"
+              alt="Telegram"
+              width={20}
+              height={20}
+              style={{ borderRadius: '50%' }}
+            />
+            <span style={{ fontFamily: 'Space Mono, monospace', fontSize: '0.65rem', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text2)' }}>
               Telegram Channel
             </span>
           </a>
@@ -160,7 +167,7 @@ export function Footer() {
               style={{
                 marginBottom: '1.4rem',
                 fontFamily: 'Space Mono, monospace',
-                fontSize: '0.55rem',
+                fontSize: '0.65rem',
                 letterSpacing: '0.24em',
                 textTransform: 'uppercase',
                 color: 'var(--text3)',
@@ -204,7 +211,7 @@ export function Footer() {
         <span
           style={{
             fontFamily: 'Space Mono, monospace',
-            fontSize: '0.52rem',
+            fontSize: '0.7rem',
             letterSpacing: '0.1em',
             color: 'var(--text3)',
           }}

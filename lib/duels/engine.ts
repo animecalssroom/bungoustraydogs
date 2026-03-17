@@ -75,6 +75,9 @@ type MoveOutcome = {
   extraRoundDamage?: number
   reduceOpponentMaxHp?: number
   absorbCap?: number
+  revealOpponentMove?: boolean
+  delayDamage?: number
+  stripCategory?: 'attack' | 'defend' | 'gamble' | 'special' | 'recover'
 }
 
 const SPECIAL_CONFIG: Record<string, SpecialConfig> = {
@@ -224,9 +227,15 @@ function getSpecialEffect(slug: string | null, currentHp: number, actor: 'challe
     case 'fyodor-dostoevsky':
       return { damage: 0, heal: 0, defenseMultiplier: 1, ignoreDefense: false, selfDamage: 0, reduceOpponentMaxHp: 30 }
     case 'nikolai-gogol':
-      return { damage: 35, heal: 0, defenseMultiplier: 1, ignoreDefense: false, selfDamage: 0 }
+       return { damage: 35, heal: 0, defenseMultiplier: 1, ignoreDefense: false, selfDamage: 0 }
     case 'sakunosuke-oda':
-      return { damage: 0, heal: 0, defenseMultiplier: 1, ignoreDefense: false, selfDamage: 0 }
+      return { damage: 0, heal: 0, defenseMultiplier: 1, ignoreDefense: false, selfDamage: 0, revealOpponentMove: true }
+    case 'edgar-allan-poe':
+      return { damage: 0, heal: 0, defenseMultiplier: 1, ignoreDefense: false, selfDamage: 0, delayDamage: 40 }
+    case 'lucy-montgomery':
+      const categories: MoveOutcome['stripCategory'][] = ['attack', 'defend', 'gamble', 'special']
+      const strip = categories[Math.floor(Math.random() * categories.length)]
+      return { damage: 0, heal: 0, defenseMultiplier: 1, ignoreDefense: false, selfDamage: 0, stripCategory: strip }
     default:
       return { damage: 35, heal: 0, defenseMultiplier: 1, ignoreDefense: false, selfDamage: 0 }
   }
@@ -409,6 +418,23 @@ export function resolveDuelRound(input: EngineInput): EngineOutput {
 
   let incomingToChallenger = defenderData.ignoreDefense ? defenderData.damage : Math.round(defenderData.damage * challengerDefenseMultiplier)
   let incomingToDefender = challengerData.ignoreDefense ? challengerData.damage : Math.round(challengerData.damage * defenderDefenseMultiplier)
+
+  // Poe: Delayed Trap
+  if (hasEvent(input.previousRounds, 'trap_armed', 'challenger')) {
+    incomingToDefender += 40
+    specialEvents.push({ type: 'trap_detonated', actor: 'challenger', description: "Poe's Black Cat trap detonates." })
+  }
+  if (hasEvent(input.previousRounds, 'trap_armed', 'defender')) {
+    incomingToChallenger += 40
+    specialEvents.push({ type: 'trap_detonated', actor: 'defender', description: "Poe's Black Cat trap detonates." })
+  }
+
+  if (challengerData.delayDamage) {
+    specialEvents.push({ type: 'trap_armed', actor: 'challenger', description: "Poe arms a Black Cat trap for the next round." })
+  }
+  if (defenderData.delayDamage) {
+    specialEvents.push({ type: 'trap_armed', actor: 'defender', description: "Poe arms a Black Cat trap for the next round." })
+  }
 
   if (input.challenger.slug === 'kyouka-izumi') {
     incomingToChallenger = Math.max(0, incomingToChallenger - 5)

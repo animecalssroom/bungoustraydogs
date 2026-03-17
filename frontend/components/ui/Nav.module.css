@@ -109,7 +109,7 @@
 
 .brandSubtitle {
   font-family: var(--font-record);
-  font-size: 0.52rem;
+  font-size: 0.65rem;
   letter-spacing: 0.18em;
   color: color-mix(in srgb, var(--text2) 70%, var(--text3));
   text-transform: uppercase;
@@ -146,7 +146,7 @@
   color: color-mix(in srgb, var(--text2) 82%, var(--text3));
   text-decoration: none;
   font-family: var(--font-record);
-  font-size: 0.58rem;
+  font-size: 0.725rem;
   letter-spacing: 0.2em;
   text-transform: uppercase;
   transition: color 0.25s ease;
@@ -193,7 +193,7 @@
 }
 
 .factionChatText {
-  font-size: 0.55rem;
+  font-size: 0.75rem;
   letter-spacing: 0.1em;
   font-weight: 700;
   opacity: 0.8;
@@ -234,7 +234,7 @@
 
 .accountHandle {
   font-family: var(--font-record);
-  font-size: 0.58rem;
+  font-size: 0.825rem;
   letter-spacing: 0.14em;
   color: var(--text2);
 }
@@ -281,14 +281,14 @@
 }
 
 .cityModeLabel {
-  font-size: 0.5rem;
+  font-size: 0.75rem;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: color-mix(in srgb, var(--text2) 86%, var(--text3));
 }
 
 .cityModeMeta {
-  font-size: 0.46rem;
+  font-size: 0.7rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: color-mix(in srgb, var(--text3) 74%, var(--text4));
@@ -333,7 +333,7 @@
 }
 
 .lanternLabel {
-  font-size: 0.44rem;
+  font-size: 0.65rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: color-mix(in srgb, var(--text3) 80%, var(--text4));

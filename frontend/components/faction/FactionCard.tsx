@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useAuth } from '@/frontend/context/AuthContext'
 import type { Faction } from '@/backend/types'
 import { privateFactionPath } from '@/frontend/lib/launch'
+import { useState, useEffect } from 'react'
 
 function FactionCard({
   faction,
@@ -11,6 +12,11 @@ function FactionCard({
   faction: Faction
 }) {
   const { profile } = useAuth()
+  const [mounted, setMounted] = useState(false)
+  
+  useEffect(() => {
+    setMounted(true)
+  }, [])
   const isHidden = ['rats', 'decay', 'clock_tower'].includes(faction.id)
   const canEnterHub =
     profile &&
@@ -176,7 +182,7 @@ function FactionCard({
                 color: 'var(--accent)',
               }}
             >
-              {faction.ap.toLocaleString()}
+              {mounted ? faction.ap.toLocaleString() : '---'}
             </span>
           </div>
 

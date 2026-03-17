@@ -20,6 +20,9 @@ export function GlobalDuelMatchmaker() {
 
         let active = true
         const loadPending = async () => {
+            // Avoid re-fetching if we already have data (prevents duplicates on re-render)
+            if (pendingDuels.length > 0) return 
+
             const response = await fetch('/api/duels/pending-challenges', {
                 cache: 'no-store',
             })
@@ -35,12 +38,7 @@ export function GlobalDuelMatchmaker() {
             .channel(`global-matchmaker:${user.id}`)
             .on(
                 'postgres_changes',
-                { 
-                    event: '*', 
-                    schema: 'public', 
-                    table: 'duels',
-                    filter: `defender_id=eq.${user.id}`
-                },
+                { event: '*', schema: 'public', table: 'duels' },
                 (payload) => {
                     const raw = payload.new as Duel | undefined
                     if (!raw) {

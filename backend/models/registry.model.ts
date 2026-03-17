@@ -8,8 +8,6 @@ import {
 } from '@/backend/lib/registry'
 import { supabaseAdmin } from '@/backend/lib/supabase'
 import { UserModel } from '@/backend/models/user.model'
-import { FactionWarModel } from './faction-war.model'
-import { WarContributionModel } from './war-contribution.model'
 import type {
   FactionId,
   Profile,
@@ -352,19 +350,26 @@ export const RegistryModel = {
       threadId = createdThread.id
     }
 
+    const { count } = await supabaseAdmin
+      .from('registry_posts')
+      .select('id', { count: 'exact', head: true })
+
+    const sequenceCount =
+      input.postType === 'field_note'
+        ? await supabaseAdmin
+          .from('registry_posts')
+          .select('id', { count: 'exact', head: true })
+          .eq('post_type', 'field_note')
+          .then(({ count: fieldCount }) => fieldCount ?? 0)
+        : (count ?? 0) + 1
+
+    const caseNumber = generateRegistryCaseNumber(
+      profile.faction,
+      input.postType === 'field_note' ? sequenceCount + 1 : sequenceCount,
+      input.postType,
+    )
     const authorCharacter = profile.character_name ?? profile.character_match_id ?? profile.username
     const authorRank = getRankTitle(profile.rank)
-
-    // Atomic Case Number generation via RPC (removes 2-3 heavy database roundtrips)
-    const { data: caseNumber, error: caseError } = await supabaseAdmin
-      .rpc('generate_registry_case_number', {
-        p_faction: profile.faction,
-        p_post_type: input.postType
-      })
-
-    if (caseError || !caseNumber) {
-      return { error: 'Registry sequence is not ready. Apply the performance migration first.' }
-    }
 
     const payload = {
       case_number: caseNumber,
@@ -513,7 +518,7 @@ export const RegistryModel = {
   async reviewPost(
     reviewer: Profile,
     postId: string,
-    input: { action: 'approve' | 'review' | 'reject'; note?: string; feature?: boolean; is_war_related?: boolean },
+    input: { action: 'approve' | 'review' | 'reject'; note?: string; feature?: boolean },
   ) {
     if (reviewer.role !== 'mod' && reviewer.role !== 'owner') {
       return { error: 'Only moderators can review registry posts.' }
@@ -549,7 +554,6 @@ export const RegistryModel = {
       status: nextStatus,
       mod_note: input.note?.trim() || null,
       reviewed_by: reviewer.id,
-      is_war_related: !!input.is_war_related,
       approved_at: input.action === 'approve' ? new Date().toISOString() : null,
     }
 
@@ -570,19 +574,6 @@ export const RegistryModel = {
         await UserModel.addAp(post.author_id, 'registry_featured', AP_VALUES.registry_featured, {
           case_number: post.case_number,
         })
-      }
-
-      if (input.is_war_related) {
-        const activeWar = await FactionWarModel.getActiveWar()
-        if (activeWar) {
-          await WarContributionModel.addContribution({
-            warId: activeWar.id,
-            userId: post.author_id,
-            type: 'registry_post',
-            points: 2,
-            referenceId: post.id
-          })
-        }
       }
 
       await supabaseAdmin.from('notifications').insert({

@@ -21,7 +21,6 @@ import { deriveAssignmentInsights } from '@/frontend/lib/assignment-rationale'
 import dynamic from 'next/dynamic'
 import { AngoUsername } from '@/frontend/components/ango/AngoUsername'
 import ObservationMeter from '@/frontend/components/ui/ObservationMeter'
-import { CharacterProgress } from '@/frontend/components/profile/CharacterProgress'
 
 const CharacterReveal = dynamic(() => import('@/frontend/components/ui/CharacterReveal'), { ssr: false })
 const RankUpFlash = dynamic(() => import('@/frontend/components/ui/RankUpFlash'), { ssr: false })
@@ -105,7 +104,9 @@ const eventLabel = (type: UserEvent['event_type']) =>
     faction_event: 'Faction Event',
     easter_egg: 'Hidden Record Triggered',
     join_faction: 'Faction Entry',
-  })[type] ?? type.replace(/_/g, ' ')
+    war_declared: 'War Declaration Filed',
+    war_strike: 'Strategic Strike Logged',
+  } as Record<string, string>)[type] ?? type.replace(/_/g, ' ')
 
 const COUNTS_TOWARD_OBSERVATION = new Set([
   'quiz_complete',
@@ -165,6 +166,7 @@ export function ProfileExperience({
   const activeProfile = liveProfile ?? initialProfile
   const [supabase] = useState(createClient)
   const [events, setEvents] = useState(initialEvents)
+  const [eventCount, setEventCount] = useState<number | null>(null)
   const [showReveal, setShowReveal] = useState(false)
   const [showRankFlash, setShowRankFlash] = useState(false)
   const [rankFlashTitle, setRankFlashTitle] = useState(getRankTitle(initialProfile.rank))
@@ -176,7 +178,7 @@ export function ProfileExperience({
   const abilityType =
     activeProfile.character_type ??
     getAbilityTypeForCharacter(activeProfile.character_match_id)
-  const rankInfo = getRankInfo(activeProfile.ap_total, activeProfile.rank, activeProfile.faction)
+  const rankInfo = getRankInfo(activeProfile.ap_total, activeProfile.rank)
   const retake = getExamRetakeStatus(activeProfile)
   const provisionalDesignation = getSpecialDivisionProvisionalDesignation(activeProfile)
   const showObservation =
@@ -201,6 +203,31 @@ export function ProfileExperience({
       ? assignmentMetadata.evidence.filter(Boolean)
       : derivedAssignmentInsights.evidence
 
+  useEffect(() => {
+    if (!showObservation) {
+      setEventCount(null)
+      return
+    }
+
+    let active = true
+    void supabase
+      .from('user_events')
+      .select('event_type')
+      .eq('user_id', activeProfile.id)
+      .limit(50)
+      .then(({ data }) => {
+        if (!active) return
+        const count =
+          (data ?? []).filter((event) =>
+            COUNTS_TOWARD_OBSERVATION.has(event.event_type),
+          ).length ?? 0
+        setEventCount(count)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [activeProfile.id, activeProfile.updated_at, showObservation, supabase])
 
   useEffect(() => {
     if (!isOwnProfile) {
@@ -232,13 +259,13 @@ export function ProfileExperience({
     }
 
     if (rankFlashReadyRef.current && activeProfile.rank > previousRankRef.current) {
-      setRankFlashTitle(getRankTitle(activeProfile.rank, activeProfile.faction))
+      setRankFlashTitle(getRankTitle(activeProfile.rank))
       setShowRankFlash(true)
     }
 
     previousRankRef.current = activeProfile.rank
     rankFlashReadyRef.current = true
-  }, [activeProfile.rank, activeProfile.faction, isOwnProfile])
+  }, [activeProfile.rank, isOwnProfile])
 
   useEffect(() => {
     if (!isOwnProfile || !activeProfile.character_match_id) return
@@ -277,20 +304,8 @@ export function ProfileExperience({
               {activeProfile.bio?.trim() || 'No statement has been filed by this user. The city records actions before it records explanations.'}
             </p>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.85rem' }}>
-              <div style={pane}>
-                <div className="font-space-mono" style={{ fontSize: '0.5rem', letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--text4)' }}>
-                  File Status
-                </div>
-                <div className="font-cinzel" style={{ marginTop: '0.35rem', fontSize: '1.5rem', color: factionMeta?.color ?? 'var(--accent)' }}>
-                  {rankInfo.title}
-                </div>
-                <div className="font-space-mono" style={{ marginTop: '0.35rem', color: 'var(--text3)', fontSize: '0.55rem' }}>
-                  Rank {activeProfile.rank} · {activeProfile.ap_total.toLocaleString()} AP
-                </div>
-              </div>
-              <div style={pane}><div className="font-space-mono" style={{ fontSize: '0.5rem', letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--text4)' }}>Duels Won</div><div className="font-cinzel" style={{ marginTop: '0.35rem', fontSize: '1.5rem' }}>{activeProfile.duel_wins ?? 0}</div><div className="font-cormorant" style={{ marginTop: '0.35rem', color: 'var(--text3)' }}>Registry Victories</div></div>
-              <div style={pane}><div className="font-space-mono" style={{ fontSize: '0.5rem', letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--text4)' }}>Duels Lost</div><div className="font-cinzel" style={{ marginTop: '0.35rem', fontSize: '1.5rem' }}>{activeProfile.duel_losses ?? 0}</div><div className="font-cormorant" style={{ marginTop: '0.35rem', color: 'var(--text3)' }}>Registry Losses</div></div>
-              <div style={pane}><div className="font-space-mono" style={{ fontSize: '0.5rem', letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--text4)' }}>Faction</div><div className="font-cinzel" style={{ marginTop: '0.35rem', fontSize: '1.2rem' }}>{factionMeta?.name ?? 'Unassigned'}</div><div className="font-cormorant" style={{ marginTop: '0.35rem', color: 'var(--text3)' }}>{roleLabel(activeProfile.role)}</div></div>
+              <div style={pane}><div className="font-space-mono" style={{ fontSize: '0.5rem', letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--text4)' }}>Rank</div><div className="font-cinzel" style={{ marginTop: '0.35rem', fontSize: '1.5rem' }}>{activeProfile.rank}</div><div className="font-cormorant" style={{ marginTop: '0.35rem', color: 'var(--text3)' }}>{rankInfo.title}</div></div>
+              <div style={pane}><div className="font-space-mono" style={{ fontSize: '0.5rem', letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--text4)' }}>Status</div><div className="font-cinzel" style={{ marginTop: '0.35rem', fontSize: '1.2rem' }}>{roleLabel(activeProfile.role)}</div><div className="font-cormorant" style={{ marginTop: '0.35rem', color: 'var(--text3)' }}>{factionMeta?.name ?? 'Unassigned'}</div></div>
               <div style={pane}><div className="font-space-mono" style={{ fontSize: '0.5rem', letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--text4)' }}>File Opened</div><div className="font-cormorant" style={{ marginTop: '0.35rem', color: 'var(--text2)' }}>{formatDate(activeProfile.created_at)}</div></div>
               <div style={pane}><div className="font-space-mono" style={{ fontSize: '0.5rem', letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--text4)' }}>Last Seen</div><div className="font-cormorant" style={{ marginTop: '0.35rem', color: 'var(--text2)' }}>{formatDateTime(activeProfile.last_seen)}</div></div>
             </div>
@@ -363,7 +378,30 @@ export function ProfileExperience({
                   </div>
                 ) : null}
                 {showObservation ? (
-                  <CharacterProgress factionColor={factionMeta?.color} />
+                  <div style={{ display: 'grid', gap: '0.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <div style={{ flex: 1 }}>
+                        <ObservationMeter eventCount={eventCount ?? 0} factionColor={factionMeta?.color ?? 'var(--accent)'} />
+                      </div>
+                      {isOwnProfile && !activeProfile.character_match_id ? (
+                        <div>
+                          <button
+                            type="button"
+                            onClick={() => setShowReveal((s) => !s)}
+                            className="font-space-mono"
+                            style={{ fontSize: '0.72rem', padding: '0.35rem 0.6rem', border: '1px solid var(--border)', background: 'var(--surface2)' }}
+                          >
+                            HOW THIS WORKS
+                          </button>
+                        </div>
+                      ) : null}
+                    </div>
+                    {showReveal ? (
+                      <div style={{ fontFamily: 'var(--font-literary)', color: 'var(--muted)', fontStyle: 'italic', padding: '0.6rem', border: '1px solid var(--border2)', background: 'var(--surface2)' }}>
+                        "The city assigns your character after 20 recorded events. Daily login, archive reads, faction chat, duels, registry posts — all count. Your behavior determines which character the city files you as."
+                      </div>
+                    ) : null}
+                  </div>
                 ) : null}
               </>
             )}
@@ -371,7 +409,7 @@ export function ProfileExperience({
 
           <section className="paper-surface" style={{ padding: '1.5rem' }}>
             <div className="font-space-mono" style={{ fontSize: '0.58rem', letterSpacing: '0.18em', textTransform: 'uppercase', color: factionMeta?.color ?? 'var(--accent)' }}>Archive Progress</div>
-            <h2 className="font-cinzel" style={{ marginTop: '0.9rem', fontSize: 'clamp(1.8rem, 4vw, 2.8rem)' }}>{rankInfo.title}</h2>
+            <h2 className="font-cinzel" style={{ marginTop: '0.9rem', fontSize: 'clamp(1.8rem, 4vw, 2.8rem)' }}>Rank {activeProfile.rank}</h2>
             <p className="font-cormorant" style={{ marginTop: '0.5rem', fontSize: '1.05rem', lineHeight: 1.7, color: 'var(--text2)', fontStyle: 'italic' }}>{isOwnProfile ? (rankInfo.isMaxRank ? 'Maximum designation reached.' : `${rankInfo.remainingAP.toLocaleString()} AP remain before the next title.`) : 'Public files expose title and rank only. AP totals remain private.'}</p>
             {isOwnProfile ? (
               <>

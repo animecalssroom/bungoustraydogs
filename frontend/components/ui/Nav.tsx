@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type CSSProperties } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import {
   THEME_DATA,
@@ -17,7 +18,6 @@ import {
 } from '@/frontend/lib/launch'
 import { AngoUsername } from '@/frontend/components/ango/AngoUsername'
 import styles from './Nav.module.css'
-import SoundToggle from './SoundToggle'
 import NotificationBell from './NotificationBell'
 import { createClient as createSupabaseClient } from '@/frontend/lib/supabase/client'
 
@@ -67,7 +67,13 @@ export function Nav() {
     <>
       <nav className={styles.nav}>
         <Link href="/" className={styles.brand}>
-            <img src="/images/logo.jpg" alt="Logo" style={{ width: '40px', height: '40px', objectFit: 'cover', border: '1px solid var(--border)' }} />
+            <Image 
+              src="/images/logo.jpg" 
+              alt="Logo" 
+              width={40} 
+              height={40} 
+              style={{ objectFit: 'cover', border: '1px solid var(--border)' }} 
+            />
           <div className={styles.brandCopy}>
             <span className={styles.brandTitle}>
               Bungou<span className={styles.brandTitleAccent}>Archive</span>
@@ -84,7 +90,6 @@ export function Nav() {
               <li key={item.href} className={styles.linkItem}>
                 <Link
                   href={item.href}
-                  onMouseEnter={() => router.prefetch(item.href)}
                   className={`${styles.link} ${active ? styles.linkActive : ''}`}
                 >
                   {item.label}
@@ -102,7 +107,6 @@ export function Nav() {
             <li className={styles.linkItem}>
                 <Link
                   href={privateFactionHref}
-                  onMouseEnter={() => router.prefetch(privateFactionHref)}
                   className={`${styles.link} ${styles.factionLink} ${pathname === privateFactionHref || pathname.startsWith(`${privateFactionHref}/`)
                     ? styles.linkActive
                     : ''
@@ -119,7 +123,13 @@ export function Nav() {
         <div className={styles.right}>
           {user && activeProfile ? (
             <Link href={profileHref} className={styles.accountLink} style={accountStyle}>
-              <img src="/images/logo.jpg" alt="Seal" style={{ width: '24px', height: '24px', borderRadius: '4px', border: '1px solid var(--border)' }} />
+              <Image 
+                src="/images/logo.jpg" 
+                alt="Seal" 
+                width={24} 
+                height={24} 
+                style={{ borderRadius: '4px', border: '1px solid var(--border)' }} 
+              />
               <span className={styles.accountHandle}>
                 <AngoUsername userId={activeProfile.id} username={activeProfile.username} />
               </span>
@@ -127,7 +137,7 @@ export function Nav() {
           ) : null}
 
           {user ? <NotificationBell userId={user.id} /> : null}
-          <SoundToggle />
+
 
           <div className={styles.themeDock}>
             <button

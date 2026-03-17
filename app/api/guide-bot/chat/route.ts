@@ -444,7 +444,8 @@ export async function POST(req: NextRequest) {
 
   if (apiKey) {
     const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 15000)
+    // Allow a bit more time for longer, lore-heavy answers before falling back
+    const timeoutId = setTimeout(() => controller.abort(), 25000)
 
     try {
       const response = await fetch(
@@ -469,7 +470,8 @@ export async function POST(req: NextRequest) {
             ],
             generationConfig: {
               temperature: 0.3,
-              maxOutputTokens: 512,
+              // Slightly higher cap so answers are less likely to cut off mid-thought
+              maxOutputTokens: 1024,
             },
           }),
         },

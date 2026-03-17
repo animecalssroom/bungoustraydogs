@@ -114,19 +114,28 @@ export function useProfile(): UseProfileState {
       const nextProfile = result.profile
 
       if (result.unauthorized) {
-        await supabase.auth.signOut()
-        clearBrowserSupabaseSession()
+        if (result.error === 'No session') {
+          console.warn('[useProfile] Definitive 401: No session found. Signing out.')
+          await supabase.auth.signOut()
+          clearBrowserSupabaseSession()
 
-        if (!active) return null
-
-        setState({
-          user: null,
-          profile: null,
-          loading: false,
-          error: result.error,
-          refresh,
-        })
-
+          if (!active) return null
+          setState({
+            user: null,
+            profile: null,
+            loading: false,
+            error: result.error,
+            refresh,
+          })
+        } else {
+          console.warn('[useProfile] Transient 401 or background error:', result.error)
+          if (!active) return null
+          setState((current) => ({
+            ...current,
+            loading: false,
+            error: result.error,
+          }))
+        }
         return null
       }
 

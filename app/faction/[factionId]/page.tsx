@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation'
+export const dynamic = 'force-dynamic'
 import type { Profile } from '@/backend/types'
 import { FactionModel } from '@/backend/models/faction.model'
 import { FactionSpaceModel } from '@/backend/models/faction-space.model'
@@ -11,6 +12,7 @@ import {
   privateFactionPath,
 } from '@/frontend/lib/launch'
 import { createClient } from '@/frontend/lib/supabase/server'
+import { DistrictModel, type District } from '@/backend/models/district.model'
 
 async function getViewerProfile() {
   const supabase = createClient()
@@ -44,7 +46,12 @@ export default async function FactionPrivateSpacePage({
 
   const profile = await getViewerProfile()
 
-  if (!profile || !profile.faction) {
+  if (!profile) {
+    redirect('/login')
+  }
+
+  // Owners might not be in a faction, but can still access for moderation/testing
+  if (!profile.faction && profile.role !== 'owner') {
     redirect('/login')
   }
 
@@ -56,34 +63,29 @@ export default async function FactionPrivateSpacePage({
     redirect('/')
   }
 
-  const [space, bulletins, activity, messages, warFactions, pendingRegistryPosts, activeWar] = await Promise.all([
+  const [space, bulletins, activity, messages, warFactions, pendingRegistryPosts, activeWar, districts] = await Promise.all([
     FactionSpaceModel.getSpace(factionId),
     FactionSpaceModel.getBulletins(factionId),
     FactionSpaceModel.getActivity(factionId),
     FactionSpaceModel.getMessages(factionId),
     FactionModel.getAll(),
     RegistryModel.getPendingForFaction(factionId, profile),
-    FactionWarModel.getActiveWar()
+    FactionWarModel.getActiveWar(),
+    DistrictModel.getAll()
   ])
 
   if (!space) {
     redirect(privateFactionPath(profile.faction ?? factionId))
   }
 
-  async function declareWarAction(formData: { targetFactionId: string; stakes: string; stakesDetail: string; warMessage: string }) {
+  async function retreatWarAction(warId: string) {
     'use server'
+    if (!warId) return
     const { FactionWarModel } = await import('@/backend/models/faction-war.model')
-    await FactionWarModel.startWar({
-      factionA: factionId as any,
-      factionB: formData.targetFactionId as any,
-      stakes: formData.stakes as any,
-      stakesDetail: { description: formData.stakesDetail },
-      warMessage: formData.warMessage
-    })
+    await FactionWarModel.retreat(warId, factionId as string)
     const { revalidatePath } = await import('next/cache')
     revalidatePath(`/faction/${params.factionId}`)
   }
-
   return (
     <div style={{ paddingTop: '36px' }}>
       <FactionCheckIn factionId={factionId} />
@@ -97,7 +99,8 @@ export default async function FactionPrivateSpacePage({
         initialWarFactions={warFactions}
         initialPendingRegistryPosts={pendingRegistryPosts}
         activeWar={activeWar}
-        onDeclareWar={declareWarAction}
+        onRetreatWar={retreatWarAction}
+        districts={districts}
       />
     </div>
   )

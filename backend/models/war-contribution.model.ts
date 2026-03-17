@@ -2,11 +2,13 @@ import { supabaseAdmin } from '@/backend/lib/supabase'
 import type { WarContribution } from '@/backend/types'
 import { FactionWarModel } from './faction-war.model'
 
+const CONTRIBUTION_SELECT = 'id, user_id, war_id, contribution_type, points, reference_id, created_at'
+
 export const WarContributionModel = {
   async addContribution(params: {
     warId: string
     userId: string
-    type: 'duel_win' | 'registry_post' | 'daily_login' | 'team_fight' | 'boss_fight' | 'faction_raid'
+    type: 'duel_win' | 'registry_post' | 'daily_login' | 'team_fight' | 'boss_fight' | 'faction_raid' | 'strike'
     points: number
     referenceId?: string
     factionId?: string
@@ -46,7 +48,7 @@ export const WarContributionModel = {
         points: params.points,
         reference_id: params.referenceId || null
       })
-      .select('*')
+      .select(CONTRIBUTION_SELECT)
       .single()
     
     if (error) throw error

@@ -1,22 +1,25 @@
 import { supabaseAdmin } from '@/backend/lib/supabase'
 import type { ArenaArgument, ArenaDebate, ArenaVote, Profile } from '@/backend/types'
 
+const ARENA_SELECT = 'id, week, question, fighter_a_id, fighter_b_id, title_a, title_b, topic, content_a, content_b, votes_a, votes_b, is_active, ends_at, created_at'
+
 export const ArenaModel = {
   async getActive(): Promise<ArenaDebate[]> {
     const { data } = await supabaseAdmin
-      .from('arena_debates').select('*').eq('is_active', true).order('created_at', { ascending: false })
+      .from('arena_debates').select(ARENA_SELECT).eq('is_active', true).order('created_at', { ascending: false })
     return data ?? []
   },
   
   async getById(id: string): Promise<ArenaDebate | null> {
     const { data } = await supabaseAdmin
-      .from('arena_debates').select('*').eq('id', id).single()
+      .from('arena_debates').select(ARENA_SELECT).eq('id', id).single()
+
     return data
   },
   
   async getUserVote(debateId: string, userId: string): Promise<ArenaVote | null> {
     const { data } = await supabaseAdmin
-      .from('arena_votes').select('*')
+      .from('arena_votes').select('id, debate_id, user_id, side, created_at')
       .eq('debate_id', debateId).eq('user_id', userId).single()
     return data
   },

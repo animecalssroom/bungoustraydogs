@@ -579,6 +579,14 @@
   letter-spacing: 0.1em !important;
 }
 
+.stakeHint {
+  margin-top: 0.25rem;
+  font-size: 0.7rem;
+  font-style: italic;
+  color: var(--text4);
+  line-height: 1.4;
+}
+
 @media (max-width: 900px) {
   .wrap {
     width: 100%;

@@ -34,6 +34,9 @@ export async function GET(req: Request) {
       return NextResponse.json({ message: 'Transitioned to Day 2', war_id: war.id })
     }
 
+    // Always sync integrity state for permanence
+    await FactionWarModel.syncWarState(war.id)
+
     return NextResponse.json({ message: 'No action needed', status: war.status })
   } catch (error: any) {
     console.error('[WarCron] Error:', error)

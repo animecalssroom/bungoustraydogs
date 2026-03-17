@@ -14,7 +14,7 @@ export async function requireAuth(req: NextRequest): Promise<
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('*')
+    .select('id, username, role, faction, character_match_id, rank')
     .eq('id', user.id)
     .single()
 
@@ -22,7 +22,7 @@ export async function requireAuth(req: NextRequest): Promise<
     return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
   }
 
-  return { user, profile }
+  return { user, profile: profile as unknown as Profile }
 }
 
 /**

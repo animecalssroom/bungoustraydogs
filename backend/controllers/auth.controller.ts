@@ -70,30 +70,25 @@ export async function ensureProfile(user: {
     }
 
     if (existing) {
+      console.log(`[ensureProfile] Found existing profile for ${user.id}`)
       const updatePayload: Record<string, string | null | any> = {}
       const nextEmail = user.email ?? ''
-      const nextAvatar =
-        (user.user_metadata?.avatar_url as string | undefined) ?? null
+      const nextAvatar = (user.user_metadata?.avatar_url as string | undefined) ?? null
 
       if (!existing.username?.trim()) {
         updatePayload.username = fallbackUsername
       }
-
       if (existing.email !== nextEmail) {
         updatePayload.email = nextEmail
       }
-
       if ((existing.avatar_url ?? null) !== nextAvatar) {
         updatePayload.avatar_url = nextAvatar
       }
-
       if (shouldRefreshLastSeen(existing.last_seen)) {
         updatePayload.last_seen = now
       }
 
-      if (Object.keys(updatePayload).length === 0) {
-        return
-      }
+      if (Object.keys(updatePayload).length === 0) return
 
       updatePayload.updated_at = now
 
@@ -103,6 +98,7 @@ export async function ensureProfile(user: {
         .eq('id', user.id)
 
       if (!updateError) {
+        await UserModel.invalidateCache(user.id)
         return
       }
 
@@ -110,6 +106,7 @@ export async function ensureProfile(user: {
       throw new Error(updateError.message)
     }
 
+    console.log(`[ensureProfile] Creating new profile for ${user.id}`)
     const { error } = await supabaseAdmin.from('profiles').insert({
       id: user.id,
       username: fallbackUsername,
@@ -132,6 +129,8 @@ export async function ensureProfile(user: {
     })
 
     if (!error) {
+      console.log(`[ensureProfile] Successfully created profile for ${user.id}`)
+      await UserModel.invalidateCache(user.id)
       return
     }
 
@@ -154,25 +153,35 @@ export async function ensureProfile(user: {
 export const AuthController = {
   async login(req: NextRequest) {
     const body = await req.json().catch(() => null)
+    console.log('[AuthController] Login attempt for:', body?.email)
     const result = validate(LoginSchema, body)
-    if (!result.success) return result.response
+    if (!result.success) {
+      console.log('[AuthController] Validation failed')
+      return result.response
+    }
 
     const supabase = createClient()
+    console.log('[AuthController] Signing in with password...')
     const { error } = await supabase.auth.signInWithPassword(result.data)
 
     if (error) {
+      console.log('[AuthController] Sign in error:', error.message)
       return NextResponse.json({ error: error.message }, { status: 401 })
     }
 
+    console.log('[AuthController] Sign in successful, fetching user...')
     const {
       data: { user },
     } = await supabase.auth.getUser()
 
     try {
       if (user) {
+        console.log('[AuthController] Ensuring profile for user:', user.id)
         await ensureProfile(user)
+        console.log('[AuthController] Profile ensured.')
       }
     } catch (profileError) {
+      console.error('[AuthController] Profile ensure error:', profileError)
       return NextResponse.json(
         {
           error:
@@ -184,6 +193,7 @@ export const AuthController = {
       )
     }
 
+    console.log('[AuthController] Login sequence complete.')
     return NextResponse.json({ data: { success: true } })
   },
 
@@ -219,41 +229,42 @@ export const AuthController = {
 
   async me() {
     const supabase = createClient()
-    const {
-      data: { user },
-      error,
-    } = await supabase.auth.getUser()
-
-    if (error || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const start = Date.now()
+    
+    let userResult
+    try {
+      userResult = await supabase.auth.getUser()
+    } catch (e: any) {
+      console.error(`[auth:me] getUser CRITICAL ERROR:`, e)
+      return NextResponse.json({ error: 'Connection failed', details: e.message }, { status: 503 })
     }
 
-    const profile = await UserModel.getById(user.id)
+    const { data: { user }, error } = userResult
 
-    if (!profile) {
-      await supabase.auth.signOut()
-      return NextResponse.json(
-        {
-          error:
-            'Profile missing. The session was cleared. Sign in again after the reset completes.',
-        },
-        { status: 401 },
-      )
+    console.log(`[auth:me] getUser took ${Date.now() - start}ms. User: ${user?.id || 'null'}, Error: ${error?.message || 'none'}`)
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 401 })
     }
 
-    if (shouldRefreshLastSeen(profile.last_seen)) {
-      await supabaseAdmin
-        .from('profiles')
-        .update({
-          last_seen: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', user.id)
-
-      // Since we updated last_seen, bust the profile cache
-      await UserModel.invalidateCache(user.id)
+    if (!user) {
+      return NextResponse.json({ error: 'No session' }, { status: 401 })
     }
 
-    return NextResponse.json({ data: profile })
+    const profileStart = Date.now()
+    try {
+      const profile = await UserModel.getById(user.id)
+      console.log(`[auth:me] getProfile took ${Date.now() - profileStart}ms`)
+
+      if (!profile) {
+        console.warn(`[auth:me] profile missing for user ${user.id}`)
+        return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+      }
+
+      return NextResponse.json({ data: profile })
+    } catch (e: any) {
+      console.error(`[auth:me] Profile fetch error:`, e)
+      return NextResponse.json({ error: 'Data fetch failed', details: e.message }, { status: 500 })
+    }
   },
 }

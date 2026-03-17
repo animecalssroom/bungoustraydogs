@@ -1,4 +1,4 @@
-import type { FactionId } from '@/backend/types'
+import type { FactionId, CharacterClass } from '@/backend/types'
 
 export const TRAIT_AXES = [
   'justice',
@@ -34,6 +34,7 @@ export interface AssignmentCharacter {
   abilityJp: string
   faction: FactionId
   traits: TraitVector
+  class_tag: CharacterClass
 }
 
 export interface RankedCharacter extends AssignmentCharacter {
@@ -206,6 +207,7 @@ export const CHARACTER_ASSIGNMENT_POOL: AssignmentCharacter[] = [
     abilityJp: '月下獣',
     faction: 'agency',
     traits: { justice: 6, power: 5, social: 6, emotion: 8, world: 8, identity: 6, method: 5, loyalty: 7 },
+    class_tag: 'BRUTE',
   },
   {
     slug: 'dazai-osamu',
@@ -215,6 +217,7 @@ export const CHARACTER_ASSIGNMENT_POOL: AssignmentCharacter[] = [
     abilityJp: '人間失格',
     faction: 'agency',
     traits: { justice: 4, power: 6, social: 4, emotion: 3, world: 5, identity: 9, method: 3, loyalty: 2 },
+    class_tag: 'ANOMALY',
   },
   {
     slug: 'kunikida-doppo',
@@ -224,6 +227,7 @@ export const CHARACTER_ASSIGNMENT_POOL: AssignmentCharacter[] = [
     abilityJp: '独歩吟客',
     faction: 'agency',
     traits: { justice: 9, power: 6, social: 7, emotion: 5, world: 8, identity: 8, method: 5, loyalty: 8 },
+    class_tag: 'BRUTE',
   },
   {
     slug: 'ranpo-edogawa',
@@ -233,6 +237,7 @@ export const CHARACTER_ASSIGNMENT_POOL: AssignmentCharacter[] = [
     abilityJp: '超推理',
     faction: 'agency',
     traits: { justice: 7, power: 2, social: 5, emotion: 2, world: 7, identity: 6, method: 2, loyalty: 5 },
+    class_tag: 'INTEL',
   },
   {
     slug: 'akiko-yosano',
@@ -242,6 +247,7 @@ export const CHARACTER_ASSIGNMENT_POOL: AssignmentCharacter[] = [
     abilityJp: '君死給勿',
     faction: 'agency',
     traits: { justice: 8, power: 7, social: 7, emotion: 6, world: 8, identity: 7, method: 6, loyalty: 8 },
+    class_tag: 'SUPPORT',
   },
   {
     slug: 'junichiro-tanizaki',
@@ -251,6 +257,7 @@ export const CHARACTER_ASSIGNMENT_POOL: AssignmentCharacter[] = [
     abilityJp: '細雪',
     faction: 'agency',
     traits: { justice: 7, power: 5, social: 6, emotion: 7, world: 7, identity: 6, method: 5, loyalty: 9 },
+    class_tag: 'ANOMALY',
   },
   {
     slug: 'naomi-tanizaki',
@@ -260,6 +267,7 @@ export const CHARACTER_ASSIGNMENT_POOL: AssignmentCharacter[] = [
     abilityJp: CLASSIFIED_ABILITY.nameJp,
     faction: 'agency',
     traits: { justice: 5, power: 4, social: 5, emotion: 8, world: 6, identity: 5, method: 4, loyalty: 9 },
+    class_tag: 'SUPPORT',
   },
   {
     slug: 'kyouka-izumi',
@@ -269,6 +277,7 @@ export const CHARACTER_ASSIGNMENT_POOL: AssignmentCharacter[] = [
     abilityJp: '夜叉白雪',
     faction: 'agency',
     traits: { justice: 7, power: 7, social: 5, emotion: 7, world: 7, identity: 7, method: 6, loyalty: 8 },
+    class_tag: 'ANOMALY',
   },
   {
     slug: 'kenji-miyazawa',
@@ -278,6 +287,7 @@ export const CHARACTER_ASSIGNMENT_POOL: AssignmentCharacter[] = [
     abilityJp: '雨ニモマケズ',
     faction: 'agency',
     traits: { justice: 9, power: 8, social: 6, emotion: 9, world: 9, identity: 4, method: 7, loyalty: 7 },
+    class_tag: 'BRUTE',
   },
   {
     slug: 'fukuzawa-yukichi',
@@ -287,6 +297,7 @@ export const CHARACTER_ASSIGNMENT_POOL: AssignmentCharacter[] = [
     abilityJp: '人上人不造',
     faction: 'agency',
     traits: { justice: 9, power: 7, social: 9, emotion: 4, world: 8, identity: 7, method: 3, loyalty: 9 },
+    class_tag: 'INTEL',
   },
   {
     slug: 'edgar-allan-poe',
@@ -296,6 +307,7 @@ export const CHARACTER_ASSIGNMENT_POOL: AssignmentCharacter[] = [
     abilityJp: '黒猫',
     faction: 'guild',
     traits: { justice: 6, power: 4, social: 2, emotion: 6, world: 5, identity: 5, method: 2, loyalty: 4 },
+    class_tag: 'INTEL',
   },
   {
     slug: 'nakahara-chuuya',
@@ -305,6 +317,7 @@ export const CHARACTER_ASSIGNMENT_POOL: AssignmentCharacter[] = [
     abilityJp: '汚れつちまつた悲しみに',
     faction: 'mafia',
     traits: { justice: 5, power: 9, social: 7, emotion: 7, world: 4, identity: 4, method: 8, loyalty: 9 },
+    class_tag: 'BRUTE',
   },
   {
     slug: 'akutagawa-ryunosuke',
@@ -314,6 +327,7 @@ export const CHARACTER_ASSIGNMENT_POOL: AssignmentCharacter[] = [
     abilityJp: '羅生門',
     faction: 'mafia',
     traits: { justice: 3, power: 9, social: 4, emotion: 8, world: 2, identity: 3, method: 8, loyalty: 7 },
+    class_tag: 'BRUTE',
   },
   {
     slug: 'mori-ogai',
@@ -323,6 +337,7 @@ export const CHARACTER_ASSIGNMENT_POOL: AssignmentCharacter[] = [
     abilityJp: 'ヰタ・セクスアリス',
     faction: 'mafia',
     traits: { justice: 2, power: 6, social: 9, emotion: 1, world: 3, identity: 6, method: 2, loyalty: 3 },
+    class_tag: 'SUPPORT',
   },
   {
     slug: 'ozaki-kouyou',
@@ -332,6 +347,7 @@ export const CHARACTER_ASSIGNMENT_POOL: AssignmentCharacter[] = [
     abilityJp: '金色夜叉',
     faction: 'mafia',
     traits: { justice: 5, power: 7, social: 8, emotion: 4, world: 4, identity: 6, method: 5, loyalty: 7 },
+    class_tag: 'ANOMALY',
   },
   {
     slug: 'gin-akutagawa',
@@ -341,6 +357,7 @@ export const CHARACTER_ASSIGNMENT_POOL: AssignmentCharacter[] = [
     abilityJp: CLASSIFIED_ABILITY.nameJp,
     faction: 'mafia',
     traits: { justice: 4, power: 8, social: 3, emotion: 3, world: 3, identity: 4, method: 8, loyalty: 10 },
+    class_tag: 'BRUTE',
   },
   {
     slug: 'higuchi-ichiyo',
@@ -350,6 +367,7 @@ export const CHARACTER_ASSIGNMENT_POOL: AssignmentCharacter[] = [
     abilityJp: CLASSIFIED_ABILITY.nameJp,
     faction: 'mafia',
     traits: { justice: 6, power: 3, social: 4, emotion: 9, world: 6, identity: 5, method: 4, loyalty: 10 },
+    class_tag: 'BRUTE',
   },
   {
     slug: 'tachihara-michizou',
@@ -359,6 +377,7 @@ export const CHARACTER_ASSIGNMENT_POOL: AssignmentCharacter[] = [
     abilityJp: '真冬のメメント',
     faction: 'mafia',
     traits: { justice: 6, power: 6, social: 4, emotion: 6, world: 5, identity: 4, method: 5, loyalty: 6 },
+    class_tag: 'INTEL',
   },
   {
     slug: 'fitzgerald',
@@ -368,6 +387,7 @@ export const CHARACTER_ASSIGNMENT_POOL: AssignmentCharacter[] = [
     abilityJp: '華麗なるフィッツジェラルド',
     faction: 'guild',
     traits: { justice: 4, power: 8, social: 9, emotion: 5, world: 4, identity: 7, method: 6, loyalty: 6 },
+    class_tag: 'BRUTE',
   },
   {
     slug: 'lucy-montgomery',
@@ -377,6 +397,7 @@ export const CHARACTER_ASSIGNMENT_POOL: AssignmentCharacter[] = [
     abilityJp: '深淵の赤毛のアン',
     faction: 'guild',
     traits: { justice: 5, power: 5, social: 3, emotion: 8, world: 6, identity: 5, method: 4, loyalty: 6 },
+    class_tag: 'ANOMALY',
   },
   {
     slug: 'john-steinbeck',
@@ -386,6 +407,7 @@ export const CHARACTER_ASSIGNMENT_POOL: AssignmentCharacter[] = [
     abilityJp: '怒りの葡萄',
     faction: 'guild',
     traits: { justice: 7, power: 7, social: 5, emotion: 6, world: 7, identity: 6, method: 5, loyalty: 7 },
+    class_tag: 'BRUTE',
   },
   {
     slug: 'herman-melville',
@@ -395,6 +417,7 @@ export const CHARACTER_ASSIGNMENT_POOL: AssignmentCharacter[] = [
     abilityJp: '白鯨',
     faction: 'guild',
     traits: { justice: 5, power: 9, social: 7, emotion: 3, world: 4, identity: 4, method: 8, loyalty: 5 },
+    class_tag: 'ANOMALY',
   },
   {
     slug: 'mark-twain',
@@ -404,6 +427,7 @@ export const CHARACTER_ASSIGNMENT_POOL: AssignmentCharacter[] = [
     abilityJp: 'ハックルベリ・フィン&トム・ソーヤー',
     faction: 'guild',
     traits: { justice: 6, power: 6, social: 5, emotion: 5, world: 6, identity: 7, method: 4, loyalty: 5 },
+    class_tag: 'BRUTE',
   },
   {
     slug: 'louisa-may-alcott',
@@ -413,6 +437,7 @@ export const CHARACTER_ASSIGNMENT_POOL: AssignmentCharacter[] = [
     abilityJp: '若草物語',
     faction: 'guild',
     traits: { justice: 7, power: 5, social: 7, emotion: 7, world: 7, identity: 6, method: 4, loyalty: 8 },
+    class_tag: 'INTEL',
   },
   {
     slug: 'teruko-okura',
@@ -422,6 +447,7 @@ export const CHARACTER_ASSIGNMENT_POOL: AssignmentCharacter[] = [
     abilityJp: CLASSIFIED_ABILITY.nameJp,
     faction: 'hunting_dogs',
     traits: { justice: 2, power: 9, social: 6, emotion: 2, world: 2, identity: 3, method: 9, loyalty: 4 },
+    class_tag: 'BRUTE',
   },
   {
     slug: 'tetchou-suehiro',
@@ -431,6 +457,7 @@ export const CHARACTER_ASSIGNMENT_POOL: AssignmentCharacter[] = [
     abilityJp: '雪中梅',
     faction: 'hunting_dogs',
     traits: { justice: 8, power: 8, social: 6, emotion: 3, world: 5, identity: 4, method: 8, loyalty: 9 },
+    class_tag: 'BRUTE',
   },
   {
     slug: 'jouno-saigiku',
@@ -440,6 +467,7 @@ export const CHARACTER_ASSIGNMENT_POOL: AssignmentCharacter[] = [
     abilityJp: '千金の涙',
     faction: 'hunting_dogs',
     traits: { justice: 6, power: 7, social: 5, emotion: 4, world: 4, identity: 6, method: 3, loyalty: 6 },
+    class_tag: 'INTEL',
   },
   {
     slug: 'fukuchi-ouchi',
@@ -449,6 +477,7 @@ export const CHARACTER_ASSIGNMENT_POOL: AssignmentCharacter[] = [
     abilityJp: '鏡獅子',
     faction: 'hunting_dogs',
     traits: { justice: 6, power: 8, social: 8, emotion: 3, world: 5, identity: 3, method: 6, loyalty: 5 },
+    class_tag: 'BRUTE',
   },
   {
     slug: 'ango-sakaguchi',
@@ -458,6 +487,7 @@ export const CHARACTER_ASSIGNMENT_POOL: AssignmentCharacter[] = [
     abilityJp: '堕落論',
     faction: 'special_div',
     traits: { justice: 5, power: 4, social: 4, emotion: 3, world: 5, identity: 7, method: 2, loyalty: 3 },
+    class_tag: 'INTEL',
   },
   {
     slug: 'minoura-motoji',
@@ -467,6 +497,7 @@ export const CHARACTER_ASSIGNMENT_POOL: AssignmentCharacter[] = [
     abilityJp: CLASSIFIED_ABILITY.nameJp,
     faction: 'special_div',
     traits: { justice: 8, power: 2, social: 5, emotion: 6, world: 7, identity: 6, method: 4, loyalty: 8 },
+    class_tag: 'INTEL',
   },
   {
     slug: 'taneda-santoka',
@@ -476,6 +507,7 @@ export const CHARACTER_ASSIGNMENT_POOL: AssignmentCharacter[] = [
     abilityJp: CLASSIFIED_ABILITY.nameJp,
     faction: 'special_div',
     traits: { justice: 7, power: 3, social: 8, emotion: 4, world: 7, identity: 6, method: 3, loyalty: 7 },
+    class_tag: 'INTEL',
   },
   {
     slug: 'fyodor-dostoevsky',
@@ -485,6 +517,7 @@ export const CHARACTER_ASSIGNMENT_POOL: AssignmentCharacter[] = [
     abilityJp: '罪と罰',
     faction: 'rats',
     traits: { justice: 1, power: 5, social: 4, emotion: 1, world: 1, identity: 5, method: 1, loyalty: 1 },
+    class_tag: 'INTEL',
   },
   {
     slug: 'alexander-pushkin',
@@ -494,6 +527,7 @@ export const CHARACTER_ASSIGNMENT_POOL: AssignmentCharacter[] = [
     abilityJp: '射手',
     faction: 'rats',
     traits: { justice: 2, power: 6, social: 3, emotion: 2, world: 2, identity: 5, method: 2, loyalty: 3 },
+    class_tag: 'BRUTE',
   },
   {
     slug: 'ivan-goncharov',
@@ -503,6 +537,7 @@ export const CHARACTER_ASSIGNMENT_POOL: AssignmentCharacter[] = [
     abilityJp: '断崖',
     faction: 'rats',
     traits: { justice: 4, power: 9, social: 3, emotion: 5, world: 4, identity: 5, method: 8, loyalty: 5 },
+    class_tag: 'BRUTE',
   },
   {
     slug: 'nikolai-gogol',
@@ -512,6 +547,7 @@ export const CHARACTER_ASSIGNMENT_POOL: AssignmentCharacter[] = [
     abilityJp: '外套',
     faction: 'decay',
     traits: { justice: 3, power: 7, social: 3, emotion: 6, world: 3, identity: 9, method: 6, loyalty: 2 },
+    class_tag: 'ANOMALY',
   },
   {
     slug: 'sigma',
@@ -521,6 +557,7 @@ export const CHARACTER_ASSIGNMENT_POOL: AssignmentCharacter[] = [
     abilityJp: '情報交換',
     faction: 'decay',
     traits: { justice: 6, power: 4, social: 3, emotion: 8, world: 6, identity: 8, method: 4, loyalty: 6 },
+    class_tag: 'ANOMALY',
   },
   {
     slug: 'bram-stoker',
@@ -530,6 +567,7 @@ export const CHARACTER_ASSIGNMENT_POOL: AssignmentCharacter[] = [
     abilityJp: 'ドラキュラ',
     faction: 'decay',
     traits: { justice: 2, power: 9, social: 4, emotion: 2, world: 2, identity: 2, method: 9, loyalty: 3 },
+    class_tag: 'ANOMALY',
   },
   {
     slug: 'agatha-christie',
@@ -539,6 +577,7 @@ export const CHARACTER_ASSIGNMENT_POOL: AssignmentCharacter[] = [
     abilityJp: 'そして誰もいなくなった',
     faction: 'clock_tower',
     traits: { justice: 6, power: 5, social: 8, emotion: 2, world: 5, identity: 6, method: 1, loyalty: 5 },
+    class_tag: 'INTEL',
   },
   {
     slug: 'rudyard-kipling',
@@ -548,6 +587,7 @@ export const CHARACTER_ASSIGNMENT_POOL: AssignmentCharacter[] = [
     abilityJp: 'ジャングル・ブック',
     faction: 'clock_tower',
     traits: { justice: 5, power: 7, social: 7, emotion: 3, world: 4, identity: 5, method: 6, loyalty: 4 },
+    class_tag: 'BRUTE',
   },
   {
     slug: 'oscar-wilde',
@@ -557,6 +597,7 @@ export const CHARACTER_ASSIGNMENT_POOL: AssignmentCharacter[] = [
     abilityJp: 'ドリアン・グレイの肖像',
     faction: 'clock_tower',
     traits: { justice: 6, power: 5, social: 5, emotion: 6, world: 6, identity: 8, method: 3, loyalty: 6 },
+    class_tag: 'ANOMALY',
   },
 ]
 

@@ -191,10 +191,10 @@ export function CharCard({ char }: { char: Character }) {
       </div>
 
       <div className="grid grid-cols-2 gap-x-4 gap-y-2 mb-3.5">
-        <StatBar label="Power" value={char.stat_power} color={color} isVisible={visible} />
-        <StatBar label="Intel" value={char.stat_intel} color={color} isVisible={visible} />
-        <StatBar label="Loyalty" value={char.stat_loyalty} color={color} isVisible={visible} />
-        <StatBar label="Control" value={char.stat_control} color={color} isVisible={visible} />
+        <StatBar label="Power" value={char.stat_power || 0} color={color} isVisible={visible} />
+        <StatBar label="Intel" value={char.stat_intel || 0} color={color} isVisible={visible} />
+        <StatBar label="Loyalty" value={char.stat_loyalty || 0} color={color} isVisible={visible} />
+        <StatBar label="Control" value={char.stat_control || 0} color={color} isVisible={visible} />
       </div>
 
       <div className="author-block">

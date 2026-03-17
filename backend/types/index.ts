@@ -39,6 +39,8 @@ export type AbilityType =
   | 'manipulation'
   | 'analysis'
 
+export type CharacterClass = 'BRUTE' | 'INTEL' | 'SUPPORT' | 'ANOMALY'
+
 export interface BehaviorScores {
   power: number
   intel: number
@@ -69,6 +71,7 @@ export interface Profile {
   character_ability_jp: string | null
   character_description: string | null
   character_type: AbilityType | null
+  character_class: CharacterClass | null
   character_assigned_at: string | null
   secondary_character_slug?: string | null
   secondary_character_name?: string | null
@@ -95,6 +98,10 @@ export interface Profile {
   guide_bot_dismissed?: boolean | null
   guide_bot_opened_at?: string | null
   last_seen: string | null
+  recovery_until: string | null
+  recovery_status: string | null
+  medals?: any[] | null
+  titles?: string[] | null
   created_at: string
   updated_at: string
 }
@@ -103,36 +110,25 @@ export interface Character {
   id: string
   slug: string
   name: string
-  name_jp: string
-  name_reading: string
+  name_jp?: string | null
+  name_reading?: string | null
   faction_id: FactionId
-  ability_name: string
-  ability_name_jp: string
-  ability_desc: string
-  quote: string
-  description: string
-  author_note: string
-  real_author: string
-  real_author_years: string
-  notable_works: string | null
-  ability_type: AbilityType | null
-  duel_voice: string | null
-  literary_link: string | null
-  special_mechanic: string | null
-  stat_power: number
-  stat_speed: number
-  stat_intel: number
-  stat_loyalty: number
-  stat_control: number
-  kanji_symbol: string
-  role_id: CharacterArchetype | null
-  designation?: string | null
-  clearance_level?: string | null
-  ability_analysis?: string | null
-  lore_background?: string | null
-  physical_evidence?: string[] | null
-  narrative_hook?: string | null
-  is_lore_locked: boolean
+  kanji_symbol?: string | null
+  role_id?: string | null
+  ability_name?: string | null
+  ability_name_jp?: string | null
+  ability_type?: AbilityType | null
+  description?: string | null
+  quote?: string | null
+  real_author?: string | null
+  real_author_years?: string | null
+  notable_works?: string | null
+  stat_power?: number | null
+  stat_intel?: number | null
+  stat_loyalty?: number | null
+  stat_control?: number | null
+  author_note?: string | null
+  class_tag: CharacterClass
   created_at: string
 }
 
@@ -168,6 +164,7 @@ export interface ArchiveEntry {
   registry_note: string | null
   status: string | null
   created_at: string
+  class_tag: CharacterClass
 }
 
 export interface Faction {
@@ -568,6 +565,7 @@ export type UserEventType =
   | 'faction_event'
   | 'easter_egg'
   | 'join_faction'
+  | 'war_strike'
 
 export interface UserEvent {
   id: string
@@ -608,6 +606,7 @@ export const AP_VALUES: Record<UserEventType, number> = {
   faction_event: 25,
   easter_egg: 10,
   join_faction: 0,
+  war_strike: 0, // Handled dynamically in FactionWarModel
 }
 
 export const FACTION_RANK_TITLES: Record<string, string[]> = {
@@ -802,6 +801,11 @@ export interface DuelRound {
   resolved_at: string | null
 }
 
+export interface MoveConstraints {
+  gambitsRemaining: number
+  specialAvailable: boolean
+}
+
 export interface OpenChallenge {
   id: string
   challenger_id: string
@@ -813,6 +817,8 @@ export interface OpenChallenge {
   duel_id: string | null
   expires_at: string | null
   created_at: string
+  challenger_wins?: number
+  challenger_losses?: number
 }
 
 export interface DuelCooldown {
@@ -869,7 +875,7 @@ export interface WarContribution {
   id: string
   war_id: string
   user_id: string
-  contribution_type: 'duel_win' | 'registry_post' | 'daily_login' | 'team_fight' | 'boss_fight'
+  contribution_type: 'duel_win' | 'registry_post' | 'daily_login' | 'team_fight' | 'boss_fight' | 'strike'
   points: number
   reference_id: string | null
   created_at: string

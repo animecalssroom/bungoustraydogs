@@ -48,6 +48,3 @@ playwright-report/
 # TypeScript
 tsconfig.tsbuildinfo
 
-# Temporary Scripts
-tmp/
-

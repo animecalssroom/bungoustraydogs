@@ -178,6 +178,17 @@ serve(async (req) => {
     }),
   })
 
+  // NEW: Register character in user_characters for War System tactical features
+  await fetch(`${supabaseUrl}/rest/v1/user_characters`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      user_id,
+      character_id: selected.slug,
+      is_equipped: true
+    }),
+  })
+
   await fetch(`${supabaseUrl}/rest/v1/notifications`, {
     method: 'POST',
     headers,

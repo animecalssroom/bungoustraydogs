@@ -5,38 +5,10 @@ import { DuelScreenClient } from '@/components/duels/DuelScreenClient'
 import { supabaseAdmin } from '@/backend/lib/supabase'
 import { resolveDuelRoundWithAdmin } from '@/backend/lib/duel-runtime'
 import type { DuelRound, Profile } from '@/backend/types/index'
+import { GAMBIT_MAX_PER_DUEL, deriveMoveConstraints } from '@/lib/duels/shared'
+import type { MoveConstraints } from '@/backend/types/index'
 
-// ─── Move limit constants ──────────────────────────────────────────────────
-const GAMBIT_MAX_PER_DUEL = 2
-
-export type MoveConstraints = {
-  gambitsRemaining: number
-  specialAvailable: boolean
-}
-
-function deriveMoveConstraints(
-  rounds: DuelRound[],
-  userId: string,
-  challengerId: string,
-): MoveConstraints {
-  const isChallenger = userId === challengerId
-  let gambitsUsed = 0
-  let specialUsed = false
-
-  for (const r of rounds) {
-    const move = isChallenger ? r.challenger_move : r.defender_move
-    if (!move) continue
-    // Use lowerCase for robustness in move comparison
-    const moveLower = move.toLowerCase()
-    if (moveLower === 'gambit') gambitsUsed++
-    if (moveLower === 'special') specialUsed = true
-  }
-
-  return {
-    gambitsRemaining: Math.max(0, GAMBIT_MAX_PER_DUEL - gambitsUsed),
-    specialAvailable: !specialUsed,
-  }
-}
+// deriveMoveConstraints moved to @/lib/duels/shared
 
 const ROUNDS_SELECT = [
   'id', 'duel_id', 'round_number',

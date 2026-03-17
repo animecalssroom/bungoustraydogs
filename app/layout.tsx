@@ -5,7 +5,6 @@ import '@/frontend/styles/globals.css'
 import { ANTI_FOUC_SCRIPT, ThemeProvider } from '@/frontend/context/ThemeContext'
 import { AuthProvider } from '@/frontend/context/AuthContext'
 import { AngoProvider } from '@/frontend/context/AngoContext'
-import { SoundProvider } from '@/frontend/context/SoundContext'
 import { Nav } from '@/frontend/components/ui/Nav'
 import { Footer } from '@/frontend/components/ui/Footer'
 import InkTransition from '@/frontend/components/ui/InkTransition'
@@ -44,8 +43,6 @@ export const metadata: Metadata = {
     "A curated record of Yokohama's ability users. The city determines where you belong.",
 }
 
-import { NotificationProvider } from '@/frontend/context/NotificationContext'
-
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html
@@ -60,22 +57,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body suppressHydrationWarning>
         <ThemeProvider>
           <AuthProvider>
-            <NotificationProvider>
-              <AngoProvider>
-                <SoundProvider>
-                  <FloatingAPLayer />
-                  <DailyLoginRitual />
-                  <CharacterAssignmentRedirect />
-                  <GlobalDuelMatchmaker />
-                  <Nav />
-                  <main style={{ minHeight: '100vh', paddingTop: '60px' }}>
-                    {children}
-                  </main>
-                  <Footer />
-                  <GuideBotWidget />
-                </SoundProvider>
-              </AngoProvider>
-            </NotificationProvider>
+            <AngoProvider>
+              <FloatingAPLayer />
+              <DailyLoginRitual />
+              <CharacterAssignmentRedirect />
+              <GlobalDuelMatchmaker />
+              <Nav />
+              <main style={{ minHeight: '100vh', paddingTop: '60px' }}>
+                {children}
+              </main>
+              <Footer />
+              <GuideBotWidget />
+            </AngoProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>

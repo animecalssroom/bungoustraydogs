@@ -322,10 +322,7 @@ export async function POST(request: NextRequest) {
   try { await import('@/backend/lib/notifications-cache').then(m=>m.invalidateNotificationsCache(opponentId)) } catch (err) { console.error('[notifications] invalidate error', err) }
 
   if (bothSubmitted) {
-    // Trigger resolution in background to avoid blocking move submission with slow AI narrative generation
-    triggerResolverOrFallback(duel.id).catch(err => {
-      console.error(`[duel] round resolution background error for ${duel.id}:`, err)
-    })
+    await triggerResolverOrFallback(duel.id)
   }
 
   return NextResponse.json({

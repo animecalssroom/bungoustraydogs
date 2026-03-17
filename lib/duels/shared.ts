@@ -17,8 +17,36 @@ export const DUEL_PUBLIC_FACTIONS = new Set<FactionId>([
 export const DUEL_MOVES: DuelMove[] = ['strike', 'stance', 'gambit', 'special', 'recover']
 export const PENDING_DUEL_LIMIT = 3
 export const DUEL_ROUND_DURATION_MS = 2 * 60 * 1000
-export const DUEL_MAX_ROUNDS = 10
-export const DUEL_SUDDEN_DEATH_ROUND = 11
+export const DUEL_MAX_ROUNDS = 7
+export const DUEL_SUDDEN_DEATH_ROUND = 8
+export const GAMBIT_MAX_PER_DUEL = 2
+
+export type { DuelRound } from '@/backend/types'
+import type { DuelRound } from '@/backend/types'
+import type { MoveConstraints } from '@/backend/types'
+
+export function deriveMoveConstraints(
+  rounds: DuelRound[],
+  userId: string,
+  challengerId: string,
+): MoveConstraints {
+  const isChallenger = userId === challengerId
+  let gambitsUsed = 0
+  let specialUsed = false
+
+  for (const r of rounds) {
+    const move = isChallenger ? r.challenger_move : r.defender_move
+    if (!move) continue
+    const moveLower = move.toLowerCase()
+    if (moveLower === 'gambit') gambitsUsed++
+    if (moveLower === 'special') specialUsed = true
+  }
+
+  return {
+    gambitsRemaining: Math.max(0, GAMBIT_MAX_PER_DUEL - gambitsUsed),
+    specialAvailable: !specialUsed,
+  }
+}
 
 export function canUseDuelSystem(profile: Pick<Profile, 'role' | 'faction'> | null | undefined) {
   return Boolean(

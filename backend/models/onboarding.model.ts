@@ -228,7 +228,7 @@ export const OnboardingModel = {
   async getFactionCounts() {
     const { data } = await supabaseAdmin
       .from('faction_slots')
-      .select('*')
+      .select('faction, active_count, max_slots, waitlist_count, updated_at')
       .in('faction', VISIBLE_FACTIONS)
 
     return data ?? []

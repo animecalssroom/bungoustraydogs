@@ -33,6 +33,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
   const load = useCallback(async () => {
     if (!user) return
+    if (typeof document !== 'undefined' && document.hidden) return
     setLoading(true)
     try {
       const response = await fetch('/api/notifications?limit=20', {
@@ -57,24 +58,13 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
     void load()
 
-    const channel = supabase
-      .channel(`notifications:${user.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${user.id}`,
-        },
-        () => {
-          void load()
-        },
-      )
-      .subscribe()
+    // Lightweight periodic refresh instead of always-on realtime channel
+    const interval = window.setInterval(() => {
+      void load()
+    }, 30000)
 
     return () => {
-      void supabase.removeChannel(channel)
+      window.clearInterval(interval)
     }
   }, [user, load, supabase])
 

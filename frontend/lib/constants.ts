@@ -47,11 +47,13 @@ export const CHARACTERS: Character[] = CHARACTER_ASSIGNMENT_POOL.map((character)
   stat_control: 50,
   kanji_symbol: FACTION_META[character.faction].kanji,
   role_id: null,
+  class_tag: 'BRUTE',
   is_lore_locked: !FACTION_META[character.faction].isJoinable,
   created_at: new Date().toISOString(),
 }))
 
 export const NAV_LINKS = [
+  { href: '/global-chat', label: 'Global Chat' },
   { href: '/duels', label: 'Duels' },
   { href: '/archive', label: 'Archive' },
   { href: '/records', label: 'Records' },

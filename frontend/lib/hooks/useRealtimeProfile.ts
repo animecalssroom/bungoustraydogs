@@ -36,10 +36,9 @@ export function useRealtimeProfile(
     const load = async () => {
       const { data } = await supabase
         .from('profiles')
-        .select('*')
+        .select('id, username, avatar_url, role, faction, character_name, character_match_id, ap_total, rank, last_seen')
         .eq('id', userId)
         .single()
-
       if (!active) return
       setProfile((data as Profile | null) ?? null)
     }

@@ -8,6 +8,7 @@ function makeEntry(
   return {
     id: entry.slug,
     created_at: CREATED_AT,
+    class_tag: 'INTEL',
     character_name_jp: null,
     ability_name_jp: null,
     ability_type: null,
@@ -60,8 +61,16 @@ export const ARCHIVE_FALLBACK_CATALOG: ArchiveEntry[] = [
     notable_works: 'Sangetsuki, Light Wind and Dreams',
     ability_literary_connection:
       'The tiger form draws directly from Sangetsuki, where a man is consumed by the beast hidden inside his own pride and fear. BSD turns that inner metamorphosis into a visible combat signature.',
-    designation: 'YKH-001',
+    designation: 'The Man-Tiger / The Guided Soul',
     clearance_level: 'Level 1 (Active Asset)',
+    ability_analysis: 'Metamorphosis into a white tiger of legendary proportions. The transformation grants inhuman strength, speed, and a high-speed regenerative factor capable of regrowing limbs in seconds. Interestingly, the tiger\'s claws can "cut" through the concept of abilities themselves.',
+    lore_background: 'Orphaned and cast out, Atsushi was found by Dazai and recruited into the Agency. He represents the city\'s hope for redemption. His value to the city exceeds even his own understanding, as he remains the primary target for several international organizations.',
+    physical_evidence: [
+      'A torn orphanage identification tag: Found in the Suribachi district.',
+      'A single white tiger whisker: Retrieved after the "Guild War" conflict.',
+      'A small, hand-painted wooden figurine: Gift from Kyouka.'
+    ],
+    narrative_hook: 'The city didn\'t give him a choice, but it gave him a purpose. To save others so he can finally save himself.',
     registry_note:
       'The file reads as if the city caught a frightened soul mid-transformation and chose not to look away.',
     status: 'active',
@@ -88,8 +97,16 @@ export const ARCHIVE_FALLBACK_CATALOG: ArchiveEntry[] = [
     notable_works: 'No Longer Human, The Setting Sun',
     ability_literary_connection:
       'No Longer Human becomes an erasure power because the original novel is already about estrangement from ordinary humanity. In BSD, that alienation is weaponized into direct negation.',
-    designation: 'YKH-002',
-    clearance_level: 'Level 4 (Disruptive Asset)',
+    designation: 'The Anti-Ability Paradox / Former Executive',
+    clearance_level: 'Level 5 (Classified / Redacted)',
+    ability_analysis: 'Absolute nullification of any supernatural manifestation upon physical contact. The ability operates on a constant, passive frequency, making it impossible for any "gift" to affect him directly, even those meant to heal.',
+    lore_background: 'A man whose past remains a series of redacted entries. Formerly the youngest executive in Port Mafia history, he now serves as the tactical heart of the Agency. His playful exterior hides a mind that calculates every possible outcome of a conflict before it even begins.',
+    physical_evidence: [
+      'Battered copy of "A Comprehensive Guide to Suicide": Heavily annotated.',
+      'Antique handcuffs: Confiscated from a Port Mafia holding cell.',
+      'A pack of discarded bandages: Found at the Lupin Bar, dated 4 years ago.'
+    ],
+    narrative_hook: 'Yokohama\'s shadow doesn\'t fear the light; it fears the man who can turn the light off.',
     registry_note:
       'The city keeps this file open because too many other files change shape around it.',
     status: 'active',
@@ -155,8 +172,16 @@ export const ARCHIVE_FALLBACK_CATALOG: ArchiveEntry[] = [
     notable_works: 'The Human Chair, The Beast in the Shadows',
     ability_literary_connection:
       'Ultra-Deduction lifts Ranpo\'s status as a master mystery architect into a near-supernatural investigative faculty. BSD translates genre-defining deduction into institutional authority.',
-    designation: 'YKH-004',
-    clearance_level: 'Level 4 (Elite Analyst)',
+    designation: 'The World\'s Greatest Detective',
+    clearance_level: 'Level 5 (Special Advisor)',
+    ability_analysis: 'A cognitive faculty so refined it mimics high-level supernatural analysis. Though he claims it is an ability triggered by his glasses, the Registry has confirmed he possesses no ability signature. He is simply... humanly impossible.',
+    lore_background: 'The man who keeps the peace by solving what others cannot even see. He is the reason the Armed Detective Agency exists. Without him, the city\'s complex criminal webs would have collapsed into chaos years ago.',
+    physical_evidence: [
+      'A pair of black-rimmed glasses: Simple, non-optical lenses.',
+      'A variety of high-sugar candy wrappers: Discarded during investigative sessions.',
+      'A marble from an "Alexander" mineral bottle.'
+    ],
+    narrative_hook: 'He doesn\'t look for clues. He looks for the reality that the rest of us are too slow to observe.',
     registry_note:
       'Some files solve themselves when he enters the room. The registry resents this and benefits from it.',
     status: 'active',
@@ -183,8 +208,16 @@ export const ARCHIVE_FALLBACK_CATALOG: ArchiveEntry[] = [
     notable_works: 'Midaregami, Thou Shalt Not Die',
     ability_literary_connection:
       'The ability borrows its name from Yosano\'s anti-war poem and twists it into battlefield medicine. BSD keeps the command against death but expresses it through brutal intervention.',
-    designation: 'YKH-005',
-    clearance_level: 'Level 3 (Specialist Physician)',
+    designation: '#YKH-006',
+    clearance_level: 'Level 4 (Essential Asset)',
+    ability_analysis: 'Thou Shalt Not Die. The most efficient healing ability in the Registry. She can heal any wound, no matter how fatal, in seconds. The condition: The patient must be "half-dead" (on the brink of expiration) for the ability to trigger. This necessitates her "surgical" approach to treatment.',
+    lore_background: 'A woman haunted by her past as a military medic during the "Great War." She was recruited by Ranpo and Fukuzawa to ensure the Agency never truly stays down. She is the reason the "Death" mechanic in your game can be reversed.',
+    physical_evidence: [
+      'One (1) Oversized Surgical Saw: Maintained with terrifying precision.',
+      'A Butterfly Hair Clip: A gift from a past she tries to forget.',
+      'Medical Grade Alcohol: Used for sterilization... and occasionally for a stiff drink.'
+    ],
+    narrative_hook: 'The Angel of Death / The Surgeon',
     registry_note:
       'The city calls this healing only because it has no word for rescue that arrives like a threat.',
     status: 'active',
@@ -351,8 +384,16 @@ export const ARCHIVE_FALLBACK_CATALOG: ArchiveEntry[] = [
     notable_works: 'Poems of the Goat, For the Tainted Sorrow',
     ability_literary_connection:
       'BSD transforms a poem of contamination and grief into literal gravitational ruin. Sorrow becomes mass, pressure, and collapse.',
-    designation: 'YKH-011',
-    clearance_level: 'Level 4 (Calamity Class)',
+    designation: 'The Vessel of Gravity / Arahabaki',
+    clearance_level: 'Level 4 (Mafia Executive)',
+    ability_analysis: 'Control over the gravitons of anything he touches. He can increase his own weight to crush buildings or nullify gravity to fly at supersonic speeds. His "Corruption" state is a theoretical catastrophic event where he releases the full, unbridled power of a god.',
+    lore_background: 'A former leader of the \'Sheep\' gang who was brought into the Mafia during the "Dragon\'s Head Conflict." Despite his small stature, he is arguably the city\'s most formidable physical combatant. He operates with a code of honor that is rare in the criminal underworld.',
+    physical_evidence: [
+      'A custom-made fedora: Specifically weighted for high-gravity combat.',
+      'A bottle of vintage wine: 1974 Petrus (empty).',
+      'A set of reinforced leather gloves: Heavily worn from combat.'
+    ],
+    narrative_hook: 'You don\'t fight the man. You fight the gravity of the choices he\'s made.',
     registry_note:
       'The city measures this file in damaged pavement and the seconds before impact.',
     status: 'active',
@@ -379,8 +420,16 @@ export const ARCHIVE_FALLBACK_CATALOG: ArchiveEntry[] = [
     notable_works: 'Rashomon, In a Grove, Hell Screen',
     ability_literary_connection:
       'Rashomon borrows the name of a story already bound to desperation and moral collapse. BSD turns that atmosphere into a predatory extension of the self.',
-    designation: 'YKH-012',
+    designation: 'The Silent Mad Dog / Hell\'s Sentinel',
     clearance_level: 'Level 4 (High Lethality)',
+    ability_analysis: 'Rashomon. His coat transforms into a multi-dimensional predator that can devour space itself. It is capable of both absolute defense (by eating the space between him and an attack) and absolute offense (piercing any known armor).',
+    lore_background: 'Raised in the slums, he was molded by Dazai into a weapon of pure destruction. He seeks only one thing: validation from his mentor. His cough is a constant reminder of the physical toll his ability takes on his body.',
+    physical_evidence: [
+      'A tattered black cravat: Retained from his early days in the slums.',
+      'A blood-stained medical report: REDACTED - Pulmonary complications noted.',
+      'A cracked tea cup: Recovered from a high-stakes meeting at the Port.'
+    ],
+    narrative_hook: 'He is the storm that moves through the city\'s veins, leaving only silence in his wake.',
     registry_note:
       'This file does not ask whether the world is cruel; it enters the room assuming the answer.',
     status: 'active',

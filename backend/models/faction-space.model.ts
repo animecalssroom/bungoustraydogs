@@ -100,7 +100,7 @@ export const FactionSpaceModel = {
   async getBulletins(factionId: FactionId, limit = 10): Promise<FactionBulletin[]> {
     const { data } = await supabaseAdmin
       .from('faction_bulletins')
-      .select('*')
+      .select('id, faction_id, author_id, author_character, case_number, content, pinned, created_at')
       .eq('faction_id', factionId)
       .order('pinned', { ascending: false })
       .order('created_at', { ascending: false })
@@ -112,7 +112,7 @@ export const FactionSpaceModel = {
   async getActivity(factionId: FactionId, limit = 20): Promise<FactionActivity[]> {
     const { data } = await supabaseAdmin
       .from('faction_activity')
-      .select('*')
+      .select('id, faction_id, event_type, description, actor_id, created_at')
       .eq('faction_id', factionId)
       .order('created_at', { ascending: false })
       .limit(limit)
@@ -169,9 +169,8 @@ export const FactionSpaceModel = {
         content: input.content,
         pinned: input.pinned ?? false,
       })
-      .select('*')
+      .select('id, faction_id, author_id, author_character, case_number, content, pinned, created_at')
       .single()
-
     if (error || !data) {
       return null
     }

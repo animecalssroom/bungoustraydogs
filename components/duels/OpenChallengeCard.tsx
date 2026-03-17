@@ -22,8 +22,9 @@ export function OpenChallengeCard({
           {challenge.message}
         </p>
       ) : null}
-      <div className="font-space-mono" style={{ fontSize: '0.58rem', color: 'var(--text3)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
-        {formatRemainingTime(challenge.expires_at)}
+      <div className="font-space-mono" style={{ fontSize: '0.58rem', color: 'var(--text3)', letterSpacing: '0.12em', textTransform: 'uppercase', display: 'flex', justifyContent: 'space-between' }}>
+        <span>{formatRemainingTime(challenge.expires_at)}</span>
+        <span>W/L {challenge.challenger_wins ?? 0}/{challenge.challenger_losses ?? 0}</span>
       </div>
       <button type="button" className="btn-secondary" disabled={disabled} onClick={() => void onAccept(challenge.id)}>
         Accept Challenge

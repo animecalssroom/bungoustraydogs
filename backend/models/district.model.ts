@@ -4,15 +4,25 @@ export interface District {
   id: string
   name: string
   description: string
+  slug: string
+  color: string
+  controlling_faction: string | null
+  points_required: number
+  current_points: number
+  ap_pool: number
   created_at: string
+  last_flip_at: string | null
+  coordinates: { lat: number; lng: number } | null
 }
+
+const DISTRICT_SELECT = 'id, name, description, slug, color, controlling_faction, points_required, current_points, ap_pool, last_flip_at, coordinates'
 
 export class DistrictModel {
   static async getAll(): Promise<District[]> {
     const supabase = createClient()
     const { data, error } = await supabase
       .from('districts')
-      .select('*')
+      .select(DISTRICT_SELECT)
       .order('name')
     
     if (error) {
@@ -27,7 +37,7 @@ export class DistrictModel {
     const supabase = createClient()
     const { data, error } = await supabase
       .from('districts')
-      .select('*')
+      .select(DISTRICT_SELECT)
       .eq('id', id)
       .single()
     
@@ -44,6 +54,6 @@ export class DistrictModel {
     await supabaseAdmin
       .from('districts')
       .update({ controlling_faction: factionId })
-      .eq('id', districtId)
+      .or(`id.eq.${districtId},slug.eq.${districtId}`)
   }
 }

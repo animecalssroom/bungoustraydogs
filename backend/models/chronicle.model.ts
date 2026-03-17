@@ -1,12 +1,16 @@
 import { createClient } from '@/frontend/lib/supabase/server'
+import { supabaseAdmin } from '@/backend/lib/supabase'
+import { cache as backendCache } from '@/backend/lib/cache'
 import { ChronicleEntry } from '@/backend/types'
+
+const CHRONICLE_SELECT = 'id, entry_number, title, content, entry_type, faction_focus, author_id, is_featured, created_at, published_at'
 
 export const ChronicleModel = {
   async getAll(): Promise<ChronicleEntry[]> {
     const supabase = await createClient()
     const { data, error } = await supabase
       .from('chronicle_entries')
-      .select('*')
+      .select(CHRONICLE_SELECT)
       .order('entry_number', { ascending: false })
 
     if (error) {
@@ -18,26 +22,27 @@ export const ChronicleModel = {
   },
 
   async getPublished(): Promise<ChronicleEntry[]> {
-    const supabase = await createClient()
-    const { data, error } = await supabase
-      .from('chronicle_entries')
-      .select('*')
-      .not('published_at', 'is', null)
-      .order('entry_number', { ascending: false })
+    return backendCache.getOrSet('chronicle:published', 600, async () => {
+      const { data, error } = await supabaseAdmin
+        .from('chronicle_entries')
+        .select(CHRONICLE_SELECT)
+        .not('published_at', 'is', null)
+        .order('entry_number', { ascending: false })
 
-    if (error) {
-      console.error('Error fetching published chronicle entries:', error)
-      return []
-    }
+      if (error || !data) {
+        console.error('Error fetching published chronicle entries:', error)
+        return [] as ChronicleEntry[]
+      }
 
-    return data as ChronicleEntry[]
+      return data as ChronicleEntry[]
+    })
   },
 
   async getById(id: string): Promise<ChronicleEntry | null> {
     const supabase = await createClient()
     const { data, error } = await supabase
       .from('chronicle_entries')
-      .select('*')
+      .select(CHRONICLE_SELECT)
       .eq('id', id)
       .maybeSingle()
 
@@ -79,7 +84,7 @@ export const ChronicleModel = {
         faction_focus: params.faction_focus,
         published_at: new Date().toISOString()
       })
-      .select('*')
+      .select(CHRONICLE_SELECT)
       .single()
     
     if (error) throw error

@@ -8,6 +8,8 @@ import { cache } from '@/backend/lib/cache'
 import { FactionWarModel } from './faction-war.model'
 import { WarContributionModel } from './war-contribution.model'
 
+const PROFILE_SELECT = 'id, username, username_confirmed, email, avatar_url, bio, theme, role, faction, character_name, character_match_id, character_ability, character_ability_jp, character_description, character_type, character_assigned_at, secondary_character_slug, secondary_character_name, exam_completed, exam_taken_at, exam_answers, exam_scores, quiz_scores, exam_status, quiz_completed, quiz_locked, assignment_flag_used, trait_scores, behavior_scores, avg_move_speed_minutes, exam_retake_eligible_at, exam_retake_used, ap_total, rank, duel_wins, duel_losses, is_bot, login_streak, guide_bot_dismissed, guide_bot_opened_at, last_seen, created_at, updated_at, recovery_until, recovery_status'
+
 const TOKYO_TIME_ZONE = 'Asia/Tokyo'
 
 function getTokyoDateKey(value: string | Date) {
@@ -28,16 +30,31 @@ function getTokyoDateKey(value: string | Date) {
 
 export const UserModel = {
   async getById(id: string): Promise<Profile | null> {
-    // Increased TTL to 1 hour for profile data, as it changes rarely and is invalidated manually.
-    return cache.getOrSet(`profile:id:${id}`, 3600, async () => {
-      const { data } = await supabaseAdmin
+    const cacheKey = `profile:id:${id}`
+    
+    // Check cache first
+    const cached = await cache.getOrSet(cacheKey, 3600, async () => {
+      const { data, error } = await supabaseAdmin
         .from('profiles')
-        .select('*')
+        .select(PROFILE_SELECT)
         .eq('id', id)
-        .single()
+        .maybeSingle()
+
+      if (error) {
+        console.error(`[UserModel:getById] DB Error for ${id}:`, error)
+        return null
+      }
 
       return (data as Profile | null) ?? null
     })
+
+    // If we got null, let's make sure we didn't just cache a negative result
+    // by invalidating it so the NEXT call actually hits the DB if this one failed.
+    if (!cached) {
+      await this.invalidateCache(id)
+    }
+
+    return cached
   },
 
   async invalidateCache(id: string) {
@@ -47,32 +64,36 @@ export const UserModel = {
   async getByUsername(username: string): Promise<Profile | null> {
     const normalizedUsername = username.trim().replace(/^@+/, '')
 
-    const { data, error } = await supabaseAdmin
-      .from('profiles')
-      .select('*')
-      .eq('username', normalizedUsername)
-      .maybeSingle()
+    const cacheKey = `profile:username:${normalizedUsername.toLowerCase()}`
 
-    if (data) {
-      return data as Profile
-    }
+    return cache.getOrSet(cacheKey, 300, async () => {
+      const { data, error } = await supabaseAdmin
+        .from('profiles')
+        .select(PROFILE_SELECT)
+        .eq('username', normalizedUsername)
+        .maybeSingle()
 
-    if (error && !error.message.toLowerCase().includes('multiple')) {
-      return null
-    }
+      if (data) {
+        return data as Profile
+      }
 
-    const fallback = await supabaseAdmin
-      .from('profiles')
-      .select('*')
-      .ilike('username', normalizedUsername)
-      .limit(5)
+      if (error && !error.message.toLowerCase().includes('multiple')) {
+        return null
+      }
 
-    const exactMatch =
-      ((fallback.data as Profile[] | null) ?? []).find(
-        (profile) => profile.username.trim().toLowerCase() === normalizedUsername.toLowerCase(),
-      ) ?? null
+      const fallback = await supabaseAdmin
+        .from('profiles')
+        .select(PROFILE_SELECT)
+        .ilike('username', normalizedUsername)
+        .limit(5)
 
-    return exactMatch
+      const exactMatch =
+        ((fallback.data as Profile[] | null) ?? []).find(
+          (profile) => profile.username.trim().toLowerCase() === normalizedUsername.toLowerCase(),
+        ) ?? null
+
+      return exactMatch ?? null
+    })
   },
 
   async update(id: string, updates: Partial<Profile>): Promise<Profile | null> {
@@ -80,7 +101,7 @@ export const UserModel = {
       .from('profiles')
       .update({ ...updates, updated_at: new Date().toISOString() })
       .eq('id', id)
-      .select('*')
+      .select(PROFILE_SELECT)
       .single()
 
     if (data) {
@@ -91,14 +112,17 @@ export const UserModel = {
   },
 
   async getRecentEvents(userId: string, limit = 50) {
-    const { data } = await supabaseAdmin
-      .from('user_events')
-      .select('id, user_id, event_type, faction, ap_awarded, metadata, created_at')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-      .limit(limit)
+    const key = `user_events:${userId}:limit:${limit}`
+    return cache.getOrSet(key, 60, async () => {
+      const { data } = await supabaseAdmin
+        .from('user_events')
+        .select('id, user_id, event_type, faction, ap_awarded, metadata, created_at')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(limit)
 
-    return (data as UserEvent[] | null) ?? []
+      return (data as UserEvent[] | null) ?? []
+    })
   },
 
   async shouldThrottleBehaviorEvent(
@@ -428,5 +452,29 @@ export const UserModel = {
         redirectTo: '/onboarding/quiz?retake=1',
       },
     }
+  },
+
+  async setUserMIA(userId: string, hours: number, status: string = 'mia') {
+    const recoveryUntil = new Date(Date.now() + hours * 60 * 60 * 1000).toISOString()
+    const { data } = await supabaseAdmin
+      .from('profiles')
+      .update({ 
+        recovery_until: recoveryUntil,
+        recovery_status: status,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', userId)
+      .select(PROFILE_SELECT)
+      .single()
+
+    if (data) {
+      await this.invalidateCache(userId)
+    }
+    return data as Profile | null
+  },
+
+  isUserMIA(profile: Profile | null): boolean {
+    if (!profile || !profile.recovery_until) return false
+    return new Date(profile.recovery_until).getTime() > Date.now()
   },
 }

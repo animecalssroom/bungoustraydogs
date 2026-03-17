@@ -4,7 +4,7 @@ import React from 'react'
 import type { AbilityType } from '@/backend/types'
 
 interface AbilityTypeIconProps {
-  type: AbilityType | null | string
+  type?: AbilityType | null | string | undefined
   className?: string
   size?: number
 }

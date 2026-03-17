@@ -2,7 +2,6 @@
 
 import { useEffect } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { playSound } from '@/frontend/lib/sounds'
 
 const KANJI: Record<string, string> = {
   agency: 'A',
@@ -28,7 +27,6 @@ export default function RankUpFlash({
       return
     }
 
-    void playSound('stamp')
     const timeout = window.setTimeout(onComplete, 2800)
     return () => window.clearTimeout(timeout)
   }, [onComplete, show])

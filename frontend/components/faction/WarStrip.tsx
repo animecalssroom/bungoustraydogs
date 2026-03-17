@@ -8,11 +8,14 @@ import styles from './WarStrip.module.css'
 interface WarStripProps {
   war: FactionWar
   userFaction: string
+  onRetreat?: (warId: string) => Promise<void>
+  canManageWar?: boolean
 }
 
-export function WarStrip({ war, userFaction }: WarStripProps) {
+export function WarStrip({ war, userFaction, onRetreat, canManageWar }: WarStripProps) {
   const [currentWar, setCurrentWar] = useState<FactionWar>(war)
   const [timeLeft, setTimeLeft] = useState('')
+  const [loadingRetreat, setLoadingRetreat] = useState(false)
   const supabase = createClient()
 
   useEffect(() => {
@@ -20,22 +23,25 @@ export function WarStrip({ war, userFaction }: WarStripProps) {
   }, [war])
 
   useEffect(() => {
-    // Realtime subscription for point updates
-    const channel = supabase
-      .channel(`war-updates-${war.id}`)
-      .on('postgres_changes', { 
-        event: 'UPDATE', 
-        schema: 'public', 
-        table: 'faction_wars',
-        filter: `id=eq.${war.id}`
-      }, (payload) => {
-        setCurrentWar(payload.new as FactionWar)
-      })
-      .subscribe()
-    
-    return () => {
-      supabase.removeChannel(channel)
+    // Polling for point updates (reduces expensive Realtime connections)
+    const poll = async () => {
+      if (typeof document !== 'undefined' && document.hidden) {
+        return
+      }
+      const { data } = await supabase
+        .from('faction_wars')
+        .select('id, faction_a_id, faction_b_id, faction_a_points, faction_b_points, status, ends_at, stakes, stakes_detail')
+        .eq('id', war.id)
+        .single()
+      
+      if (data) {
+        setCurrentWar(data as FactionWar)
+      }
     }
+
+    const interval = setInterval(poll, 60000)
+    
+    return () => clearInterval(interval)
   }, [war.id, supabase])
 
   useEffect(() => {
@@ -93,7 +99,28 @@ export function WarStrip({ war, userFaction }: WarStripProps) {
       </div>
 
       <div className={styles.stakes}>
-        Stakes: <span className={styles.stakeDetail}>{currentWar.stakes_detail?.description || currentWar.stakes}</span>
+        <div className={styles.stakeInfo}>
+          Stakes: <span className={styles.stakeDetail}>{currentWar.stakes_detail?.description || currentWar.stakes}</span>
+        </div>
+        {canManageWar && (
+          <button
+            type="button"
+            className={styles.retreatBtn}
+            disabled={loadingRetreat}
+            onClick={async () => {
+              if (confirm('RETREAT: Are you sure? Surrendering will forfeit the stakes to the enemy.')) {
+                setLoadingRetreat(true)
+                try {
+                  if (onRetreat) await onRetreat(currentWar.id)
+                } finally {
+                  setLoadingRetreat(false)
+                }
+              }
+            }}
+          >
+            {loadingRetreat ? 'RETREATING...' : 'TREATY / RETREAT'}
+          </button>
+        )}
       </div>
     </div>
   )

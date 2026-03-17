@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { Duel, DuelCooldown, DuelMove, DuelRound, FactionId, Profile } from '@/backend/types/index'
+import type { Duel, DuelCooldown, DuelMove, DuelRound, FactionId, Profile, MoveConstraints } from '@/backend/types/index'
 import { createClient } from '@/frontend/lib/supabase/client'
 import { triggerFloatingAP } from '@/frontend/components/ui/FloatingAP'
 import { AftermathOverlay } from '@/components/duels/AftermathOverlay'
@@ -11,14 +11,14 @@ import { HPBar } from '@/components/duels/HPBar'
 import { MoveButtons } from '@/components/duels/MoveButtons'
 import { NarrativePanel } from '@/components/duels/NarrativePanel'
 import { PreAssignmentMessage } from '@/components/duels/PreAssignmentMessage'
-import { RoundHistory } from '@/components/duels/RoundHistory'
+import { BattleLogVisualizer } from '@/components/duels/BattleLogVisualizer'
 import { getDisplayRoundNarrative } from '@/lib/duels/presentation'
 import { 
   CHARACTER_ABILITY_NAMES, 
   getAbilityTypeForCharacter, 
   ABILITY_TYPE_LABELS 
 } from '@/frontend/lib/ability-types'
-import type { MoveConstraints } from '@/app/duels/[duelId]/page'
+// MoveConstraints imported from @/backend/types
 
 // ── Faction tokens ────────────────────────────────────────────────────────
 const FACTION_COLOR: Record<string, string> = {
@@ -298,6 +298,8 @@ export function DuelScreenClient({
   const [countdown, setCountdown] = useState('')
   const [secondsLeft, setSecondsLeft] = useState<number | null>(null)
   const [aftermathDismissed, setAftermathDismissed] = useState(false)
+  const [showAbilityOverlay, setShowAbilityOverlay] = useState<string | null>(null)
+  const [lastOverlayRound, setLastOverlayRound] = useState(0)
   const [aftermathSummary, setAftermathSummary] = useState<string | null>(null)
   const [aftermathApLabel, setAftermathApLabel] = useState<string | null>(null)
   const [challengerDisplay, setChallengerDisplay] = useState<string | null>(null)
@@ -399,11 +401,11 @@ export function DuelScreenClient({
         const fallbackC = duel.challenger_character ?? duel.challenger_faction ?? 'Unregistered'
         const fallbackD = duel.defender_character ?? duel.defender_faction ?? 'Unregistered'
 
-        // If characters are already embedded in the duel object, use them and look up names
-        if (duel.challenger_character && duel.defender_character) {
+        // Fast path: if we already have character slugs, we can resolve ability labels locally
+        if (duel.challenger_character_slug && duel.defender_character_slug) {
           if (active) {
-            setChallengerDisplay(duel.challenger_character)
-            setDefenderDisplay(duel.defender_character)
+            setChallengerDisplay(duel.challenger_character ?? fallbackC)
+            setDefenderDisplay(duel.defender_character ?? fallbackD)
             setChallengerAbilityVal(duel.challenger_character_slug ? CHARACTER_ABILITY_NAMES[duel.challenger_character_slug] : null)
             setDefenderAbilityVal(duel.defender_character_slug ? CHARACTER_ABILITY_NAMES[duel.defender_character_slug] : null)
             setChallengerSlugVal(duel.challenger_character_slug)
@@ -561,7 +563,7 @@ export function DuelScreenClient({
       }
 
       if (currentRound) setOptimisticSubmittedRound(currentRound.round_number)
-      if (move === 'gambit') setGambitsRemaining((n) => Math.max(0, n - 1))
+      if (move === 'gambit') setGambitsRemaining((n: number) => Math.max(0, n - 1))
       if (move === 'special') setSpecialAvailable(false)
 
       // If both moves were submitted (opponent already moved), immediately refresh to catch resolution
@@ -590,23 +592,62 @@ export function DuelScreenClient({
     const SEL = 'id, duel_id, round_number, challenger_move, challenger_override_character, challenger_move_submitted_at, defender_move, defender_move_submitted_at, round_started_at, round_deadline, is_sudden_death, reversal_available, reversal_deadline, reversal_used, challenger_damage_dealt, defender_damage_dealt, challenger_hp_after, defender_hp_after, special_events, narrative, narrative_is_fallback, resolved_at'
 
     const poll = async () => {
-      const [rr, dr, cr] = await Promise.all([
-        supabase.from('duel_rounds').select(SEL).eq('duel_id', duel.id).order('round_number', { ascending: true }).limit(10),
-        supabase.from('duels').select('*').eq('id', duel.id).maybeSingle(),
-        supabase.from('duel_cooldowns').select('id, duel_id, user_id, ability_type, locked_until_round').eq('duel_id', duel.id).limit(20),
-      ])
-      if (rr.data) setRounds(rr.data as DuelRound[])
-      if (dr.data) setDuel(dr.data as Duel)
-      if (cr.data) setCooldowns(cr.data as DuelCooldown[])
+      try {
+        const res = await fetch(`/api/duels/${duel.id}/status`)
+        const json = await res.json()
+        if (json.data) {
+          if (json.data.rounds) setRounds(json.data.rounds)
+          if (json.data.duel) setDuel(json.data.duel)
+          if (json.data.cooldowns) setCooldowns(json.data.cooldowns)
+        }
+      } catch (err) {
+        console.error('[duel] poll failed', err)
+      }
     }
 
     const id = window.setInterval(poll, 5000)
     return () => window.clearInterval(id)
   }, [isWaitingForOpponent, duel.status, duel.id, supabase])
 
+  // Trigger special ability overlay
+  useEffect(() => {
+    const lastRound = rounds[rounds.length - 1]
+    if (lastRound && lastRound.round_number > lastOverlayRound) {
+      setLastOverlayRound(lastRound.round_number)
+      
+      const chSpecial = lastRound.challenger_move === 'special'
+      const deSpecial = lastRound.defender_move === 'special'
+      
+      if (chSpecial || deSpecial) {
+        let label = ''
+        if (chSpecial && deSpecial) label = 'CLASH OF ABILITIES'
+        else if (chSpecial) label = `${challengerDisplay ?? duel.challenger_character ?? 'Operative'} ACTIVATED ABILITY`
+        else label = `${defenderDisplay ?? duel.defender_character ?? 'Operative'} ACTIVATED ABILITY`
+        
+        setShowAbilityOverlay(label)
+        setTimeout(() => setShowAbilityOverlay(null), 2500)
+      }
+    }
+  }, [rounds, lastOverlayRound, challengerDisplay, defenderDisplay, duel.challenger_character, duel.defender_character])
+
   // ── Render ────────────────────────────────────────────────────────────
   return (
     <>
+      {showAbilityOverlay && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-none">
+          <div className="absolute inset-0 bg-red-900/20 backdrop-blur-[2px] animate-in fade-in duration-300" />
+          <div className="relative overflow-hidden bg-black text-white px-12 py-6 border-y-4 border-red-600 shadow-[0_0_50px_rgba(220,38,38,0.3)] animate-in zoom-in slide-in-from-bottom-12 duration-500">
+             <div className="absolute top-0 left-0 w-full h-1 bg-red-600 animate-pulse" />
+             <h2 className="font-space-mono text-2xl font-black italic tracking-tighter whitespace-nowrap">
+               {showAbilityOverlay}
+             </h2>
+             <div className="mt-2 flex justify-between font-space-mono text-[0.4rem] tracking-[0.3em] opacity-60">
+               <span>SYSTEM INTERFERENCE</span>
+               <span>REGISTRY-OVERRIDE</span>
+             </div>
+          </div>
+        </div>
+      )}
       <PreAssignmentMessage userId={viewer.id} open={!viewer.character_name} />
 
       <div ref={lastApRef} style={{ display: 'grid', gap: '1rem', maxWidth: '800px', margin: '0 auto' }}>
@@ -864,7 +905,7 @@ export function DuelScreenClient({
           >
             Round History
           </div>
-          <RoundHistory
+          <BattleLogVisualizer
             rounds={rounds.filter((r) => r.resolved_at)}
             challengerName={challengerDisplay ?? duel.challenger_character ?? 'Operative'}
             defenderName={defenderDisplay ?? duel.defender_character ?? 'Operative'}

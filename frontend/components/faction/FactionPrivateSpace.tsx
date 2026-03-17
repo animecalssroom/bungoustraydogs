@@ -4,9 +4,10 @@ import type { CSSProperties } from 'react'
 import Link from 'next/link'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { Swords } from 'lucide-react'
 import { createClient } from '@/frontend/lib/supabase/client'
 import { FACTION_META, getCharacterReveal } from '@/frontend/lib/launch'
-import { playSound } from '@/frontend/lib/sounds'
 import { getSpecialDivisionProvisionalDesignation } from '@/frontend/lib/special-division'
 import type {
   FactionActivity,
@@ -19,16 +20,17 @@ import type {
   VisibleFactionId,
   FactionWar,
 } from '@/backend/types'
+import { type District } from '@/backend/models/district.model'
 import { WarStrip } from './WarStrip'
-import { FactionWarTargets } from './FactionWarTargets'
 import { getRankTitle } from '@/backend/types'
 import styles from './FactionPrivateSpace.module.css'
 import registryStyles from '@/frontend/components/registry/Registry.module.css'
 import { RegistryModQueue } from '@/frontend/components/registry/RegistryModQueue'
 import { FactionFeedPing } from '@/frontend/components/ui/FactionFeedPing'
 import { AngoUsername } from '@/frontend/components/ango/AngoUsername'
+import { DeclareWarModal } from '@/frontend/components/wars/DeclareWarModal'
 
-type PrivateTab = 'bulletin' | 'feed' | 'roster' | 'chat' | 'waitlist' | 'warfront'
+type PrivateTab = 'bulletin' | 'feed' | 'roster' | 'chat' | 'waitlist'
 
 type WaitlistEntry = {
   user_id: string
@@ -147,7 +149,8 @@ export function FactionPrivateSpace({
   initialWarFactions = [],
   initialPendingRegistryPosts = [],
   activeWar = null,
-  onDeclareWar,
+  onRetreatWar,
+  districts = [],
 }: {
   factionId: FactionId
   profile: Profile
@@ -158,12 +161,19 @@ export function FactionPrivateSpace({
   initialWarFactions?: Faction[]
   initialPendingRegistryPosts?: RegistryPost[]
   activeWar?: FactionWar | null
-  onDeclareWar?: (formData: { targetFactionId: string; stakes: string; stakesDetail: string; warMessage: string }) => Promise<void>
+  onRetreatWar?: (warId: string) => Promise<void>
+  districts?: District[]
 }) {
+  const router = useRouter()
   const [supabase] = useState(() => createClient())
+  const [mounted, setMounted] = useState(false)
+  
+  useEffect(() => {
+    setMounted(true)
+  }, [])
   const [loading, setLoading] = useState(initialRoster.length === 0)
   const [error, setError] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<PrivateTab>(activeWar ? 'warfront' : 'feed')
+  const [activeTab, setActiveTab] = useState<PrivateTab>('feed')
   const [bulletins, setBulletins] = useState<FactionBulletin[]>(initialBulletins)
   const [activity, setActivity] = useState<FactionActivity[]>(initialActivity)
   const [roster, setRoster] = useState<RosterEntry[]>(initialRoster)
@@ -171,8 +181,8 @@ export function FactionPrivateSpace({
   const [pendingPosts, setPendingPosts] = useState<RegistryPost[]>(initialPendingRegistryPosts)
   const [waitlist, setWaitlist] = useState<WaitlistEntry[]>([])
   const [warSegments, setWarSegments] = useState<WarSegment[]>(() => {
-    const joinable = initialWarFactions.filter((row) =>
-      ['agency', 'mafia', 'guild', 'hunting_dogs'].includes(row.id),
+    const joinable = (initialWarFactions || []).filter((row: Faction) =>
+      row.is_joinable && !['rats', 'decay', 'clock_tower'].includes(row.id)
     ) as JoinableFactionSummary[]
 
     const special = factionId === 'special_div'
@@ -197,13 +207,6 @@ export function FactionPrivateSpace({
   })
   const [showBulletinModal, setShowBulletinModal] = useState(false)
   const [showDeclareModal, setShowDeclareModal] = useState(false)
-  const [loadingDeclare, setLoadingDeclare] = useState(false)
-  const [declareForm, setDeclareForm] = useState({
-    targetFactionId: '',
-    stakes: 'district',
-    stakesDetail: '',
-    warMessage: ''
-  })
   const [bulletinDraft, setBulletinDraft] = useState('')
   const [postingBulletin, setPostingBulletin] = useState(false)
   const [messageDraft, setMessageDraft] = useState('')
@@ -435,8 +438,6 @@ export function FactionPrivateSpace({
 
       const bulletin = json.data
       setBulletins((current) => [bulletin, ...current].slice(0, 10))
-
-      await playSound('stamp')
     },
     [factionId],
   )
@@ -501,7 +502,6 @@ export function FactionPrivateSpace({
     })
     setMessageDraft('')
     setSendingMessage(false)
-    await playSound('stamp')
   }
 
   const handlePinMessage = async (message: FactionMessage) => {
@@ -537,7 +537,6 @@ export function FactionPrivateSpace({
       }
 
       await loadSpace()
-      await playSound('stamp')
     } catch (e: any) {
       setError(e.message)
     }
@@ -607,30 +606,16 @@ export function FactionPrivateSpace({
               {tab.label}
             </button>
           ))}
-          {activeWar && (
-            <button
-              type="button"
-              className={`${styles.tabButton} ${
-                activeTab === 'warfront' ? styles.tabButtonActive : ''
-              }`}
-              onClick={() => setActiveTab('warfront')}
-              style={{ color: 'var(--color-dogs)', borderColor: 'var(--color-dogs)' }}
-            >
-              WAR FRONT
-            </button>
-          )}
         </div>
 
         {activeWar && (activeWar.faction_a_id === factionId || activeWar.faction_b_id === factionId) && (
           <>
-            <WarStrip war={activeWar} userFaction={factionId} />
-            {activeTab === 'warfront' && (
-              <FactionWarTargets 
-                war={activeWar} 
-                userFaction={factionId} 
-                viewerId={profile.id} 
-              />
-            )}
+            <WarStrip 
+              war={activeWar} 
+              userFaction={factionId} 
+              onRetreat={onRetreatWar}
+              canManageWar={canPostBulletin}
+            />
           </>
         )}
 
@@ -646,15 +631,14 @@ export function FactionPrivateSpace({
                 <span className={styles.sectionMeta}>{bulletins.length} files</span>
                 {canPostBulletin && (
                   <div className={styles.sectionActions}>
-                    {!activeWar && (
-                      <button
-                        type="button"
-                        className={styles.declareWarBtn}
-                        onClick={() => setShowDeclareModal(true)}
-                      >
-                        Declare War
-                      </button>
-                    )}
+                    <button
+                      type="button"
+                      className={styles.declareWarBtn}
+                      onClick={() => setShowDeclareModal(true)}
+                    >
+                      <Swords className="w-3.5 h-3.5 mr-1" />
+                      Declare War
+                    </button>
                     <button
                       type="button"
                       className={styles.pinButton}
@@ -677,7 +661,9 @@ export function FactionPrivateSpace({
                         <span>{bulletin.case_number}</span>
                         {bulletin.pinned ? <span className={styles.pinStamp}>ðŸ“Œ</span> : null}
                       </span>
-                      <span className={styles.sectionMeta}>{formatStamp(bulletin.created_at)}</span>
+                      <span className={styles.sectionMeta}>
+                        {mounted ? formatStamp(bulletin.created_at) : '--:--'}
+                      </span>
                     </div>
                     <div className={styles.authorCharacter}>
                       {bulletin.author_character ?? 'Unknown File'}
@@ -707,7 +693,7 @@ export function FactionPrivateSpace({
 
           <section
             className={`${styles.column} ${
-              activeTab === 'feed' || (activeTab === 'warfront' && !activeWar) ? styles.mobilePanelVisible : styles.mobilePanelHidden
+              activeTab === 'feed' ? styles.mobilePanelVisible : styles.mobilePanelHidden
             }`}
           >
             <div className={styles.sectionHead}>
@@ -738,7 +724,9 @@ export function FactionPrivateSpace({
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: 12 }}
                     >
-                      <span className={styles.feedTime}>{formatStamp(item.created_at)}</span>
+                      <span className={styles.feedTime}>
+                        {mounted ? formatStamp(item.created_at) : '--:--'}
+                      </span>
                       <span className={styles.feedText}>{item.description}</span>
                     </motion.article>
                   ))
@@ -905,7 +893,9 @@ export function FactionPrivateSpace({
                             ðŸ“Œ
                           </button>
                         ) : null}
-                        <span className={styles.messageTime}>{formatTime(message.created_at)}</span>
+                        <span className={styles.messageTime}>
+                          {mounted ? formatTime(message.created_at) : '--:--'}
+                        </span>
                       </div>
                     </div>
                     <div className={styles.messageContent}>{message.content}</div>
@@ -1011,84 +1001,15 @@ export function FactionPrivateSpace({
         </div>
       ) : null}
       {showDeclareModal ? (
-        <div className={styles.bulletinModalBackdrop}>
-          <div className={styles.bulletinModal}>
-            <div className={styles.sectionHead}>
-              <span className={styles.sectionTitle}>Declare War</span>
-              <button type="button" className={styles.pinButton} onClick={() => setShowDeclareModal(false)}>Close</button>
-            </div>
-            <form className={styles.declareForm} onSubmit={async (e) => {
-              e.preventDefault()
-              setLoadingDeclare(true)
-              try {
-                if (onDeclareWar) {
-                  await onDeclareWar(declareForm)
-                }
-                setShowDeclareModal(false)
-                await playSound('stamp')
-              } catch (e: any) {
-                setError(e.message)
-              } finally {
-                setLoadingDeclare(false)
-              }
-            }}>
-              <div className={styles.formGrid}>
-                <div className={styles.formGroup}>
-                  <label className={styles.sectionMeta}>Target Faction</label>
-                  <select 
-                    className={styles.input}
-                    value={declareForm.targetFactionId}
-                    onChange={e => setDeclareForm({...declareForm, targetFactionId: e.target.value})}
-                    required
-                  >
-                    <option value="">Select Faction...</option>
-                    {initialWarFactions.filter(f => f.id !== factionId).map(f => (
-                      <option key={f.id} value={f.id}>{f.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className={styles.formGroup}>
-                  <label className={styles.sectionMeta}>Stakes</label>
-                  <select 
-                    className={styles.input}
-                    value={declareForm.stakes}
-                    onChange={e => setDeclareForm({...declareForm, stakes: e.target.value})}
-                  >
-                    <option value="district">District Control</option>
-                    <option value="ap_multiplier">AP Multiplier</option>
-                    <option value="registry_priority">Registry Priority</option>
-                  </select>
-                </div>
-              </div>
-              <div className={styles.formGroup} style={{ marginTop: '1rem' }}>
-                <label className={styles.sectionMeta}>Details (e.g. Harbor District)</label>
-                <input 
-                  className={styles.input}
-                  value={declareForm.stakesDetail}
-                  onChange={e => setDeclareForm({...declareForm, stakesDetail: e.target.value})}
-                  required
-                />
-              </div>
-              <div className={styles.formGroup} style={{ marginTop: '1rem' }}>
-                <label className={styles.sectionMeta}>War Message (Public)</label>
-                <textarea 
-                  className={styles.textarea}
-                  value={declareForm.warMessage}
-                  onChange={e => setDeclareForm({...declareForm, warMessage: e.target.value})}
-                  placeholder="The city is watching..."
-                  required
-                />
-              </div>
-              <button 
-                type="submit" 
-                className={`${styles.declareSubmitBtn} btn-primary`}
-                disabled={loadingDeclare}
-              >
-                {loadingDeclare ? 'Initiating War...' : 'DECLARE WAR'}
-              </button>
-            </form>
-          </div>
-        </div>
+        <DeclareWarModal
+          myFactionId={factionId}
+          activeWar={activeWar}
+          districts={districts}
+          onClose={() => setShowDeclareModal(false)}
+          onSuccess={() => {
+            router.refresh()
+          }}
+        />
       ) : null}
     </section>
   )

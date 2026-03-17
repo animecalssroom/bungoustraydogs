@@ -2,6 +2,7 @@ import { ARCHIVE_FALLBACK_CATALOG } from '@/backend/lib/archive-catalog'
 import { supabaseAdmin } from '@/backend/lib/supabase'
 import type { ArchiveEntry, AbilityType, FactionId } from '@/backend/types'
 
+const ARCHIVE_SELECT = 'id, slug, character_name, character_name_jp, faction, ability_name, ability_name_jp, ability_type, ability_description, trait_power, trait_intel, trait_loyalty, trait_control, real_author_name, real_author_dates, real_author_bio, literary_movement, notable_works, ability_literary_connection, duel_voice, literary_link, special_mechanic, registry_note, designation, clearance_level, ability_analysis, lore_background, physical_evidence, narrative_hook, status, created_at, class_tag'
 function normalizeEntry(entry: Partial<ArchiveEntry> & { slug: string }): ArchiveEntry {
   return {
     id: entry.id ?? entry.slug,
@@ -35,6 +36,7 @@ function normalizeEntry(entry: Partial<ArchiveEntry> & { slug: string }): Archiv
     narrative_hook: entry.narrative_hook ?? null,
     status: entry.status ?? 'active',
     created_at: entry.created_at ?? '2026-03-12T00:00:00.000Z',
+    class_tag: entry.class_tag ?? 'INTEL',
   }
 }
 
@@ -51,7 +53,7 @@ export const ArchiveModel = {
     try {
       const { data, error } = await supabaseAdmin
         .from('archive_entries')
-        .select('*')
+        .select(ARCHIVE_SELECT)
         .eq('slug', slug)
         .single()
 

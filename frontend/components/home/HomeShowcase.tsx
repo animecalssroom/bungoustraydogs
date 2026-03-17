@@ -16,6 +16,7 @@ import {
 } from '@/frontend/lib/home-content'
 import { resolvePostAuthPath, toPrivateFactionRouteId } from '@/frontend/lib/launch'
 import RainLayer from '@/frontend/components/ui/RainLayer'
+import GlobalChat from '@/frontend/components/chat/GlobalChat'
 import styles from './HomeShowcase.module.css'
 
 const HOME_QUIZ_PREVIEW = {
@@ -589,7 +590,25 @@ export function HomeShowcase() {
         </div>
       </section>
 
-
+      <section className={styles.section} id="global-chat">
+        <div className={styles.sectionWrap}>
+          <div className={`reveal ${styles.sectionHead}`} data-home-reveal>
+            <p className={styles.sectionEyebrow}>公衆無線 · Global Transmission</p>
+            <h2 className={styles.sectionTitle}>
+              The City’s <em>Open Signal</em>
+            </h2>
+            <div className={styles.sectionDivider} />
+            <p className={styles.sectionSub}>
+              Unencrypted channels for all registered users. What happens in the 
+              streets is recorded here.
+            </p>
+          </div>
+          
+          <div className={`reveal ${styles.globalChatContainer}`} data-home-reveal>
+            <GlobalChat />
+          </div>
+        </div>
+      </section>
 
       <section className={styles.section} id="lore">
         <div className={styles.sectionWrap}>

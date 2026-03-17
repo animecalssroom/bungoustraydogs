@@ -1,10 +1,31 @@
 import { FactionPageGrid } from '@/frontend/components/faction/FactionCard'
-import { FactionModel } from '@/backend/models/faction.model'
+import { FACTION_META, PUBLIC_FACTION_ORDER } from '@/frontend/lib/launch'
+import type { Faction } from '@/backend/types'
 
-export const dynamic = 'force-dynamic'
+export const dynamic = 'force-static'
 
 export default async function FactionsPage() {
-  const factions = await FactionModel.getAll()
+  const factions: Faction[] = PUBLIC_FACTION_ORDER.map((id) => {
+    const meta = FACTION_META[id]
+    return {
+      id,
+      name: meta.name,
+      name_jp: meta.nameJp,
+      kanji: meta.kanji,
+      description: meta.description,
+      philosophy: meta.philosophy,
+      theme: meta.theme,
+      color: meta.color,
+      is_joinable: meta.isJoinable,
+      is_hidden: meta.isHidden,
+      is_lore_locked: false,
+      // Static defaults for dynamic fields so the UI renders without Supabase
+      ap: 0,
+      member_count: 0,
+      waitlist_count: 0,
+      slot_count: 0,
+    }
+  })
 
   return (
     <>
