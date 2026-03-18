@@ -4,7 +4,7 @@ export const FAN_THEORIES_CATALOG: FanTheory[] = [
   {
     id: 'theory-001',
     slug: 'fyodor-is-still-alive',
-    title: 'Fyodor Is Still Alive — The Grand Master Plan',
+    title: 'Fyodor Is Still Alive - The Grand Master Plan',
     summary:
       'Comprehensive theory arguing Fyodor orchestrated his own death, secretly collaborating with Nikolai all along. Evidence includes the helicopter scene, Sigma\'s information exchange, and the convenient positioning of events. If Fyodor predicted Dazai\'s moves inside Meursault, he predicted what came after.',
     full_content:
@@ -20,9 +20,9 @@ export const FAN_THEORIES_CATALOG: FanTheory[] = [
   {
     id: 'theory-002',
     slug: 'fyodor-fallen-angel',
-    title: 'Fyodor as a Fallen Angel — Connected to the Source of Abilities',
+    title: 'Fyodor as a Fallen Angel - Connected to the Source of Abilities',
     summary:
-      'Theory that Fyodor symbolizes a type of fallen angel, connected to the very source of abilities. Supported by references in the "Untold Origin of the Detective Agency" light novel. His goal to eradicate abilities may stem from intimate knowledge of their origin—and guilt over his role in creating them.',
+      'Theory that Fyodor symbolizes a type of fallen angel, connected to the very source of abilities. Supported by references in the "Untold Origin of the Detective Agency" light novel. His goal to eradicate abilities may stem from intimate knowledge of their origin and guilt over his role in creating them.',
     full_content:
       'Fyodor\'s knowledge of abilities extends beyond what any human intelligence network could provide. The theory draws on light novel references, his theological language, his apparent immortality, and his obsessive drive to eliminate abilities as evidence that he is not merely opposed to abilities—he may be their original sin. The fallen angel motif runs through every interaction: the chess games, the prison sermons, the willingness to sacrifice pawns for a "holy" objective.',
     author_name: 'u/Outrageous_Gene_7652',
@@ -162,3 +162,4 @@ export const FAN_THEORIES_CATALOG: FanTheory[] = [
     created_at: '2025-04-10T00:00:00.000Z',
   },
 ]
+

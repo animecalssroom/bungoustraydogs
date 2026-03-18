@@ -7,8 +7,10 @@ export async function GET(request: Request) {
   const faction = searchParams.get('faction') as FactionId | 'all' | null
   const district = searchParams.get('district') as RegistryDistrict | 'all' | null
   const sort = searchParams.get('sort') as 'recent' | 'saved' | 'featured' | null
-  const limit = parseInt(searchParams.get('limit') || '50')
-  const page = parseInt(searchParams.get('page') || '0')
+  const rawLimit = parseInt(searchParams.get('limit') || '50', 10)
+  const rawPage = parseInt(searchParams.get('page') || '0', 10)
+  const limit = Number.isFinite(rawLimit) ? rawLimit : 50
+  const page = Number.isFinite(rawPage) ? rawPage : 0
 
   const posts = await RegistryModel.getPublic({
     faction: faction || 'all',

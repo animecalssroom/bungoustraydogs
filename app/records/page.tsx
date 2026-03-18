@@ -1,6 +1,7 @@
 import { LoreModel } from '@/backend/models/lore.model'
 import { RegistryModel } from '@/backend/models/registry.model'
 import { ChronicleModel } from '@/backend/models/chronicle.model'
+import { FAN_THEORIES_CATALOG } from '@/backend/lib/fan-theories-catalog'
 import RecordsPageClient from './RecordsPageClient'
 import { getViewerProfile } from '@/frontend/lib/auth-server'
 
@@ -24,6 +25,7 @@ export default async function RecordsPage({
       lorePosts={lorePosts}
       registryPosts={registryPosts}
       chronicleEntries={chronicleEntries}
+      fanTheories={FAN_THEORIES_CATALOG}
       profile={profile}
     />
   )

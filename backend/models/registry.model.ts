@@ -24,9 +24,9 @@ type RegistryListOptions = {
   faction?: FactionId | 'all'
   district?: RegistryDistrict | 'all'
   sort?: 'recent' | 'saved' | 'featured'
-  viewerId?: string | null
   limit?: number
   page?: number
+  viewerId?: string | null
 }
 
 const REGISTRY_SELECT =
@@ -177,17 +177,18 @@ export const RegistryModel = {
   },
 
   async getPublic(options: RegistryListOptions = {}) {
-    const limit = options.limit || 50
-    const page = options.page || 0
-    const key = `registry:public:${options.faction || 'all'}:${options.district || 'all'}:${options.sort || 'recent'}:${limit}:${page}`
-    
+    const safeLimit = Math.min(Math.max(options.limit ?? 50, 1), 100)
+    const safePage = Math.max(options.page ?? 0, 0)
+    const from = safePage * safeLimit
+    const to = from + safeLimit - 1
+    const key = `registry:public:${options.faction || 'all'}:${options.district || 'all'}:${options.sort || 'recent'}:${safeLimit}:${safePage}`
     return cache.getOrSet(key, 120, async () => {
       try {
         let query = supabaseAdmin
           .from('registry_posts')
           .select(REGISTRY_SELECT)
           .eq('status', 'approved')
-          .range(page * limit, (page + 1) * limit - 1)
+          .range(from, to)
 
         if (options.faction && options.faction !== 'all') {
           query = query.eq('author_faction', options.faction)

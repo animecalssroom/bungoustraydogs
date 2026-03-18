@@ -171,6 +171,85 @@
   cursor: pointer;
 }
 
+.theorySection {
+  margin: 1.5rem 1rem 0;
+}
+
+.theorySectionHead {
+  margin-bottom: 1rem;
+}
+
+.theoryGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.theoryCard {
+  border: 1px solid var(--border);
+  background: var(--card);
+  padding: 1rem;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.theoryHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.theoryCategory {
+  font-family: var(--font-record);
+  font-size: 0.55rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.theoryFeatured {
+  font-family: var(--font-record);
+  font-size: 0.5rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text);
+  background: var(--accent-light);
+  padding: 0.2rem 0.45rem;
+}
+
+.theoryTitle {
+  margin: 0;
+  font-family: var(--font-header);
+  color: var(--text);
+  font-size: 1rem;
+}
+
+.theorySummary {
+  margin: 0;
+  color: var(--text-muted);
+  line-height: 1.6;
+  font-size: 0.92rem;
+}
+
+.theoryMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.theoryLink {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.theoryLink:hover {
+  text-decoration: underline;
+}
+
 @media (max-width: 900px) {
   .fab {
     bottom: 1.5rem;

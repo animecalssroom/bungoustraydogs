@@ -99,7 +99,7 @@ export const ARCHIVE_FALLBACK_CATALOG: ArchiveEntry[] = [
       'No Longer Human becomes an erasure power because the original novel is already about estrangement from ordinary humanity. In BSD, that alienation is weaponized into direct negation.',
     designation: 'The Anti-Ability Paradox / Former Executive',
     clearance_level: 'Level 5 (Classified / Redacted)',
-    ability_analysis: 'Absolute nullification of any supernatural manifestation upon physical contact. The ability operates on a constant, passive frequency, making it impossible for any "gift" to affect him directly, even those meant to heal.',
+    ability_analysis: "Absolute nullification upon physical contact. No Longer Human operates as a passive, always-on field-any ability that touches Dazai ceases to exist. This extends to healing abilities, cursing abilities, and even reality-altering phenomena. The nullification is instant and complete, requiring nothing more than skin contact. The Registry considers it the single most disruptive counter-signature in Yokohama. In tactical terms, Dazai is the off-switch for every gifted in the city.",
     lore_background: 'A man whose past remains a series of redacted entries. Formerly the youngest executive in Port Mafia history, he now serves as the tactical heart of the Agency. His playful exterior hides a mind that calculates every possible outcome of a conflict before it even begins.',
     physical_evidence: [
       'Battered copy of "A Comprehensive Guide to Suicide": Heavily annotated.',
@@ -246,6 +246,14 @@ export const ARCHIVE_FALLBACK_CATALOG: ArchiveEntry[] = [
       'Light Snow takes the refined atmosphere of The Makioka Sisters and turns it into visual deception. The softness of the title becomes camouflage rather than comfort.',
     designation: 'YKH-006',
     clearance_level: 'Level 2 (Active Operative)',
+    ability_analysis: "Light Snow projects visual illusions across a bounded area, altering what targets perceive without affecting physical reality. The illusions are sophisticated enough to simulate entire environments-rooms, weather, people. While not a combat-oriented ability, its infiltration and evasion utility is rated among the highest in the Agency's roster. The Registry notes that Light Snow's danger lies not in what it creates, but in what it makes you fail to see.",
+    lore_background: "Tanizaki is the Agency's quiet blade-a young man whose gentle exterior conceals an assassin's instinct that even Dazai has acknowledged. His devotion to his sister Naomi borders on obsession, and his willingness to cross moral lines for her protection has been flagged multiple times. During the Hunting Dogs pursuit, Tanizaki demonstrated a ruthlessness that surprised even his colleagues, leading Mori to remark that he would make the 'perfect assassin.' The Registry keeps his file open because the line between protector and predator has never been clear.",
+    physical_evidence: [
+      'A torn Agency identification card: Recovered after the Hunting Dogs pursuit.',
+      'A cracked smartphone: Found in the Cannibalism incident staging area.',
+      'A pressed sakura petal bookmark: Always carried in his jacket pocket.'
+    ],
+    narrative_hook: "The softest voice in the Agency carries the sharpest edge. Tanizaki doesn't fight for justice-he fights for the one person who makes justice feel personal.",
     registry_note:
       'This file prefers angles, screens, and the single second in which certainty slips.',
     status: 'active',
@@ -274,6 +282,14 @@ export const ARCHIVE_FALLBACK_CATALOG: ArchiveEntry[] = [
       'This file functions as an in-world extension of the Tanizaki literary orbit rather than a direct author adaptation. Its public record remains intentionally incomplete.',
     designation: 'YKH-007',
     clearance_level: 'Level 2 (Staff)',
+    ability_analysis: 'Operational details remain sealed. Internal assessments associate the file with adaptive support behavior, rapid situational reading, and a willingness to enter hostile environments alongside her brother without hesitation. Whether this constitutes a latent ability or extraordinary instinct remains under review.',
+    lore_background: "Naomi exists in the Archive as both a presence and a question mark. She holds no formal combat role within the Agency, yet she has survived encounters that would have ended trained operatives. Her relationship with Tanizaki anchors his psychological stability, and the Registry suspects that removing her from the equation would fundamentally alter his ability's output. Some files suggest she is not a separate entity at all-a theory the Archive has never formally addressed.",
+    physical_evidence: [
+      'A compact mirror: Recovered from a Guild safehouse, no fingerprints on file.',
+      "A handwritten note in Tanizaki's handwriting: Contents classified.",
+      'A single pressed flower: Species unknown, found in Agency records room.'
+    ],
+    narrative_hook: "Some files are retained not for clarity but because omission itself becomes part of the pattern. Naomi's record is the silence between the notes.",
     registry_note:
       'Some files are retained not for clarity but because omission itself becomes part of the pattern.',
     status: 'active',
@@ -302,6 +318,14 @@ export const ARCHIVE_FALLBACK_CATALOG: ArchiveEntry[] = [
       'Demon Snow channels Izumi\'s supernatural elegance into a murder spirit with ceremonial poise. The result feels less like a weapon than a ghost obeying paperwork.',
     designation: 'YKH-008',
     clearance_level: 'Level 2 (Probationary)',
+    ability_analysis: 'Demon Snow manifests as a spectral swordswoman of extraordinary speed and cutting power. The phantom operates on verbal command, historically received through a phone-a conduit Kyouka has since learned to bypass. The ability is classified as dual-entity: Kyouka provides direction, Demon Snow provides lethality. When fully synchronized, the combination exceeds most single-operator combat signatures in the Registry.',
+    lore_background: "A former Port Mafia assassin recruited at childhood. Kyouka's kill count before age fourteen exceeded thirty-five confirmed eliminations. Her defection to the Agency was catalyzed by Atsushi Nakajima, who saw in her what others refused to acknowledge-a child who never chose violence but was chosen by it. She now carries a phone that no longer rings with kill orders, and a blade that answers only to her own resolve. The Registry notes her rehabilitation as one of the Agency's most significant moral victories.",
+    physical_evidence: [
+      'A deactivated flip phone: Former kill-order receiver, now carried as a personal memento.',
+      'A rabbit-shaped phone charm: Gift from Atsushi.',
+      'A Port Mafia dossier with her name crossed out in red ink.'
+    ],
+    narrative_hook: 'She was a weapon before she was a person. The Agency gave her the order no one else would: stop.',
     registry_note:
       'Snow is only innocent from a distance; this file insists on the distinction.',
     status: 'active',
@@ -330,6 +354,14 @@ export const ARCHIVE_FALLBACK_CATALOG: ArchiveEntry[] = [
       'The title comes from Miyazawa\'s famous poem about endurance, humility, and service. BSD recasts those values as impossible bodily force that never loses its moral softness.',
     designation: 'YKH-009',
     clearance_level: 'Level 1 (Active Asset)',
+    ability_analysis: "Undefeated by the Rain grants superhuman strength proportional to Kenji's hunger. When his stomach is empty, his physical output exceeds any measured human benchmark-cars, steel beams, and reinforced structures yield to his bare hands. The activation condition makes him strategically unusual: peak combat readiness requires deliberate fasting. The Registry notes the ability is remarkably stable, with no recorded instances of loss of control.",
+    lore_background: "Kenji arrived at the Agency from the countryside with no understanding of money, urban life, or the concept that problems couldn't be solved by picking up the nearest heavy object. His optimism is not naivety-it is structural, load-bearing, and contagious. During the Agency's darkest hour as fugitives, it was Kenji who reminded his colleagues that survival is not the same as giving up. The city doesn't know what to make of him. The Agency doesn't function without him.",
+    physical_evidence: [
+      'A straw hat: Sun-bleached, repaired multiple times with mismatched thread.',
+      "A hand-drawn map of Yokohama: Landmarks labeled in a child's handwriting, surprisingly accurate.",
+      "A small bag of rice: Carried for 'emergencies,' though he defines emergencies loosely."
+    ],
+    narrative_hook: 'The strongest person in the room is the one who skipped breakfast and still smiles like the sun owes him a favor.',
     registry_note:
       'The file looks harmless until the city remembers that weather can level whole districts.',
     status: 'active',
@@ -358,6 +390,14 @@ export const ARCHIVE_FALLBACK_CATALOG: ArchiveEntry[] = [
       'The ability turns Fukuzawa\'s political and educational philosophy into organizational equilibrium. Equality becomes the condition that lets talent function without collapse.',
     designation: 'YKH-010',
     clearance_level: 'Level 5 (Director)',
+    ability_analysis: 'All Men Are Equal allows Fukuzawa to regulate and stabilize the abilities of those under his command. This is not enhancement-it is governance. Without his influence, several Agency members\' abilities would be uncontrollable or self-destructive. The Registry classifies it as one of the rarest ability types: a leadership signature that functions as infrastructure rather than weaponry.',
+    lore_background: "Former master swordsman and assassin known as the Silver Wolf. Fukuzawa founded the Armed Detective Agency after meeting Ranpo Edogawa, whose genius needed institutional protection. Mentored by Natsume Soseki alongside Mori Ogai, Fukuzawa chose order where Mori chose power. His quiet authority holds together an organization of misfits, criminals-turned-heroes, and a man who tries to drown himself every Tuesday. The Registry considers him irreplaceable-not for what he does, but for what falls apart without him.",
+    physical_evidence: [
+      'A sheathed katana: Sealed and untouched for years, kept in the Agency office.',
+      "A framed calligraphy scroll: Reading '正義' (justice), hung in the Agency's main room.",
+      'A letter from Natsume Soseki: Contents never disclosed, stored in his personal desk.'
+    ],
+    narrative_hook: 'The Agency exists because one man decided that swords were not enough and that broken people deserved structure more than punishment.',
     registry_note:
       'Some authority looks loud. This file proves the more durable version rarely is.',
     status: 'active',
@@ -386,7 +426,7 @@ export const ARCHIVE_FALLBACK_CATALOG: ArchiveEntry[] = [
       'BSD transforms a poem of contamination and grief into literal gravitational ruin. Sorrow becomes mass, pressure, and collapse.',
     designation: 'The Vessel of Gravity / Arahabaki',
     clearance_level: 'Level 4 (Mafia Executive)',
-    ability_analysis: 'Control over the gravitons of anything he touches. He can increase his own weight to crush buildings or nullify gravity to fly at supersonic speeds. His "Corruption" state is a theoretical catastrophic event where he releases the full, unbridled power of a god.',
+    ability_analysis: "Upon the Tainted Sorrow grants complete gravitational manipulation of any object Chuuya touches. He can increase, decrease, reverse, or redirect gravitational force at will-crushing buildings, launching projectiles at impossible velocities, or walking on ceilings. His base form already makes him one of Yokohama's most dangerous combatants. But the true terror lies beneath: Corruption, a berserker state that channels the singularity Arahabaki, granting near-godlike destructive power at the cost of all rational control. Only Dazai's nullification can bring him back. The Registry files Corruption under 'city-ending events' and prays it stays theoretical.",
     lore_background: 'A former leader of the \'Sheep\' gang who was brought into the Mafia during the "Dragon\'s Head Conflict." Despite his small stature, he is arguably the city\'s most formidable physical combatant. He operates with a code of honor that is rare in the criminal underworld.',
     physical_evidence: [
       'A custom-made fedora: Specifically weighted for high-gravity combat.',
@@ -458,6 +498,14 @@ export const ARCHIVE_FALLBACK_CATALOG: ArchiveEntry[] = [
       'BSD takes the introspective and controversial title Vita Sexualis and converts it into a remote-controlled projection. Interior observation becomes outward manipulation.',
     designation: 'YKH-013',
     clearance_level: 'Level 5 (Director)',
+    ability_analysis: "Vita Sexualis manifests Elise, a sentient ability-construct that Mori can configure at will. Elise can levitate, attack with oversized medical instruments, and pursue targets with superhuman speed. Mori controls her personality, appearance, and combat behavior. The Registry notes a disturbing detail: after Yosano's breakdown during the Great War, Mori reconfigured Elise to mimic young Yosano's defiant personality. Summoning Elise is energy-intensive, and she can be temporarily dispelled-but she always returns.",
+    lore_background: "Former military doctor who served on the frontlines of the Great War, where he exploited Yosano's healing ability to keep soldiers dying and reviving endlessly. Killed the previous Port Mafia boss in his sickroom with teenage Dazai as his sole witness. Under his leadership, the Mafia became Yokohama's most efficient criminal empire. Mentored by Natsume Soseki alongside Fukuzawa, Mori chose power where Fukuzawa chose principle. His strategic mind operates on pure cost-benefit analysis-people are assets, emotions are vulnerabilities, and mercy is a currency he never spends without calculating the return.",
+    physical_evidence: [
+      'A bloodstained surgical scalpel: Dated to the Great War, kept in a velvet-lined case.',
+      "Elise's crayon drawings: Filed in his office, content ranges from childish to unsettling.",
+      'A photograph of the previous Mafia boss: Face crossed out, date of death written on the back.'
+    ],
+    narrative_hook: "The most dangerous doctor in Yokohama doesn't heal-he optimizes. And the city is his patient whether it consents or not.",
     registry_note:
       'The file never raises its voice. That is usually when the city loses the most ground.',
     status: 'active',
@@ -486,6 +534,14 @@ export const ARCHIVE_FALLBACK_CATALOG: ArchiveEntry[] = [
       'The Gold Demon becomes Golden Demon, shifting melodramatic obsession into an obedient killing apparition. Emotional excess is recast as weapon discipline.',
     designation: 'YKH-014',
     clearance_level: 'Level 4 (Executive)',
+    ability_analysis: 'Golden Demon summons a spectral swordswoman in traditional Japanese attire wielding a sword cane. Unlike Kyouka\'s Demon Snow, Kouyou maintains complete control over her entity. The phantom fights with precision, speed, and the elegance of classical Japanese swordsmanship. The Registry classifies it as a fully synchronized dual-entity ability-master and weapon operating as one seamless unit.',
+    lore_background: "A Port Mafia executive who once tried to escape the organization with a man she loved. They were caught; he was killed. That failed escape forged her conviction that no one leaves the Mafia alive-and no one should try. She projected this belief onto Kyouka Izumi, attempting to keep the girl from making the same mistake. It took Dazai's intervention to force Kouyou to release her grip. The Registry describes her as the Mafia's most elegant contradiction: a woman who embodies grace while enforcing a cage she once tried to break.",
+    physical_evidence: [
+      'A golden kanzashi hairpin: One of three she wears at all times, never removed.',
+      'A pressed wisteria blossom: Kept in a lacquered box, origin classified.',
+      'A letter never sent: Addressed to no name, stored in her private quarters.'
+    ],
+    narrative_hook: "She guards the door she once tried to open. The Mafia's most beautiful prison warden is also its oldest prisoner.",
     registry_note:
       'The public file calls it elegance because the more accurate words are harder to print.',
     status: 'active',
@@ -514,6 +570,14 @@ export const ARCHIVE_FALLBACK_CATALOG: ArchiveEntry[] = [
       'Midwinter Memento translates lyric coldness and fragile remembrance into metal control. The ability feels less forged than remembered into shape.',
     designation: 'YKH-015',
     clearance_level: 'Level 3 (Black Lizard Lead)',
+    ability_analysis: 'Midwinter Memento grants ferrokinesis-the ability to control metal at range. Tachihara can manipulate bullets, crack safes, halt vehicles, and even stop aircraft by seizing their metal components. The ability\'s versatility makes him dangerous in any environment with metallic objects-which is to say, every environment. The Registry notes that his Hunting Dogs training augmented his physical durability, though the spy variant of the enhancement surgery left him weaker than his colleagues.',
+    lore_background: "The fifth Hunting Dog, hidden in plain sight as a Port Mafia Black Lizard battalion leader. Tachihara's infiltration was driven by a personal vendetta-a grudge against Yosano for what he believed was the death of his older brother during the Great War. His disguise was designed by Teruko Okura (a wig, funny glasses, and a mustache were rejected in favor of a nose bandaid chosen by Tetchou). On Mori's orders, he later became a double spy feeding information back to the Mafia. The man with two faces never had a clear allegiance-only a clear wound.",
+    physical_evidence: [
+      "A nose bandaid: Chosen by Tetchou Suehiro as his 'switch' between identities.",
+      'Dual handguns: Port Mafia issue, kept even after his identity reveal.',
+      'A photograph of an older man in military uniform: His brother, stored in his inner jacket pocket.'
+    ],
+    narrative_hook: "He wore the Mafia's mask so long he forgot which face was underneath. The bandaid isn't a disguise-it's the only thing that reminds him.",
     registry_note:
       'This file always sounds like it belongs wholly to someone else until the metal starts moving.',
     status: 'active',
@@ -542,6 +606,14 @@ export const ARCHIVE_FALLBACK_CATALOG: ArchiveEntry[] = [
       'BSD fuses two Poe titles into a closed narrative trap, honoring both the detective blueprint and the haunted atmosphere. Reading becomes the condition of escape.',
     designation: 'YKH-016',
     clearance_level: 'Level 3 (Asset)',
+    ability_analysis: "Black Cat in the Rue Morgue traps anyone who reads Poe's novels into the narrative itself. Victims become characters within the story, forced to solve its mystery to escape. If they fail or die within the story, they are trapped indefinitely. The ability's power scales with Poe's writing quality-the better the novel, the more inescapable the trap. The Registry classifies it as one of the most psychologically dangerous abilities on file: a prison made of prose.",
+    lore_background: "A reclusive mystery writer and former Guild member whose obsession with Ranpo Edogawa drives his every creative act. Poe was defeated by Ranpo in a mystery-solving contest years ago and has spent his life writing ever-more-complex novels to trap and challenge Ranpo's deduction. What began as rivalry has evolved into something closer to desperate admiration. He is accompanied at all times by Karl, a raccoon of ambiguous significance. The Registry notes that Poe's threat level is entirely dependent on whether anyone reads his manuscripts.",
+    physical_evidence: [
+      'A leather-bound manuscript: Title illegible, pages emit faint cold air.',
+      'Karl the raccoon: Classification unclear-pet, companion, or ability byproduct.',
+      "A rejection letter from Ranpo: 'Too easy. Try harder.' Framed on Poe's desk."
+    ],
+    narrative_hook: 'He writes worlds that swallow people whole, and the only person he wants to impress keeps solving them before breakfast.',
     registry_note:
       'This file does not imprison bodies first. It imprisons interpretation.',
     status: 'active',
@@ -570,6 +642,14 @@ export const ARCHIVE_FALLBACK_CATALOG: ArchiveEntry[] = [
       'The Great Fitzgerald turns the glamour and currency of Fitzgerald\'s literary world into a literal transaction engine. Wealth stops symbolizing power and simply becomes it.',
     designation: 'YKH-017',
     clearance_level: 'Level 5 (Chairman)',
+    ability_analysis: 'The Great Fitzgerald converts wealth into raw physical power. The more money Fitzgerald spends, the stronger, faster, and more durable he becomes. At peak expenditure, his combat output rivals the strongest ability users in the Registry. The conversion is literal-bank accounts drain as his fists hit harder. The ability\'s ceiling is theoretically infinite, bounded only by his net worth. The Registry notes this is the only ability on file that can be defeated by bankruptcy.',
+    lore_background: 'Leader of the Guild and a man driven by a single, devastating grief. Before wealth, Fitzgerald killed four people for money. After wealth, he lost his daughter to death and his wife Zelda to a delusion-she still believes their daughter is studying abroad. Fitzgerald invaded Yokohama and deployed the Guild\'s full military force for one reason: to find the Book and rewrite reality so his family is whole again. After his defeat, he rebuilt himself from nothing, working manual labor until he could fund a new operation. The Registry respects the scale of his obsession and fears his resilience.',
+    physical_evidence: [
+      'A worn photograph: His daughter, edges softened from handling.',
+      'A platinum credit card: Account statements showing expenditures in the billions.',
+      'A handwritten letter from Zelda: Asking when their daughter will visit, dated this year.'
+    ],
+    narrative_hook: "He burned a fortune to punch harder because no amount of money could bring his daughter back. The Great Gatsby's tragedy is that he's still trying.",
     registry_note:
       'The city distrusts any file that can write checks directly onto the battlefield.',
     status: 'active',
@@ -598,6 +678,14 @@ export const ARCHIVE_FALLBACK_CATALOG: ArchiveEntry[] = [
       'BSD darkens Anne of Green Gables into Anne of Abyssal Red, preserving imagination while draining away safety. The domestic room becomes a prison domain.',
     designation: 'YKH-018',
     clearance_level: 'Level 2 (Asset)',
+    ability_analysis: "Anne of Abyssal Red creates a pocket dimension-Anne's Room-an impossible space governed by a malevolent entity named Anne. Those trapped inside must evade Anne or be consumed by the room itself. Lucy controls who enters and exits, making it both a prison and a sanctuary. After her defection from the Guild, the ability's tone shifted: the room became less a weapon and more a refuge. The Registry notes this is one of the few abilities on file that changed character alongside its user.",
+    lore_background: "An orphan recruited by the Guild who was told her ability made her valuable, not her person. Lucy's childhood in the orphanage was defined by exclusion and cruelty, and Anne's Room became both her escape and her cage. Her encounter with Atsushi mirrored her own origin-another unwanted child-and it broke something open in her. She now works at the Uzumaki Cafe, having chosen a life smaller and kinder than the one the Guild offered. The Registry files her under 'rehabilitated,' though Lucy herself would say she was never the one who needed fixing.",
+    physical_evidence: [
+      'A tattered Anne of Green Gables paperback: Spine cracked, pages annotated in the margins.',
+      'A cafe apron from Uzumaki: Stained with coffee and flour.',
+      'A small ceramic rabbit: Origin unknown, kept on her nightstand.'
+    ],
+    narrative_hook: "This file proves that a room can feel like childhood and captivity at the same time. Lucy left the Guild but kept the room-because some cages become gardens if you tend them long enough.",
     registry_note:
       'This file proves that a room can feel like childhood and captivity at the same time.',
     status: 'active',
@@ -626,6 +714,14 @@ export const ARCHIVE_FALLBACK_CATALOG: ArchiveEntry[] = [
       'The title becomes literal agricultural force in BSD. The novel\'s anger at displacement and pressure is recast as living terrain that closes in on the enemy.',
     designation: 'YKH-019',
     clearance_level: 'Level 3 (Component)',
+    ability_analysis: 'The Grapes of Wrath allows Steinbeck to merge with and control plant life across wide terrain. He can generate vines, roots, and foliage at combat speed, using them for restraint, area denial, and structural destruction. When fully merged with agricultural growth, his body disperses into the vegetation itself, making him nearly impossible to target. The Registry classifies it as a siege-type ability: not fast, but relentless and suffocating.',
+    lore_background: "A Guild operative driven by devotion to his family and homeland. Steinbeck's motivation is not ideology but survival-he fights to protect the farming community that depends on him. His willingness to sacrifice himself for others is genuine, not performed, which makes him one of the Guild's most sympathetic and most dangerous members. During the Yokohama operation, he served as a frontline combatant against Agency members. The Registry notes that the most frightening thing about Steinbeck is his sincerity.",
+    physical_evidence: [
+      'A handful of seeds: Varieties native to American Midwest farmland, always carried.',
+      'A family photograph: Creased and water-damaged, showing a rural homestead.',
+      'A cotton work glove: Single, left-handed, soil permanently embedded in the fabric.'
+    ],
+    narrative_hook: "He didn't come to Yokohama for glory. He came because the harvest back home needs one more season, and he'll bury a city in roots to get it.",
     registry_note:
       'The city has seen quieter violence than this. It usually grows first.',
     status: 'active',
@@ -654,6 +750,14 @@ export const ARCHIVE_FALLBACK_CATALOG: ArchiveEntry[] = [
       'BSD transforms domestic interiority into an accelerated creation chamber. The room of writing becomes a weaponized production schedule.',
     designation: 'YKH-020',
     clearance_level: 'Level 3 (Strategist)',
+    ability_analysis: 'Little Women creates a temporal anomaly within an enclosed space: when Alcott is alone in a room and thinking, time passes at 1/8000th its normal speed for her. This means hours of strategic planning compress into seconds of real time. The ability has no combat application whatsoever-and it does not need one. The Registry classifies it as the most efficient analysis ability in the Guild\'s roster and possibly the most underestimated signature in Yokohama.',
+    lore_background: "The Guild's chief strategist and Fitzgerald's most trusted advisor. Alcott is cripplingly shy, socially anxious, and functionally invisible in a room-but behind a closed door, she is the mind that moves armies. Every Guild operation bears her fingerprints. She remained loyal to Fitzgerald even after the Guild's collapse, continuing to plan and strategize from isolation. The Registry notes that Alcott has never fired a weapon, thrown a punch, or raised her voice-and she has shaped the outcome of more conflicts than most combatants on file.",
+    physical_evidence: [
+      'A mechanical pencil: Worn to the nub, replaced weekly.',
+      "A stack of strategic memos: Filed in Fitzgerald's office, handwriting nearly illegible due to speed.",
+      'A pair of round glasses: Prescription unchanged for years, frames held together with tape.'
+    ],
+    narrative_hook: 'This file wins by leaving the clock outside and taking the manuscript with it. The quietest person in the Guild is the one everyone should be reading.',
     registry_note:
       'This file wins by leaving the clock outside and taking the manuscript with it.',
     status: 'active',
@@ -682,6 +786,14 @@ export const ARCHIVE_FALLBACK_CATALOG: ArchiveEntry[] = [
       'Even with the public mechanism redacted, the file aligns literary investigation with state force. Suspense is converted into command tempo.',
     designation: 'YKH-021',
     clearance_level: 'Level 4 (Military Lead)',
+    ability_analysis: 'Gasp of the Soul allows Teruko to manipulate the age of anyone she touches. She can regress targets to childhood or advance them to old age, fundamentally altering their physical capabilities in an instant. The ability works on herself as well-she maintains a childlike appearance despite being the Hunting Dogs\' senior commander. The Registry classifies it as one of the most tactically versatile abilities in government service: it can disable, interrogate, or execute with a single touch.',
+    lore_background: "Commander of the Hunting Dogs and the architect of their operational doctrine. Despite her appearance as a young girl, Teruko is a veteran military strategist with decades of experience hidden behind an ageless face. She designed Tachihara's undercover identity and manages the Hunting Dogs with an iron hand wrapped in a child's glove. The Registry notes that her authority within the military is absolute, and that her cheerful demeanor makes her commands more unsettling, not less.",
+    physical_evidence: [
+      'A military identification badge: Photo shows an adult woman, current appearance does not match.',
+      'A set of colored hair ribbons: Each represents a completed operation, seventeen total.',
+      'A hand-drawn organizational chart: Hunting Dogs hierarchy, annotated in crayon.'
+    ],
+    narrative_hook: 'The youngest-looking person in the room has been giving orders longer than most of her subordinates have been alive.',
     registry_note:
       'Some files are less frightening for what they do than for how calmly they expect obedience.',
     status: 'active',
@@ -710,6 +822,14 @@ export const ARCHIVE_FALLBACK_CATALOG: ArchiveEntry[] = [
       'BSD treats the title as a paradox of beauty within severity. Snow and blossom become a blade logic that remains elegant even while tearing through matter.',
     designation: 'YKH-022',
     clearance_level: 'Level 4 (Military Asset)',
+    ability_analysis: "Plum Blossoms in Snow allows Tetchou to manipulate the length and form of his saber at will. The blade can extend, retract, bend, and reshape in any direction, turning a single weapon into a multidirectional threat that ignores conventional defensive positioning. At full extension, the blade can reach aircraft. The Registry classifies his combat style as 'disciplined absurdity'-methodical swordsmanship applied through physically impossible weapon geometry.",
+    lore_background: "The Hunting Dogs' most principled member-a man whose moral compass never wavers even when his orders do. Tetchou's devotion to justice is absolute and literal, which puts him in frequent tension with the morally flexible operations his unit conducts. His partnership with Jouno is the unit's most effective combat pairing, built on mutual respect and complementary abilities. He chose Tachihara's nose bandaid disguise, and the small act of care reveals more about his character than any combat record. The Registry notes that Tetchou is the only Hunting Dog who would disobey an unjust order.",
+    physical_evidence: [
+      'A regulation military saber: Blade composition unknown, resharpened daily.',
+      'A bento box: Contents always nutritionally optimized, prepared by Tetchou himself.',
+      "A handwritten list of 'personal justice principles': Laminated, carried in his breast pocket."
+    ],
+    narrative_hook: 'The file is orderly enough to frighten military staff and strange enough to keep them watching. Tetchou cuts through everything except his own conscience.',
     registry_note:
       'The file is orderly enough to frighten military staff and strange enough to keep them watching.',
     status: 'active',
@@ -738,6 +858,14 @@ export const ARCHIVE_FALLBACK_CATALOG: ArchiveEntry[] = [
       'Priceless Tears reworks emotional refinement into forensic cruelty. The title\'s sentiment survives only as a polished surface over surveillance violence.',
     designation: 'YKH-023',
     clearance_level: 'Level 4 (Military Asset)',
+    ability_analysis: 'Priceless Tears allows Jouno to disintegrate his body into atom-sized particles and reassemble at will. Combined with hyperacute sensory perception-he can detect heartbeat irregularities, sweat composition, and muscle tension from across a room-his combat style fuses surveillance with violence. He is blind, yet perceives more than any sighted operative in the Registry. The ability turns his body into both weapon and sensor array. The Registry classifies him as the unit\'s interrogation and pursuit specialist.',
+    lore_background: "The Hunting Dogs' cruelest member by reputation and the most perceptive by capability. Jouno's blindness is not a limitation-it is the foundation of his sensory supremacy. He detects lies by listening to blood flow and reads combat intent through skin temperature. His sadistic tendencies are documented and tolerated because his results are unmatched. His partnership with Tetchou works precisely because Tetchou's rigid morality constrains Jouno's worst impulses. The Registry keeps his psych evaluations sealed.",
+    physical_evidence: [
+      'A pair of ornamental earrings: Function as sensory calibration devices.',
+      'A silk blindfold: Decorative, never removed in public.',
+      'A collection of pressed flowers: Identified by scent alone, organized in a leather case.'
+    ],
+    narrative_hook: "This file listens to panic the way other people listen to rainfall. Jouno does not need eyes to see through you-he just needs your pulse.",
     registry_note:
       'This file listens to panic the way other people listen to rainfall.',
     status: 'active',
@@ -766,6 +894,14 @@ export const ARCHIVE_FALLBACK_CATALOG: ArchiveEntry[] = [
       'Mirror Lion takes theatrical ferocity and turns it into command-level warfare. The adaptation keeps spectacle but removes any distance from consequence.',
     designation: 'YKH-024',
     clearance_level: 'Level 5 (Supreme Commander)',
+    ability_analysis: 'Mirror Lion multiplies the effectiveness of anything Fukuchi touches by one hundred times. A common sword becomes a blade capable of cleaving through armored vehicles. A shield becomes an immovable wall. Applied to his own combat skill-already at the level of a living legend-the multiplication creates a fighter whose output exceeds anything the Registry has measured from a single human combatant. With the addition of Amenogozen, a time-manipulating holy sword, his threat classification was elevated to world-level.',
+    lore_background: "Supreme Commander of the Hunting Dogs and secret leader of the Decay of Angels. Fukuchi is the most decorated soldier in the nation's history-a war hero who watched his comrades die in conflicts fueled by ability users. His conclusion: abilities themselves are humanity's curse, and the Book must be used to create a world without them. He manipulated Bram Stoker's vampiric plague, orchestrated the Agency's frame-up, and wielded Amenogozen to rewrite causality. He is the most dangerous kind of villain-one who genuinely believes he is saving the world.",
+    physical_evidence: [
+      'Amenogozen: A holy sword capable of sending its slashes through time. Currently sealed.',
+      'A veteran\'s medal collection: Twelve awards, displayed in his office, each representing a war.',
+      "A handwritten letter to Fukuzawa: Never delivered, contents describe 'the world I intend to build.'"
+    ],
+    narrative_hook: "The city archives this file under command, theater, and the moment they become indistinguishable. Fukuchi did not betray his country-he decided he was the only one qualified to remake it.",
     registry_note:
       'The city archives this file under command, theater, and the moment they become indistinguishable.',
     status: 'active',
@@ -794,6 +930,14 @@ export const ARCHIVE_FALLBACK_CATALOG: ArchiveEntry[] = [
       'BSD turns Sakaguchi\'s meditation on degeneration into forensic memory extraction. Decadence becomes evidence rather than theory.',
     designation: 'YKH-025',
     clearance_level: 'Level 5 (Administrator)',
+    ability_analysis: 'Discourse on Decadence allows Ango to read the memory imprints left on objects and locations through physical contact. He experiences layered history-not just the most recent event, but a palimpsest of every significant interaction the object has witnessed. The ability is purely informational, with zero combat application, but its intelligence value is incalculable. The Registry classifies it as the government\'s most valuable forensic tool.',
+    lore_background: "A triple agent who infiltrated the Port Mafia for the Special Division, was used by Mori as a counter-spy against Mimic, and emerged from the Dark Era having lost both of his closest friends-Dazai and Oda-to his own betrayal. He cleaned Dazai's criminal records to allow him to join the Agency, a debt Dazai acknowledges but never forgives. Ango now heads the Special Division's intelligence operations, running on perpetual all-nighters and the guilt of a man who knows exactly how much his survival cost. The Registry trusts him because he remembers everything-including the parts he wishes he could forget.",
+    physical_evidence: [
+      "A pair of cracked glasses: Replaced frequently due to 'stress-induced incidents' during confrontations with Dazai.",
+      'A worn bar coaster from Lupin: Dated four years ago, kept in his desk drawer.',
+      "A personnel file for Sakunosuke Oda: Annotated in Ango's handwriting, stamped 'DECEASED.'"
+    ],
+    narrative_hook: 'The city trusts this file because it remembers even when everyone involved would prefer not to. Ango carries three friends in his memory and zero in his life.',
     registry_note:
       'The city trusts this file because it remembers even when everyone involved would prefer not to.',
     status: 'active',
@@ -1419,7 +1563,7 @@ export const ARCHIVE_FALLBACK_CATALOG: ArchiveEntry[] = [
     slug: 'sakunosuke-oda',
     character_name: 'Sakunosuke Oda',
     character_name_jp: '織田作之助',
-    faction: 'mafia',
+    faction: 'special_div',
     ability_name: 'Flawless',
     ability_name_jp: '天衣無縫',
     ability_type: 'analysis',

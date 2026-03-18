@@ -104,9 +104,8 @@ const eventLabel = (type: UserEvent['event_type']) =>
     faction_event: 'Faction Event',
     easter_egg: 'Hidden Record Triggered',
     join_faction: 'Faction Entry',
-    war_declared: 'War Declaration Filed',
-    war_strike: 'Strategic Strike Logged',
-  } as Record<string, string>)[type] ?? type.replace(/_/g, ' ')
+    war_strike: 'War Strike Logged',
+  })[type] ?? type.replace(/_/g, ' ')
 
 const COUNTS_TOWARD_OBSERVATION = new Set([
   'quiz_complete',
@@ -398,7 +397,7 @@ export function ProfileExperience({
                     </div>
                     {showReveal ? (
                       <div style={{ fontFamily: 'var(--font-literary)', color: 'var(--muted)', fontStyle: 'italic', padding: '0.6rem', border: '1px solid var(--border2)', background: 'var(--surface2)' }}>
-                        "The city assigns your character after 20 recorded events. Daily login, archive reads, faction chat, duels, registry posts — all count. Your behavior determines which character the city files you as."
+                       The city assigns your character after 20 recorded events. Daily login, archive reads, faction chat, duels, and registry posts all count. Your behavior determines which character the city files you as.
                       </div>
                     ) : null}
                   </div>
@@ -506,3 +505,5 @@ export function ProfileExperience({
     </>
   )
 }
+
+
