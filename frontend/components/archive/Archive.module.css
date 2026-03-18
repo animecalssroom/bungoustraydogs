@@ -31,6 +31,16 @@
   color: var(--text3);
 }
 
+.cardMeta {
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
+}
+
+.cardMetaSep {
+  opacity: 0.5;
+}
+
 .sidebarTitle,
 .cardTitle,
 .designationName,
@@ -437,6 +447,42 @@
   }
 }
 
+@media (max-width: 768px) {
+  .archiveShell {
+    grid-template-columns: 1fr;
+    padding-inline: 0.75rem;
+  }
+
+  .sidebar {
+    position: static;
+    padding: 0.75rem;
+    border: none;
+    border-bottom: 1px solid var(--border);
+    background: transparent;
+  }
+
+  .sidebarBlock + .sidebarBlock {
+    margin-top: 0.75rem;
+  }
+
+  .filterStack {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+
+  .filterButton {
+    width: auto;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.85rem;
+    white-space: nowrap;
+  }
+
+  .cardGrid {
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  }
+}
+
 @media (max-width: 640px) {
   .searchRow,
   .caseHeader {
@@ -454,5 +500,16 @@
 
   .traitRow {
     grid-template-columns: 72px minmax(0, 1fr) 40px;
+  }
+}
+
+@media (max-width: 480px) {
+  .cardGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .filterButton {
+    padding: 0.4rem 0.6rem;
+    font-size: 0.8rem;
   }
 }

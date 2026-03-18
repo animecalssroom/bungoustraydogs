@@ -56,6 +56,7 @@ export const NAV_LINKS = [
   { href: '/global-chat', label: 'Global Chat' },
   { href: '/duels', label: 'Duels' },
   { href: '/archive', label: 'Archive' },
+  { href: '/theories', label: 'Theories' },
   { href: '/records', label: 'Records' },
   { href: '/districts', label: 'Districts' },
   { href: '/guide', label: 'Guide' },

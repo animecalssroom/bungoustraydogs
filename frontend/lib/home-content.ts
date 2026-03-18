@@ -527,6 +527,8 @@ export const RESERVED_SLUGS = [
   'fitzgerald',
   'fukuchi-ouchi',
   'fyodor-dostoevsky',
+  'fyodor-dostoyevsky',
+  'natsume-soseki',
   'nikolai-gogol',
   'ango-sakaguchi',
   'sakunosuke-oda',

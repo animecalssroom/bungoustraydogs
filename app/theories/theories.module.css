@@ -1,0 +1,192 @@
+.theoriesShell {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 0 2rem 6rem;
+}
+
+.filterRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 2rem;
+}
+
+.filterChip {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text2);
+  padding: 0.5rem 1rem;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s, background 0.2s;
+}
+
+.filterChip:hover {
+  color: var(--text);
+  border-color: var(--text3);
+}
+
+.filterChipActive {
+  border-color: var(--accent);
+  color: var(--text);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.theoryGrid {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.theoryCard {
+  border: 1px solid var(--border);
+  background: var(--card);
+  padding: 1.5rem;
+  position: relative;
+  transition: border-color 0.2s;
+}
+
+.theoryCard:hover {
+  border-color: var(--text3);
+}
+
+.theoryCardFeatured {
+  border-left: 4px solid var(--accent);
+}
+
+.theoryHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.theoryTitle {
+  font-family: 'Cinzel', serif;
+  font-size: 1.15rem;
+  color: var(--text);
+  margin: 0;
+  line-height: 1.35;
+}
+
+.categoryBadge {
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+  padding: 0.2rem 0.55rem;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text3);
+  white-space: nowrap;
+}
+
+.categoryBadge[data-category="plot_theory"] {
+  color: #ff5555;
+  border-color: #ff5555;
+}
+
+.categoryBadge[data-category="character_study"] {
+  color: #55aaff;
+  border-color: #55aaff;
+}
+
+.categoryBadge[data-category="ability_analysis"] {
+  color: #aa55ff;
+  border-color: #aa55ff;
+}
+
+.categoryBadge[data-category="arc_review"] {
+  color: #ffaa55;
+  border-color: #ffaa55;
+}
+
+.theoryAuthor {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  color: var(--text3);
+  margin-bottom: 0.75rem;
+}
+
+.theorySummary {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.05rem;
+  line-height: 1.65;
+  color: var(--text2);
+  margin: 0;
+}
+
+.theoryFooter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px dashed var(--border);
+}
+
+.theorySource {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.theorySource:hover {
+  text-decoration: underline;
+}
+
+.theoryDate {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.6rem;
+  color: var(--text4);
+}
+
+.featuredTag {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.55rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+  opacity: 0.8;
+}
+
+.emptyState {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--text3);
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.1rem;
+  font-style: italic;
+}
+
+@media (max-width: 768px) {
+  .theoriesShell {
+    padding-inline: 1rem;
+  }
+
+  .theoryHeader {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .theoryCard {
+    padding: 1.15rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .filterRow {
+    gap: 0.35rem;
+  }
+
+  .filterChip {
+    padding: 0.4rem 0.7rem;
+    font-size: 0.62rem;
+  }
+}

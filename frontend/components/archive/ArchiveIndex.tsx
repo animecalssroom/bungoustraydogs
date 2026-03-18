@@ -128,6 +128,7 @@ export function ArchiveIndex({ entries }: ArchiveIndexProps) {
             >
               <div className={styles.cardMeta}>
                 <span>{getArchiveCaseNumber(entry.slug)}</span>
+                <span className={styles.cardMetaSep}>·</span>
                 <span>{getArchiveFactionDisplay(entry)}</span>
               </div>
               <h3 className={styles.cardTitle}>{entry.character_name}</h3>
@@ -162,7 +163,7 @@ export function ArchiveIndex({ entries }: ArchiveIndexProps) {
                       <div 
                         className={styles.statFill} 
                         style={{ 
-                          width: RESERVED_SLUGS.includes(entry.slug) ? '100%' : `${stat.value ?? 50}%`,
+                          width: RESERVED_SLUGS.includes(entry.slug) ? '100%' : `${((stat.value ?? 0) / 5) * 100}%`,
                           opacity: RESERVED_SLUGS.includes(entry.slug) ? 0.3 : 1
                         }} 
                       />

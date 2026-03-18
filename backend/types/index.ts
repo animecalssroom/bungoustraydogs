@@ -881,6 +881,23 @@ export interface WarContribution {
   created_at: string
 }
 
+export type TheoryCategory = 'plot_theory' | 'character_study' | 'ability_analysis' | 'arc_review'
+
+export interface FanTheory {
+  id: string
+  slug: string
+  title: string
+  summary: string
+  full_content: string
+  author_name: string
+  source_url: string
+  category: TheoryCategory
+  related_characters: string[]
+  upvotes: number | null
+  featured: boolean
+  created_at: string
+}
+
 export type ChronicleEntryType = 'chapter' | 'war_record' | 'duel_record' | 'character_event' | 'scenario_outcome' | 'player_submission'
 
 export interface ChronicleEntry {
