@@ -8,11 +8,18 @@ interface Transmission {
   id: string
   text: string
   timestamp: string
-  type: 'combat' | 'recon' | 'system' | 'capture'
+  type: 'combat' | 'recon' | 'system' | 'capture' | 'reinforce'
 }
 
 interface TransmissionsFeedProps {
   warId: string | null
+}
+
+function isValidWarId(value: string | null | undefined): value is string {
+  return Boolean(
+    value &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value),
+  )
 }
 
 export function TransmissionsFeed({ warId }: TransmissionsFeedProps) {
@@ -20,14 +27,14 @@ export function TransmissionsFeed({ warId }: TransmissionsFeedProps) {
   const scrollRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    if (!warId) return
+    if (!isValidWarId(warId)) return
 
     const fetchFeed = async () => {
       if (typeof document !== 'undefined' && document.hidden) {
         return
       }
       try {
-        const res = await fetch(`/api/war/experience?warId=${warId}`)
+        const res = await fetch(`/api/war/experience?warId=${warId}&mode=feed`)
         const data = await res.json()
         if (data.transmissions) {
           setTransmissions(data.transmissions.map((t: any, idx: number) => {
@@ -48,7 +55,7 @@ export function TransmissionsFeed({ warId }: TransmissionsFeedProps) {
     }
 
     fetchFeed()
-    const interval = setInterval(fetchFeed, 15000)
+    const interval = setInterval(fetchFeed, 30000)
     return () => clearInterval(interval)
   }, [warId])
 
@@ -58,7 +65,7 @@ export function TransmissionsFeed({ warId }: TransmissionsFeedProps) {
     }
   }, [transmissions])
 
-  if (!warId) return null
+  if (!isValidWarId(warId)) return null
 
   return (
     <div className="h-32 bg-black/80 border-t border-white/10 flex flex-col font-space-mono overflow-hidden">

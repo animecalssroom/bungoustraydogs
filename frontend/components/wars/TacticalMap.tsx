@@ -11,10 +11,10 @@ import { getDistrictData } from '@/frontend/lib/data/districts.data'
 interface TacticalMapProps {
   districts: District[]
   onDistrictSelect: (district: District) => void
-  activeWar: FactionWar | null
+  activeWars: FactionWar[]
 }
 
-export function TacticalMap({ districts, onDistrictSelect, activeWar }: TacticalMapProps) {
+export function TacticalMap({ districts, onDistrictSelect, activeWars }: TacticalMapProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null)
 
   const handleSelect = (district: District) => {
@@ -30,7 +30,7 @@ export function TacticalMap({ districts, onDistrictSelect, activeWar }: Tactical
         districts={districts} 
         onDistrictSelect={handleSelect} 
         selectedId={selectedId || undefined} 
-        activeWar={activeWar}
+        activeWars={activeWars}
       />
       
       {/* UI Overlays */}

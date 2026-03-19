@@ -1,23 +1,20 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { createClient } from '@/frontend/lib/supabase/server'
 import { RegistryModel } from '@/backend/models/registry.model'
 import { REGISTRY_DISTRICT_LABELS } from '@/backend/lib/registry'
 import { FACTION_META } from '@/frontend/lib/launch'
 import { AngoUsername } from '@/frontend/components/ango/AngoUsername'
 import styles from '@/frontend/components/registry/Registry.module.css'
+import { getViewerUserId } from '@/frontend/lib/auth-server'
 
 export default async function SavedRegistryPage() {
-  const supabase = createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const userId = await getViewerUserId()
 
-  if (!user) {
+  if (!userId) {
     redirect('/login')
   }
 
-  const posts = await RegistryModel.getSavedByUser(user.id)
+  const posts = await RegistryModel.getSavedByUser(userId)
 
   return (
     <div style={{ paddingTop: '36px' }}>

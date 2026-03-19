@@ -47,9 +47,26 @@ function normalizeOpenChallenge(row: Partial<OpenChallenge> & { id: string }) {
   return row as OpenChallenge
 }
 
+const pendingExpirySweepAt = new Map<string, number>()
+const PENDING_EXPIRY_SWEEP_TTL_MS = 30 * 1000
+
 export const DuelModel = {
   async expirePendingChallengesForUsers(userIds: string[]) {
     if (!userIds.length) {
+      return
+    }
+
+    const nowMs = Date.now()
+    const dueUserIds = userIds.filter((userId) => {
+      const lastSweep = pendingExpirySweepAt.get(userId) ?? 0
+      if (nowMs - lastSweep < PENDING_EXPIRY_SWEEP_TTL_MS) {
+        return false
+      }
+      pendingExpirySweepAt.set(userId, nowMs)
+      return true
+    })
+
+    if (!dueUserIds.length) {
       return
     }
 
@@ -60,14 +77,14 @@ export const DuelModel = {
       .update({ status: 'declined' })
       .eq('status', 'pending')
       .lt('challenge_expires_at', now)
-      .in('challenger_id', userIds)
+      .in('challenger_id', dueUserIds)
 
     await supabaseAdmin
       .from('duels')
       .update({ status: 'declined' })
       .eq('status', 'pending')
       .lt('challenge_expires_at', now)
-      .in('defender_id', userIds)
+      .in('defender_id', dueUserIds)
   },
 
   async getParticipant(userId: string) {

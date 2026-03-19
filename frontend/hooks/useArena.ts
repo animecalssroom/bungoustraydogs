@@ -102,23 +102,14 @@ export function useArena(initialPayload?: Partial<ArenaPayload> | null) {
           schema: 'public',
           table: 'arena_arguments',
         },
-        async (payload) => {
+        (payload) => {
           const next = payload.new as ArenaArgument
 
           if (!debateIds.includes(next.debate_id)) {
             return
           }
 
-          const response = await fetch(`/api/arena/${next.debate_id}/arguments`, {
-            cache: 'no-store',
-          })
-          const json = await response.json().catch(() => ({}))
-          const latest = Array.isArray(json.data) ? (json.data as ArenaArgument[]) : []
-
-          setArgumentsByDebate((current) => ({
-            ...current,
-            [next.debate_id]: latest,
-          }))
+          setArgumentsByDebate((current) => mergeArgument(current, next))
         },
       )
       .subscribe()

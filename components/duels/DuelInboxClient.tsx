@@ -40,8 +40,6 @@ export function DuelInboxClient({
       router.push(`/duels/${json.duel_id}`)
       return
     }
-
-    router.refresh()
   }
 
   return (

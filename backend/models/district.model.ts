@@ -53,7 +53,7 @@ export class DistrictModel {
     const { supabaseAdmin } = await import('@/backend/lib/supabase')
     await supabaseAdmin
       .from('districts')
-      .update({ controlling_faction: factionId })
+      .update({ controlling_faction: factionId, last_flip_at: new Date().toISOString() })
       .or(`id.eq.${districtId},slug.eq.${districtId}`)
   }
 }

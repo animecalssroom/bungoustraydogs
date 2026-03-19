@@ -1,27 +1,8 @@
 import { redirect } from 'next/navigation'
-import { createClient } from '@/frontend/lib/supabase/server'
 import { OwnerModel } from '@/backend/models/owner.model'
 import { ReservedCharacterDesk } from '@/frontend/components/owner/ReservedCharacterDesk'
-import type { Profile } from '@/backend/types'
+import { getViewerProfile } from '@/frontend/lib/auth-server'
 
-async function getViewerProfile() {
-  const supabase = createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    return null
-  }
-
-  const { data } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .maybeSingle()
-
-  return (data as Profile | null) ?? null
-}
 
 export default async function OwnerAssignCharacterPage() {
   const viewer = await getViewerProfile()

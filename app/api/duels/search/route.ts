@@ -8,10 +8,11 @@ export async function GET(request: NextRequest) {
 
   const query = request.nextUrl.searchParams.get('q')?.trim() ?? ''
 
-  if (query.length < 1) {
+  if (query.length < 2) {
     return NextResponse.json({ data: [] })
   }
 
   const results = await DuelModel.searchOpponents(auth.user.id, auth.profile.faction ?? '', query)
   return NextResponse.json({ data: results })
 }
+

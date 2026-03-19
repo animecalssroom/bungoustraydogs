@@ -1,13 +1,10 @@
 import { ArenaPageGrid } from '@/frontend/components/arena/ArenaCard'
-import { createClient } from '@/frontend/lib/supabase/server'
 import { ArenaModel } from '@/backend/models/arena.model'
+import { getViewerUserId } from '@/frontend/lib/auth-server'
 
 export default async function ArenaPage() {
-  const supabase = createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  const initialPayload = await ArenaModel.getPayload(user?.id ?? null)
+  const userId = await getViewerUserId()
+  const initialPayload = await ArenaModel.getPayload(userId)
 
   return (
     <div style={{ paddingTop: '36px' }}>

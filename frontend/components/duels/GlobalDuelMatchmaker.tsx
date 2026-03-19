@@ -7,6 +7,37 @@ import { useAuth } from '@/frontend/context/AuthContext'
 import { createClient } from '@/frontend/lib/supabase/client'
 import type { Duel } from '@/backend/types'
 
+let cachedPendingUserId: string | null = null
+let cachedPendingDuels: Duel[] = []
+let cachedPendingAt = 0
+const PENDING_STORAGE_KEY = 'bsd:pending-duels'
+
+function readStoredPending(userId: string): Duel[] | null {
+    if (typeof window === 'undefined') return null
+    try {
+        const raw = window.localStorage.getItem(PENDING_STORAGE_KEY)
+        if (!raw) return null
+        const parsed = JSON.parse(raw) as { userId: string; duels: Duel[]; savedAt: number }
+        if (parsed.userId !== userId || Date.now() - parsed.savedAt > 30000) {
+            return null
+        }
+        return parsed.duels
+    } catch {
+        return null
+    }
+}
+
+function writeStoredPending(userId: string, duels: Duel[]) {
+    if (typeof window === 'undefined') return
+    try {
+        window.localStorage.setItem(PENDING_STORAGE_KEY, JSON.stringify({
+            userId,
+            duels,
+            savedAt: Date.now(),
+        }))
+    } catch {}
+}
+
 export function GlobalDuelMatchmaker() {
     const { user } = useAuth()
     const router = useRouter()
@@ -20,61 +51,103 @@ export function GlobalDuelMatchmaker() {
 
         let active = true
         const loadPending = async () => {
-            // Avoid re-fetching if we already have data (prevents duplicates on re-render)
-            if (pendingDuels.length > 0) return 
+            if (typeof document !== 'undefined' && document.hidden) {
+                return
+            }
+
+            const cacheFresh =
+              cachedPendingUserId === user.id &&
+              Date.now() - cachedPendingAt < 30000
+
+            if (cacheFresh) {
+                if (active) setPendingDuels(cachedPendingDuels)
+                return
+            }
+
+            const stored = readStoredPending(user.id)
+            if (stored) {
+                cachedPendingUserId = user.id
+                cachedPendingDuels = stored
+                cachedPendingAt = Date.now()
+                if (active) setPendingDuels(stored)
+                return
+            }
 
             const response = await fetch('/api/duels/pending-challenges', {
                 cache: 'no-store',
             })
             const json = await response.json().catch(() => ({}))
             if (active && response.ok) {
-                setPendingDuels((json.data as Duel[]) ?? [])
+                const nextDuels = (json.data as Duel[]) ?? []
+                cachedPendingUserId = user.id
+                cachedPendingDuels = nextDuels
+                cachedPendingAt = Date.now()
+                writeStoredPending(user.id, nextDuels)
+                setPendingDuels(nextDuels)
             }
         }
 
         void loadPending()
 
+        const handleVisible = () => {
+            if (!document.hidden) {
+                void loadPending()
+            }
+        }
+
+        const handleRealtimeDuel = (raw: Duel | undefined) => {
+            if (!raw) {
+                return
+            }
+
+            if (raw.status !== 'pending') {
+                setPendingDuels((current) => {
+                    const next = current.filter(d => d.id !== raw.id)
+                    cachedPendingDuels = next
+                    cachedPendingAt = Date.now()
+                    writeStoredPending(user.id, next)
+                    return next
+                })
+
+                if (raw.status === 'active' && raw.challenger_id === user.id) {
+                    router.push(`/duels/${raw.id}`)
+                }
+                return
+            }
+
+            setPendingDuels((current) => {
+                const filtered = current.filter(d => d.id !== raw.id)
+                const next = [raw, ...filtered]
+                cachedPendingDuels = next
+                cachedPendingAt = Date.now()
+                writeStoredPending(user.id, next)
+                return next
+            })
+        }
+
         const channel = supabase
             .channel(`global-matchmaker:${user.id}`)
             .on(
                 'postgres_changes',
-                { event: '*', schema: 'public', table: 'duels' },
+                { event: '*', schema: 'public', table: 'duels', filter: `challenger_id=eq.${user.id}` },
                 (payload) => {
-                    const raw = payload.new as Duel | undefined
-                    if (!raw) {
-                        // Deleted
-                        const oldId = (payload.old as any)?.id
-                        if (oldId) {
-                            setPendingDuels((current) => current.filter(d => d.id !== oldId))
-                        }
-                        return
-                    }
-
-                    // Only care about this user's duels
-                    if (raw.challenger_id !== user.id && raw.defender_id !== user.id) return
-
-                    // If the duel status is no longer pending (accepted, declined, complete, etc), remove it
-                    if (raw.status !== 'pending') {
-                        setPendingDuels((current) => current.filter(d => d.id !== raw.id))
-
-                        // If WE were the challenger and it became active, automatically navigate!
-                        if (raw.status === 'active' && raw.challenger_id === user.id) {
-                            router.push(`/duels/${raw.id}`)
-                        }
-                        return
-                    }
-
-                    // It's a pending duel, add/update it
-                    setPendingDuels((current) => {
-                        const filtered = current.filter(d => d.id !== raw.id)
-                        return [raw, ...filtered]
-                    })
+                    handleRealtimeDuel((payload.new ?? payload.old) as Duel | undefined)
+                },
+            )
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'duels', filter: `defender_id=eq.${user.id}` },
+                (payload) => {
+                    handleRealtimeDuel((payload.new ?? payload.old) as Duel | undefined)
                 },
             )
             .subscribe()
 
+        document.addEventListener('visibilitychange', handleVisible)
+
         return () => {
             active = false
+            document.removeEventListener('visibilitychange', handleVisible)
             void supabase.removeChannel(channel)
         }
     }, [supabase, user, router])
@@ -97,7 +170,12 @@ export function GlobalDuelMatchmaker() {
             const json = await response.json()
 
             if (response.ok) {
-                setPendingDuels(curr => curr.filter(d => d.id !== duelId))
+                setPendingDuels(curr => {
+                    const next = curr.filter(d => d.id !== duelId)
+                    cachedPendingDuels = next
+                    cachedPendingAt = Date.now()
+                    return next
+                })
                 if (kind === 'accept' && json.duel_id) {
                     router.push(`/duels/${json.duel_id}`)
                 }

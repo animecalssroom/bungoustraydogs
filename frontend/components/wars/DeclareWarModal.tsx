@@ -154,7 +154,7 @@ export function DeclareWarModal({
                     <p className="text-[0.7rem] text-white/50 font-space-mono leading-relaxed">
                       {FACTION_META[activeWar!.faction_a_id as FactionId]?.name} vs{' '}
                       {FACTION_META[activeWar!.faction_b_id as FactionId]?.name} is currently active.
-                      Declaring a second war will run simultaneously.
+                      Your faction must finish or retreat from the current war before opening another front.
                     </p>
                   </div>
                 </div>
@@ -164,13 +164,6 @@ export function DeclareWarModal({
                     className="flex-1 py-3 bg-white/5 hover:bg-white/10 text-white/60 font-black text-xs uppercase tracking-widest rounded-sm transition-all"
                   >
                     Stand Down
-                  </button>
-                  <button
-                    onClick={() => setStep('target')}
-                    className="flex-1 py-3 bg-red-700 hover:bg-red-600 text-white font-black text-xs uppercase tracking-widest rounded-sm transition-all flex items-center justify-center gap-2"
-                  >
-                    <Swords className="w-4 h-4" />
-                    Proceed
                   </button>
                 </div>
               </motion.div>

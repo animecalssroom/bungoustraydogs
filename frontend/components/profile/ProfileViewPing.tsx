@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import { scheduleBehaviorPing } from '@/frontend/lib/behavior-ping'
 
 export function ProfileViewPing({
   username,
@@ -17,23 +18,18 @@ export function ProfileViewPing({
     const dateKey = new Date().toISOString().slice(0, 10)
     const storageKey = `bsd_profile_view_${username}_${dateKey}`
 
-    if (window.localStorage.getItem(storageKey) === '1') {
-      return
-    }
-
-    window.localStorage.setItem(storageKey, '1')
-
-    void fetch('/api/behavior/update', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+    return scheduleBehaviorPing({
+      storageKey,
+      storageArea: 'local',
+      delayMs: 7000,
+      body: {
         eventType: 'profile_view',
         metadata: {
           username,
           date_key: dateKey,
         },
-      }),
-    }).catch(() => null)
+      },
+    })
   }, [isOwnProfile, username])
 
   return null

@@ -5,21 +5,15 @@ import { DistrictsClient } from './DistrictsClient'
 export const dynamic = 'force-dynamic'
 
 export default async function DistrictsPage() {
-  const [districts, activeWar] = await Promise.all([
+  const [districts, activeWars] = await Promise.all([
     DistrictModel.getAll(),
-    FactionWarModel.getActiveWar()
+    FactionWarModel.getActiveWars()
   ])
-
-  let topContributors: { user_id: string; username: string; rank: number; points: number; faction: string }[] = []
-  if (activeWar) {
-    topContributors = await FactionWarModel.getTopContributorsDetailed(activeWar.id)
-  }
 
   return (
     <DistrictsClient 
       initialDistricts={districts} 
-      activeWar={activeWar} 
-      topContributors={topContributors}
+      activeWars={activeWars} 
     />
   )
 }

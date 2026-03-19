@@ -1,26 +1,12 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { getRankTitle, type FactionId, type Profile } from '@/backend/types'
+import { getRankTitle, type FactionId } from '@/backend/types'
 import { FactionModel } from '@/backend/models/faction.model'
 import { AngoUsername } from '@/frontend/components/ango/AngoUsername'
-import { createClient } from '@/frontend/lib/supabase/server'
 import { FACTION_META, getCharacterReveal, privateFactionPath } from '@/frontend/lib/launch'
+import { getViewerProfile } from '@/frontend/lib/auth-server'
 import styles from './page.module.css'
 
-async function getViewerProfile() {
-  const supabase = createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    return null
-  }
-
-  const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single()
-
-  return (data as Profile | null) ?? null
-}
 
 const HERO_CLASSES: Record<FactionId, string> = {
   agency: styles.heroAgency,

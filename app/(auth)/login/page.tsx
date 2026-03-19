@@ -19,17 +19,7 @@ const cardStyle: CSSProperties = {
 }
 
 async function loadProfileAndRoute(router: ReturnType<typeof useRouter>) {
-  const supabase = createClient()
-  for (let attempt = 0; attempt < 6; attempt += 1) {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      await new Promise((resolve) => window.setTimeout(resolve, 250))
-      continue
-    }
-
+  for (let attempt = 0; attempt < 8; attempt += 1) {
     const response = await fetch('/api/auth/me', { cache: 'no-store' })
     const json = await response.json().catch(() => ({}))
 
@@ -41,7 +31,7 @@ async function loadProfileAndRoute(router: ReturnType<typeof useRouter>) {
     await new Promise((resolve) => window.setTimeout(resolve, 250 * (attempt + 1)))
   }
 
-  router.push('/onboarding/username')
+  router.push('/login?error=session_sync_failed')
 }
 
 function getEmailRedirectUrl() {
@@ -155,15 +145,13 @@ export default function LoginPage() {
     }
 
     try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+      const { error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
       })
 
-      const json = await res.json().catch(() => ({}))
-      if (!res.ok) {
-        setError(json.error || 'Login failed')
+      if (authError) {
+        setError(authError.message || 'Login failed')
         setLoading(false)
         return
       }

@@ -41,7 +41,10 @@ export const BehaviorController = {
   async update(req: NextRequest) {
     const auth = await requireAuth(req)
     if (isNextResponse(auth)) return auth
+    return this.updateForUser(req, auth.user.id)
+  },
 
+  async updateForUser(req: NextRequest, userId: string) {
     const body = await req.json().catch(() => ({}))
     const parsed = validate(BehaviorEventSchema, body)
 
@@ -60,7 +63,7 @@ export const BehaviorController = {
     }
 
     await UserModel.addAp(
-      auth.user.id,
+      userId,
       parsed.data.eventType,
       AP_VALUES[parsed.data.eventType],
       parsed.data.metadata ?? {},

@@ -1,9 +1,8 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState } from 'react'
 import type { Duel } from '@/backend/types'
 import { formatRemainingTime } from '@/lib/duels/shared'
-import { createClient } from '@/frontend/lib/supabase/client'
 
 export function DuelInboxCard({
   duel,
@@ -15,8 +14,6 @@ export function DuelInboxCard({
   onAction: (kind: 'accept' | 'decline' | 'withdraw', duelId: string) => Promise<void>
 }) {
   const [busy, setBusy] = useState(false)
-  const supabase = useMemo(() => createClient(), [])
-  const [displayName, setDisplayName] = useState<string | null>(null)
 
   const run = async (kind: 'accept' | 'decline' | 'withdraw') => {
     setBusy(true)
@@ -26,36 +23,6 @@ export function DuelInboxCard({
       setBusy(false)
     }
   }
-
-  useEffect(() => {
-    let active = true
-    const load = async () => {
-      const id = mode === 'incoming' ? duel.challenger_id : duel.defender_id
-      const char = mode === 'incoming' ? duel.challenger_character : duel.defender_character
-      if (char) {
-        setDisplayName(char)
-        return
-      }
-      if (!id) {
-        setDisplayName('Unregistered Operative')
-        return
-      }
-
-      try {
-        const { data } = await supabase.from('profiles').select('username, character_name').eq('id', id).maybeSingle()
-        if (!active) return
-        setDisplayName(data?.character_name ?? data?.username ?? 'Unregistered Operative')
-      } catch {
-        if (!active) return
-        setDisplayName('Unregistered Operative')
-      }
-    }
-
-    void load()
-    return () => {
-      active = false
-    }
-  }, [duel, mode, supabase])
 
   return (
     <article className="paper-surface" style={{ padding: '1rem', display: 'grid', gap: '0.7rem' }}>

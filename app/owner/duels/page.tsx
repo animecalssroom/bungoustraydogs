@@ -1,26 +1,17 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { createClient } from '@/frontend/lib/supabase/server'
 import { supabaseAdmin } from '@/backend/lib/supabase'
 import type { Duel } from '@/backend/types'
+import { getViewerProfile } from '@/frontend/lib/auth-server'
 
 export default async function OwnerDuelsPage() {
-  const supabase = createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const profile = await getViewerProfile()
 
-  if (!user) {
+  if (!profile) {
     redirect('/login')
   }
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id, role')
-    .eq('id', user.id)
-    .maybeSingle()
-
-  if (profile?.role !== 'owner') {
+  if (profile.role !== 'owner') {
     redirect('/')
   }
 

@@ -104,5 +104,12 @@ export async function GET(request: NextRequest) {
     .eq('id', user.id)
     .single()
 
-  return NextResponse.redirect(`${origin}${resolvePostAuthPath(profile)}`)
+  const response = NextResponse.redirect(`${origin}${resolvePostAuthPath(profile)}`)
+  response.cookies.set('sb-session-hint', 'true', {
+    path: '/',
+    httpOnly: false,
+    sameSite: 'lax',
+    maxAge: 60 * 60 * 24 * 7,
+  })
+  return response
 }

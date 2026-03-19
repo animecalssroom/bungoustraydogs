@@ -1,25 +1,22 @@
 import { redirect } from 'next/navigation'
-import { createClient } from '@/frontend/lib/supabase/server'
 import { DuelModel } from '@/backend/models/duel.model'
 import { DuelInboxClient } from '@/components/duels/DuelInboxClient'
 import { supabaseAdmin } from '@/backend/lib/supabase'
+import { getViewerUserId } from '@/frontend/lib/auth-server'
 
 export default async function DuelInboxPage() {
-  const supabase = createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const userId = await getViewerUserId()
 
-  if (!user) {
+  if (!userId) {
     redirect('/login')
   }
 
-  const inbox = await DuelModel.getInbox(user.id)
+  const inbox = await DuelModel.getInbox(userId)
 
   await supabaseAdmin
     .from('notifications')
     .update({ read_at: new Date().toISOString() })
-    .eq('user_id', user.id)
+    .eq('user_id', userId)
     .eq('type', 'duel_challenge')
     .is('read_at', null)
 

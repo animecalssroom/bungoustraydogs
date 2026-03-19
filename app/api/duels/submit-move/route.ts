@@ -13,33 +13,6 @@ const SubmitMoveSchema = z.object({
   bot_user_id: z.string().uuid().optional(),
 })
 
-async function getMoveCount(userId: string) {
-  const { data: duels } = await supabaseAdmin
-    .from('duels')
-    .select('id, challenger_id, defender_id')
-    .or(`challenger_id.eq.${userId},defender_id.eq.${userId}`)
-    .limit(200)
-
-  const duelIds = (duels ?? []).map((row) => row.id)
-  if (!duelIds.length) {
-    return 0
-  }
-
-  const { data: rounds } = await supabaseAdmin
-    .from('duel_rounds')
-    .select('duel_id, challenger_move_submitted_at, defender_move_submitted_at')
-    .in('duel_id', duelIds)
-    .limit(500)
-
-  return (rounds ?? []).reduce((count, round) => {
-    const duel = (duels ?? []).find((entry) => entry.id === round.duel_id)
-    if (!duel) return count
-    if (duel.challenger_id === userId && round.challenger_move_submitted_at) return count + 1
-    if (duel.defender_id === userId && round.defender_move_submitted_at) return count + 1
-    return count
-  }, 0)
-}
-
 function applyDuelStyle(scores: BehaviorScores | null | undefined, move: DuelMove) {
   const next = normalizeBehaviorScores(scores)
   if (move === 'gambit' || move === 'strike' || move === 'stance') {
@@ -55,7 +28,7 @@ async function resolveActor(request: NextRequest, payload: z.infer<typeof Submit
   if (expectedBotSecret && botSecret === expectedBotSecret && payload.bot_user_id) {
     const { data } = await supabaseAdmin
       .from('profiles')
-      .select('id, username, role, faction, character_name, character_match_id, rank, duel_wins, duel_losses, is_bot, behavior_scores, avg_move_speed_minutes')
+      .select('id, username, role, faction, character_name, character_match_id, rank, duel_wins, duel_losses, is_bot, behavior_scores, avg_move_speed_minutes, duel_moves_count')
       .eq('id', payload.bot_user_id)
       .eq('is_bot', true)
       .maybeSingle()
@@ -272,7 +245,7 @@ export async function POST(request: NextRequest) {
   const submittedAt = new Date().toISOString()
   const roundStartedAt = new Date(round.round_started_at).getTime()
   const deltaMinutes = Math.max(0, (Date.now() - roundStartedAt) / 60000)
-  const moveCount = await getMoveCount(auth.user.id)
+  const moveCount = auth.profile.duel_moves_count ?? 0
   const existingAverage = auth.profile.avg_move_speed_minutes ?? 0
   const nextAverage = moveCount > 0 ? (existingAverage * moveCount + deltaMinutes) / (moveCount + 1) : deltaMinutes
   const nextBehaviorScores = applyDuelStyle(auth.profile.behavior_scores, parsed.data.move)
@@ -293,6 +266,7 @@ export async function POST(request: NextRequest) {
     .update({
       behavior_scores: nextBehaviorScores,
       avg_move_speed_minutes: Number(nextAverage.toFixed(2)),
+      duel_moves_count: moveCount + 1,
       updated_at: submittedAt,
     } satisfies Partial<Profile>)
     .eq('id', auth.user.id)

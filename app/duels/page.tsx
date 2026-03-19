@@ -1,33 +1,30 @@
 import { redirect } from 'next/navigation'
-import { createClient } from '@/frontend/lib/supabase/server'
 import { DuelModel } from '@/backend/models/duel.model'
 import { DuelHubClient } from '@/components/duels/DuelHubClient'
+import { getViewerUserId } from '@/frontend/lib/auth-server'
 
 export default async function DuelsPage() {
-  const supabase = createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const userId = await getViewerUserId()
 
-  if (!user) {
+  if (!userId) {
     redirect('/login')
   }
 
-  const profile = await DuelModel.getParticipant(user.id)
+  const profile = await DuelModel.getParticipant(userId)
   if (!profile) {
     redirect('/')
   }
 
   const [duels, history, openChallenges] = await Promise.all([
-    DuelModel.getActiveForUser(user.id),
-    DuelModel.getHistoryForUser(user.id),
-    DuelModel.getOpenChallenges(user.id, profile.faction),
+    DuelModel.getActiveForUser(userId),
+    DuelModel.getHistoryForUser(userId),
+    DuelModel.getOpenChallenges(userId, profile.faction),
   ])
 
   return (
     <section className="section-wrap" style={{ paddingTop: '3rem', paddingBottom: '5rem' }}>
       <DuelHubClient
-        userId={user.id}
+        userId={userId}
         initialDuels={duels}
         initialHistory={history}
         initialOpenChallenges={openChallenges}

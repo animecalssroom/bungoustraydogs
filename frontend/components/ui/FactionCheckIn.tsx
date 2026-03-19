@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react'
 import type { FactionId } from '@/backend/types'
+import { scheduleBehaviorPing } from '@/frontend/lib/behavior-ping'
 
 interface FactionCheckInProps {
   factionId: FactionId
@@ -12,24 +13,19 @@ export function FactionCheckIn({ factionId }: FactionCheckInProps) {
     const dateKey = new Date().toISOString().slice(0, 10)
     const storageKey = `bsd_faction_checkin_${factionId}_${dateKey}`
 
-    if (window.localStorage.getItem(storageKey) === '1') {
-      return
-    }
-
-    window.localStorage.setItem(storageKey, '1')
-
-    void fetch('/api/behavior/update', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+    return scheduleBehaviorPing({
+      storageKey,
+      storageArea: 'local',
+      delayMs: 12000,
+      body: {
         eventType: 'faction_checkin',
         metadata: {
           faction: factionId,
           source: 'faction_room',
           date_key: dateKey,
         },
-      }),
-    }).catch(() => null)
+      },
+    })
   }, [factionId])
 
   return null

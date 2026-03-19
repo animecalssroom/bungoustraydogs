@@ -122,6 +122,18 @@ function trimMessages(items: FactionMessage[]) {
   return items.slice(-50)
 }
 
+function sortRosterEntries(items: RosterEntry[]) {
+  return [...items].sort((left, right) => {
+    const apDiff = (right.ap_total ?? 0) - (left.ap_total ?? 0)
+    if (apDiff !== 0) return apDiff
+
+    const rankDiff = (right.rank ?? 0) - (left.rank ?? 0)
+    if (rankDiff !== 0) return rankDiff
+
+    return left.username.localeCompare(right.username)
+  })
+}
+
 function normalizeMessage(row: Record<string, unknown>): FactionMessage {
   return {
     id: String(row.id),
@@ -176,7 +188,7 @@ export function FactionPrivateSpace({
   const [activeTab, setActiveTab] = useState<PrivateTab>('feed')
   const [bulletins, setBulletins] = useState<FactionBulletin[]>(initialBulletins)
   const [activity, setActivity] = useState<FactionActivity[]>(initialActivity)
-  const [roster, setRoster] = useState<RosterEntry[]>(initialRoster)
+  const [roster, setRoster] = useState<RosterEntry[]>(sortRosterEntries(initialRoster))
   const [messages, setMessages] = useState<FactionMessage[]>(initialMessages)
   const [pendingPosts, setPendingPosts] = useState<RegistryPost[]>(initialPendingRegistryPosts)
   const [waitlist, setWaitlist] = useState<WaitlistEntry[]>([])
@@ -212,12 +224,16 @@ export function FactionPrivateSpace({
   const [messageDraft, setMessageDraft] = useState('')
   const [sendingMessage, setSendingMessage] = useState(false)
   const chatLogRef = useRef<HTMLDivElement | null>(null)
+  const rosterRefreshTimerRef = useRef<number | null>(null)
+  const warStripRefreshTimerRef = useRef<number | null>(null)
 
   const factionMeta = FACTION_META[factionId]
   const currentCharacter = getCharacterReveal(profile.character_match_id)?.name ?? '???'
   const currentRank = getRankTitle(profile.rank, profile.faction)
   const canPostBulletin =
     profile.role === 'owner' || (profile.role === 'mod' && profile.faction === factionId)
+  const factionActiveWar = activeWar && (activeWar.faction_a_id === factionId || activeWar.faction_b_id === factionId)
+  const canDeclareWar = canPostBulletin && !factionActiveWar
   const canModerateRegistry =
     profile.role === 'owner' || (profile.role === 'mod' && profile.faction === factionId)
   const leaderId = roster[0]?.id ?? null
@@ -273,8 +289,38 @@ export function FactionPrivateSpace({
       throw requestError
     }
 
-    setRoster((data as RosterEntry[] | null) ?? [])
+    setRoster(sortRosterEntries((data as RosterEntry[] | null) ?? []))
   }, [factionId, supabase])
+
+  const scheduleRosterRefresh = useCallback(() => {
+    if (typeof document !== 'undefined' && document.hidden) {
+      return
+    }
+
+    if (rosterRefreshTimerRef.current !== null) {
+      window.clearTimeout(rosterRefreshTimerRef.current)
+    }
+
+    rosterRefreshTimerRef.current = window.setTimeout(() => {
+      rosterRefreshTimerRef.current = null
+      void loadRoster().catch(() => null)
+    }, 1500)
+  }, [loadRoster])
+
+  const scheduleWarStripRefresh = useCallback(() => {
+    if (typeof document !== 'undefined' && document.hidden) {
+      return
+    }
+
+    if (warStripRefreshTimerRef.current !== null) {
+      window.clearTimeout(warStripRefreshTimerRef.current)
+    }
+
+    warStripRefreshTimerRef.current = window.setTimeout(() => {
+      warStripRefreshTimerRef.current = null
+      void loadWarStrip().catch(() => null)
+    }, 2000)
+  }, [loadWarStrip])
 
   const loadSpace = useCallback(async () => {
     setLoading(true)
@@ -291,7 +337,7 @@ export function FactionPrivateSpace({
       if (consolidated) {
         setBulletins(consolidated.bulletins || [])
         setActivity(consolidated.activity || [])
-        setRoster(consolidated.roster || [])
+        setRoster(sortRosterEntries(consolidated.roster || []))
         setMessages((consolidated.messages || []).map(normalizeMessage))
         setPendingPosts(consolidated.pending_posts || [])
         setWaitlist(consolidated.waitlist || [])
@@ -380,22 +426,62 @@ export function FactionPrivateSpace({
           filter: `faction=eq.${factionId}`,
         },
         (payload) => {
-          const previousFaction = (payload.old as Partial<Profile> | null)?.faction ?? null
-          const nextFaction = (payload.new as Partial<Profile> | null)?.faction ?? null
+          const previousProfile = (payload.old as Partial<Profile> | null) ?? null
+          const nextProfile = (payload.new as Partial<Profile> | null) ?? null
+          const previousFaction = previousProfile?.faction ?? null
+          const nextFaction = nextProfile?.faction ?? null
+          const nextRole = nextProfile?.role ?? null
+          const nextId = nextProfile?.id ?? previousProfile?.id ?? null
 
-          if (previousFaction === factionId || nextFaction === factionId) {
-            void loadRoster()
+          if (nextId) {
+            setRoster((current) => {
+              const withoutTarget = current.filter((entry) => entry.id !== nextId)
+              const shouldInclude =
+                nextFaction === factionId &&
+                (nextRole === 'member' || nextRole === 'mod')
+
+              if (!shouldInclude || !nextProfile?.username) {
+                return withoutTarget
+              }
+
+              return sortRosterEntries([
+                ...withoutTarget,
+                {
+                  id: nextId,
+                  username: nextProfile.username,
+                  role: nextRole,
+                  rank: nextProfile.rank ?? 0,
+                  ap_total: nextProfile.ap_total ?? 0,
+                  character_match_id: nextProfile.character_match_id ?? null,
+                  faction: nextFaction,
+                  behavior_scores: nextProfile.behavior_scores ?? null,
+                  last_seen: nextProfile.last_seen ?? null,
+                },
+              ])
+            })
+          } else {
+            scheduleRosterRefresh()
           }
 
-          if (
-            ['agency', 'mafia', 'guild', 'hunting_dogs', 'special_div'].includes(
-              previousFaction ?? '',
-            ) ||
-            ['agency', 'mafia', 'guild', 'hunting_dogs', 'special_div'].includes(
-              nextFaction ?? '',
-            )
-          ) {
-            void loadWarStrip()
+          const rosterRelevantFieldsChanged =
+            previousFaction !== nextFaction ||
+            previousProfile?.role !== nextProfile?.role ||
+            previousProfile?.ap_total !== nextProfile?.ap_total ||
+            previousProfile?.rank !== nextProfile?.rank ||
+            previousProfile?.character_match_id !== nextProfile?.character_match_id ||
+            previousProfile?.last_seen !== nextProfile?.last_seen
+
+          if (rosterRelevantFieldsChanged && (!nextId || previousFaction !== nextFaction)) {
+            scheduleRosterRefresh()
+          }
+
+          const warStripRelevantChange =
+            previousFaction !== nextFaction ||
+            previousProfile?.role !== nextProfile?.role ||
+            previousProfile?.ap_total !== nextProfile?.ap_total
+
+          if (warStripRelevantChange) {
+            scheduleWarStripRefresh()
           }
         },
       )
@@ -407,15 +493,21 @@ export function FactionPrivateSpace({
           table: 'faction_slots',
         },
         () => {
-          void loadWarStrip()
+          scheduleWarStripRefresh()
         },
       )
       .subscribe()
 
     return () => {
+      if (rosterRefreshTimerRef.current !== null) {
+        window.clearTimeout(rosterRefreshTimerRef.current)
+      }
+      if (warStripRefreshTimerRef.current !== null) {
+        window.clearTimeout(warStripRefreshTimerRef.current)
+      }
       void supabase.removeChannel(factionChannel)
     }
-  }, [factionId, loadRoster, loadWarStrip, supabase])
+  }, [factionId, scheduleRosterRefresh, scheduleWarStripRefresh, supabase])
 
   const postBulletin = useCallback(
     async (content: string, options?: { pinned?: boolean }) => {
@@ -583,7 +675,7 @@ export function FactionPrivateSpace({
 
   return (
     <section className={styles.shell} style={pageStyle}>
-      <FactionFeedPing factionId={factionId} />
+      {activeTab === 'feed' ? <FactionFeedPing factionId={factionId} /> : null}
       <div className={styles.wrap}>
         <section className={styles.banner}>
           <div className={styles.bannerInner}>
@@ -608,7 +700,7 @@ export function FactionPrivateSpace({
           ))}
         </div>
 
-        {activeWar && (activeWar.faction_a_id === factionId || activeWar.faction_b_id === factionId) && (
+        {factionActiveWar && (
           <>
             <WarStrip 
               war={activeWar} 
@@ -631,14 +723,16 @@ export function FactionPrivateSpace({
                 <span className={styles.sectionMeta}>{bulletins.length} files</span>
                 {canPostBulletin && (
                   <div className={styles.sectionActions}>
-                    <button
-                      type="button"
-                      className={styles.declareWarBtn}
-                      onClick={() => setShowDeclareModal(true)}
-                    >
-                      <Swords className="w-3.5 h-3.5 mr-1" />
-                      Declare War
-                    </button>
+                    {canDeclareWar ? (
+                      <button
+                        type="button"
+                        className={styles.declareWarBtn}
+                        onClick={() => setShowDeclareModal(true)}
+                      >
+                        <Swords className="w-3.5 h-3.5 mr-1" />
+                        Declare War
+                      </button>
+                    ) : null}
                     <button
                       type="button"
                       className={styles.pinButton}
@@ -1014,5 +1108,6 @@ export function FactionPrivateSpace({
     </section>
   )
 }
+
 
 

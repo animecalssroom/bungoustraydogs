@@ -11,7 +11,9 @@ export function CharacterAssignmentRedirect() {
   const pathname = usePathname()
   const router = useRouter()
   const { user, profile } = useAuth()
-  const liveProfile = useRealtimeProfile(user?.id, profile)
+  const shouldTrackAssignment =
+    Boolean(user?.id) && (!profile?.character_match_id || !profile?.username)
+  const liveProfile = useRealtimeProfile(user?.id, profile, shouldTrackAssignment)
   const activeProfile = liveProfile ?? profile
 
   useEffect(() => {
@@ -44,3 +46,4 @@ export function CharacterAssignmentRedirect() {
 
   return null
 }
+

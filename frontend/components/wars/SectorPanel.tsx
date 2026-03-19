@@ -6,17 +6,66 @@ import type { District } from '@/backend/models/district.model'
 import { FACTION_META } from '@/frontend/lib/launch'
 import { DISTRICTS } from '@/frontend/lib/data/districts.data'
 import type { FactionWar } from '@/backend/types'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import type { FactionId } from '@/backend/types'
+
+export interface StrikeLaunchPayload {
+  warId: string | null
+  targets: WarTarget[]
+  specialLocked: boolean
+  mustTargetGuards: boolean
+}
 
 interface SectorPanelProps {
   district: District | null
   allDistricts: District[]
-  onStrikeClick: () => void
+  onStrikeClick: (payload: StrikeLaunchPayload) => void
   onClose?: () => void
   activeWar: FactionWar | null
-  topContributors?: { user_id: string; username: string; rank: number; points: number; faction: string }[]
-  onFactionSync?: (factionId: FactionId) => void
+}
+
+interface WarRosterEntry {
+  user_id: string
+  username: string | null
+  faction: string | null
+  rank: number | null
+  character_name: string | null
+  class_tag: string | null
+  character_slug: string | null
+  deployment_role: 'guard' | 'vanguard' | null
+  stance: string | null
+  is_recovering: boolean
+  is_guard: boolean
+  isEncrypted: boolean
+}
+
+interface WarTarget {
+  user_id: string
+  username: string | null
+  character_name: string | null
+  rank: number | null
+  faction: string | null
+  is_guard: boolean
+  isEncrypted: boolean
+}
+
+interface WarExperiencePayload {
+  integrity: number
+  transmissions: any[]
+  isRevealed: boolean
+  deployment: { role: 'guard' | 'vanguard'; stance: string; deployedAt: string } | null
+  isRecovering: boolean
+  class_tag: string
+  character_slug: string | null
+  userFaction: FactionId | null
+  canRecon: boolean
+  abilitySummary: string
+  specialLocked: boolean
+  specialLockedReason: string | null
+  mustTargetGuards: boolean
+  reconFields: string[]
+  roster: WarRosterEntry[]
+  targets: WarTarget[]
 }
 
 const EncryptedAvatar = () => (
@@ -54,33 +103,63 @@ function safeIntegrity(current?: number | null, required?: number | null): numbe
   return Math.min(100, Math.floor((current / required) * 100))
 }
 
+function isValidWarId(value: string | null | undefined): value is string {
+  return Boolean(
+    value &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value),
+  )
+}
+
 export function SectorPanel({
   district,
   allDistricts,
   onStrikeClick,
   onClose,
   activeWar,
-  topContributors = [],
-  onFactionSync,
 }: SectorPanelProps) {
   const [showRecon, setShowRecon] = useState(false)
   const [showFieldHospital, setShowFieldHospital] = useState(false)
-  const [isStriking, setIsStriking] = useState(false)
-  const [warExp, setWarExp] = useState<{ integrity: number, transmissions: any[], isRevealed: boolean, deployment: any, isRecovering: boolean, class_tag: string, userFaction: FactionId | null } | null>(null)
+  const [warExp, setWarExp] = useState<WarExperiencePayload | null>(null)
+  const [isLoadingWarExp, setIsLoadingWarExp] = useState(false)
   const [isDeploying, setIsDeploying] = useState(false)
+  const [deployError, setDeployError] = useState<string | null>(null)
+  const refreshWarExp = useCallback(async () => {
+    if (!activeWar || !district || !isValidWarId(activeWar.id)) return
+    if (typeof document !== 'undefined' && document.hidden) return
 
-  useEffect(() => {
-    if (activeWar && district) {
-      setWarExp(null) // Reset on district change to avoid stale data
-      fetch(`/api/war/experience?warId=${activeWar.id}&districtId=${district.id}`)
-        .then(res => res.json())
-        .then(data => {
-          setWarExp(data)
-          if (data.userFaction && onFactionSync) onFactionSync(data.userFaction)
-        })
-        .catch(err => console.error('Failed to fetch war exp:', err))
+    try {
+      setIsLoadingWarExp(true)
+      const res = await fetch(`/api/war/experience?warId=${activeWar.id}&districtId=${district.id}`, {
+        cache: 'no-store',
+      })
+      const data = await res.json()
+      if (res.ok) {
+        setWarExp(data)
+      }
+    } catch (err) {
+      console.error('Failed to fetch war exp:', err)
+    } finally {
+      setIsLoadingWarExp(false)
     }
   }, [activeWar?.id, district?.id])
+
+  useEffect(() => {
+    setWarExp(null)
+    setDeployError(null)
+    setShowFieldHospital(false)
+    if (activeWar && district && isValidWarId(activeWar.id)) {
+      setIsLoadingWarExp(true)
+      void refreshWarExp()
+      return
+    }
+    setIsLoadingWarExp(false)
+  }, [activeWar?.id, district?.id, refreshWarExp])
+
+  useEffect(() => {
+    if (!activeWar || !district || !isValidWarId(activeWar.id)) return
+    const interval = window.setInterval(() => { void refreshWarExp() }, 30000)
+    return () => window.clearInterval(interval)
+  }, [activeWar?.id, district?.id, refreshWarExp])
 
   useEffect(() => { setShowRecon(false) }, [district?.id])
 
@@ -91,8 +170,9 @@ export function SectorPanel({
   }, [onClose])
 
   const handleDeploy = async (role: 'guard' | 'vanguard') => {
-    if (!activeWar) return
+    if (!activeWar || !isValidWarId(activeWar.id)) return
     setIsDeploying(true)
+    setDeployError(null)
     
     // Optimistic Update
     const prevExp = warExp
@@ -108,17 +188,23 @@ export function SectorPanel({
         body: JSON.stringify({ warId: activeWar.id, role, stance: 'tactical' })
       })
       if (!res.ok) {
+        const payload = await res.json().catch(() => ({}))
+        setDeployError(payload?.error ?? 'Deployment failed.')
+        console.error('[war deploy]', payload)
         // Rollback on failure
         setWarExp(prevExp)
+      } else {
+        await refreshWarExp()
       }
     } catch (err) {
+      setDeployError('Deployment failed.')
       setWarExp(prevExp)
     } finally {
       setIsDeploying(false)
     }
   }
   const handleRecon = async () => {
-    if (!activeWar || !district) return
+    if (!activeWar || !district || !isValidWarId(activeWar.id)) return
     try {
       const res = await fetch('/api/war/recon', {
         method: 'POST',
@@ -127,7 +213,7 @@ export function SectorPanel({
       })
       if (res.ok) {
         setShowRecon(true)
-        // Refresh exp if needed
+        await refreshWarExp()
       }
     } catch (err) {
       console.error('Recon failed:', err)
@@ -135,7 +221,7 @@ export function SectorPanel({
   }
 
   const handleRevive = async (targetId: string) => {
-    if (!activeWar) return
+    if (!activeWar || !isValidWarId(activeWar.id)) return
     try {
       const res = await fetch('/api/war/revive', {
         method: 'POST',
@@ -143,9 +229,7 @@ export function SectorPanel({
         body: JSON.stringify({ warId: activeWar.id, targetUserId: targetId })
       })
       if (res.ok) {
-        // Refresh exp
-        const updated = await fetch(`/api/war/experience?warId=${activeWar.id}`).then(r => r.json())
-        setWarExp(updated)
+        await refreshWarExp()
       }
     } catch (err) {
       console.error('Revive failed:', err)
@@ -177,6 +261,7 @@ export function SectorPanel({
   const faction = FACTION_META[factionId]
   const integrity = warExp?.integrity ?? safeIntegrity(district.current_points, district.points_required)
   const hasActiveWar = !!activeWar
+  const hasLoadedWarExp = !hasActiveWar || !!warExp
   const isParticipant = !!activeWar && !!warExp?.userFaction && (activeWar.faction_a_id === warExp.userFaction || activeWar.faction_b_id === warExp.userFaction)
   const isDeployed = !!warExp?.deployment
   const isRecovering = !!warExp?.isRecovering
@@ -184,17 +269,9 @@ export function SectorPanel({
   const isDefender = activeWar?.faction_b_id === warExp?.userFaction
 
   const enemyFactionId = isAttacker ? activeWar?.faction_b_id : activeWar?.faction_a_id
-
-  // District Reveal Logic (Fog of War)
-  // Only attackers (Strike Force) encounter the fog on the Garrison.
-  // Defenders (Garrison/Interceptors) can see the intruders clearly.
-  const isTargetEncrypted = (tg: any) => {
-    if (!hasActiveWar) return false
-    if (isDefender) return false // Defenders see attackers
-    if (warExp?.isRevealed) return false // Recon active
-    if (tg.faction !== enemyFactionId) return false // Allies/Neutral
-    return true
-  }
+  const roster = warExp?.roster ?? []
+  const alliedRoster = roster.filter((entry) => entry.faction === warExp?.userFaction)
+  const enemyRoster = roster.filter((entry) => entry.faction === enemyFactionId)
   const isEnemyDistrict = activeWar && district && district.controlling_faction !== warExp?.userFaction
   
   const totalPoints = (activeWar?.faction_a_points ?? 0) + (activeWar?.faction_b_points ?? 0)
@@ -293,13 +370,24 @@ export function SectorPanel({
             </div>
           )}
 
+          {warExp?.abilitySummary && (
+            <div className="p-3 bg-white/[0.03] border border-white/10 rounded-sm">
+              <p className="text-[0.65rem] text-amber-500/80 font-black uppercase tracking-[0.2em] mb-2">
+                ACTIVE WAR ABILITY
+              </p>
+              <p className="text-[0.8rem] text-white/70 leading-relaxed">
+                {warExp.abilitySummary}
+              </p>
+            </div>
+          )}
+
           {/* Deployment Status */}
           {hasActiveWar && isDeployed && (
             <div className="p-3 bg-blue-950/20 border border-blue-500/30 rounded-sm">
               <p className="text-[0.7rem] text-blue-400 font-black tracking-widest uppercase mb-1">Current Assignment</p>
               <div className="flex justify-between items-center">
                 <span className="text-sm font-black uppercase">
-                  {warExp?.deployment.role === 'guard' 
+                  {warExp?.deployment?.role === 'guard' 
                     ? 'GARRISON' 
                     : (isAttacker ? 'STRIKE FORCE' : 'INTERCEPTOR')}
                 </span>
@@ -318,53 +406,85 @@ export function SectorPanel({
 
           {/* Target registry */}
           <div className="space-y-3">
-            <p className="text-[0.7rem] text-white/20 font-black tracking-[0.4em] uppercase">
-              ---[ {hasActiveWar ? (isAttacker ? 'DISTRICT_GARRISON' : 'HOSTILE_STRIKE_FORCE') : 'TARGET_REGISTRY'} ]---
-            </p>
-            <div className="space-y-2">
-              {topContributors.length > 0 ? (
-                topContributors.slice(0, 5).map((tg) => (
-                  <div key={tg.user_id} className="flex justify-between items-center p-3 bg-white/[0.02] border border-white/5 rounded-sm">
+            <p className="text-[0.7rem] text-white/20 font-black tracking-[0.4em] uppercase">---[ DEPLOYED_OPERATIVES ]---</p>
+            {warExp?.mustTargetGuards && (
+              <div className="p-3 bg-amber-950/20 border border-amber-500/30 rounded-sm text-[0.6rem] text-amber-300 uppercase tracking-[0.18em]">
+                Enemy guards are holding the line. Vanguard units must clear them before striking open targets.
+              </div>
+            )}
+            {warExp?.specialLocked && (
+              <div className="p-3 bg-red-950/20 border border-red-500/30 rounded-sm text-[0.6rem] text-red-300 uppercase tracking-[0.18em]">
+                {warExp.specialLockedReason}
+              </div>
+            )}
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <p className="text-[0.6rem] text-blue-400/70 uppercase tracking-[0.25em] font-black">ALLIED FORMATION</p>
+                {alliedRoster.length > 0 ? alliedRoster.map((entry) => (
+                  <div key={entry.user_id} className="flex justify-between items-center p-3 bg-white/[0.02] border border-white/5 rounded-sm">
                     <div className="flex items-center gap-3">
-                      {isTargetEncrypted(tg) ? <EncryptedAvatar /> : (
-                        <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-[0.6rem] font-bold border border-white/10">
-                          {tg.username.slice(0, 1)}
-                        </div>
-                      )}
+                      <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-[0.6rem] font-bold border border-white/10">
+                        {(entry.username || entry.character_name || '?').slice(0, 1).toUpperCase()}
+                      </div>
                       <div className="flex flex-col">
-                        <span className={`text-[0.75rem] font-black tracking-wider ${isTargetEncrypted(tg) ? 'text-blue-400 animate-pulse' : 'text-white'}`}>
-                          {isTargetEncrypted(tg) ? '[ ENCRYPTED_SIG ]' : `@${tg.username.toUpperCase()}`}
+                        <span className="text-[0.75rem] font-black tracking-wider text-white">
+                          @{(entry.username || entry.character_name || 'ALLY').toUpperCase()}
                         </span>
-                        <span className="text-[0.55rem] text-white/20 uppercase tracking-[0.2em] font-medium font-mono">
-                          {isTargetEncrypted(tg) ? 'DECRYPTION_REQUIRED' : (tg.rank || 'OPERATIVE')}
+                        <span className="text-[0.55rem] text-white/30 uppercase tracking-[0.2em] font-medium font-mono">
+                          {(entry.deployment_role || 'OPERATIVE').toUpperCase()} · {(entry.class_tag || 'UNKNOWN').toUpperCase()}
                         </span>
                       </div>
                     </div>
-                    <div className="flex gap-2">
-                      {hasActiveWar && warExp?.deployment?.role === 'vanguard' && tg.faction === enemyFactionId && !isRecovering && (
-                          <button 
-                          onClick={() => onStrikeClick()}
-                          className={`px-4 py-1.5 text-[0.65rem] font-black uppercase tracking-widest rounded-sm transition-all ${isTargetEncrypted(tg) ? 'bg-blue-900/50 text-blue-400 border border-blue-500/30' : 'bg-red-700 hover:bg-red-600 text-white'}`}
-                        >
-                          {isAttacker ? 'ASSAULT' : 'INTERCEPT'}
-                        </button>
-                      )}
-                      {hasActiveWar && warExp?.class_tag === 'SUPPORT' && (
-                          <button 
-                          onClick={() => handleRevive(tg.user_id)}
-                          className="px-3 py-1.5 bg-green-600 hover:bg-green-500 text-[0.7rem] font-bold uppercase tracking-widest rounded-sm"
-                        >
-                          HEAL
-                        </button>
-                      )}
-                    </div>
+                    {warExp?.class_tag === 'SUPPORT' && entry.is_recovering && (
+                      <button
+                        onClick={() => handleRevive(entry.user_id)}
+                        className="px-3 py-1.5 bg-green-600 hover:bg-green-500 text-[0.7rem] font-bold uppercase tracking-widest rounded-sm"
+                      >
+                        HEAL
+                      </button>
+                    )}
                   </div>
-                ))
-              ) : (
-                <p className="py-6 text-center text-[0.8rem] text-white/20 uppercase tracking-widest italic border border-dashed border-white/10">
-                  No active signatures.
+                )) : (
+                  <p className="py-4 text-center text-[0.7rem] text-white/20 uppercase tracking-widest italic border border-dashed border-white/10">
+                    No allied units deployed.
+                  </p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <p className="text-[0.6rem] text-red-400/70 uppercase tracking-[0.25em] font-black">
+                  {isAttacker ? 'DISTRICT_GARRISON' : 'HOSTILE_STRIKE_FORCE'}
                 </p>
-              )}
+                {enemyRoster.length > 0 ? enemyRoster.map((entry) => (
+                  <div key={entry.user_id} className="flex justify-between items-center p-3 bg-white/[0.02] border border-white/5 rounded-sm">
+                    <div className="flex items-center gap-3">
+                      {entry.isEncrypted ? <EncryptedAvatar /> : (
+                        <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-[0.6rem] font-bold border border-white/10">
+                          {(entry.username || entry.character_name || '?').slice(0, 1).toUpperCase()}
+                        </div>
+                      )}
+                      <div className="flex flex-col">
+                        <span className={`text-[0.75rem] font-black tracking-wider ${entry.isEncrypted ? 'text-blue-400 animate-pulse' : 'text-white'}`}>
+                          {entry.isEncrypted ? '[ ENCRYPTED_SIG ]' : `@${(entry.username || entry.character_name || 'HOSTILE').toUpperCase()}`}
+                        </span>
+                        <span className="text-[0.55rem] text-white/20 uppercase tracking-[0.2em] font-medium font-mono">
+                          {entry.isEncrypted
+                            ? 'DECRYPTION_REQUIRED'
+                            : `${(entry.deployment_role || 'OPERATIVE').toUpperCase()} · ${(entry.class_tag || 'UNKNOWN').toUpperCase()}`}
+                        </span>
+                      </div>
+                    </div>
+                    {entry.is_recovering && (
+                      <span className="text-[0.55rem] px-2 py-1 border border-red-500/30 text-red-400 uppercase tracking-[0.2em]">
+                        DOWN
+                      </span>
+                    )}
+                  </div>
+                )) : (
+                  <p className="py-4 text-center text-[0.7rem] text-white/20 uppercase tracking-widest italic border border-dashed border-white/10">
+                    No hostile units deployed.
+                  </p>
+                )}
+              </div>
             </div>
           </div>
 
@@ -376,7 +496,7 @@ export function SectorPanel({
 
         {/* Action Controls */}
         <div className="p-4 bg-black/50">
-          {!warExp && hasActiveWar && (
+          {isLoadingWarExp && hasActiveWar && (
             <div className="w-full py-4 flex items-center justify-center gap-3 bg-white/5 border border-white/10 rounded-sm">
                <motion.div
                   animate={{ rotate: 360 }}
@@ -389,6 +509,11 @@ export function SectorPanel({
 
           {warExp && !isDeployed && hasActiveWar && isParticipant && !isRecovering && (
             <div className="space-y-4">
+              {deployError && (
+                <div className="p-3 bg-red-950/20 border border-red-500/30 rounded-sm text-[0.6rem] text-red-300 uppercase tracking-[0.18em]">
+                  {deployError}
+                </div>
+              )}
               <div className="p-3 bg-white/[0.02] border border-white/10 rounded-sm">
                 <p className="text-[0.65rem] text-amber-500/80 font-black uppercase tracking-[0.2em] mb-2 flex items-center gap-2">
                   <Info className="w-3 h-3" />
@@ -432,7 +557,7 @@ export function SectorPanel({
             </div>
           )}
 
-          {!isDeployed && hasActiveWar && !isParticipant && !isRecovering && (
+          {hasLoadedWarExp && !isDeployed && hasActiveWar && !isParticipant && !isRecovering && (
              <div className="w-full py-4 bg-white/5 text-white/20 font-black text-[0.65rem] uppercase tracking-widest rounded-sm border border-white/5 text-center px-4 leading-relaxed">
                YOUR FACTION IS NOT ENGAGED IN THIS CONFLICT.<br/>
                <span className="text-[0.5rem] opacity-50">OBSERVATION MODE ONLY.</span>
@@ -442,14 +567,26 @@ export function SectorPanel({
           {isDeployed && (
             <div className="flex flex-col gap-3">
               <div className="flex gap-3">
-                {warExp?.deployment?.role === 'vanguard' && isEnemyDistrict ? (
+                {warExp?.deployment?.role === 'vanguard' && hasActiveWar ? (
                   <button
-                    disabled={isRecovering}
-                    onClick={(e) => { e.stopPropagation(); onStrikeClick() }}
+                    disabled={isRecovering || (warExp?.targets?.length ?? 0) === 0}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onStrikeClick({
+                        warId: isValidWarId(activeWar?.id) ? activeWar.id : null,
+                        targets: warExp?.targets ?? [],
+                        specialLocked: Boolean(warExp?.specialLocked),
+                        mustTargetGuards: Boolean(warExp?.mustTargetGuards),
+                      })
+                    }}
                     className="flex-1 flex items-center justify-center gap-2 py-3.5 bg-red-700 hover:bg-red-600 text-white font-black text-xs uppercase tracking-widest rounded-sm transition-all active:scale-95 border-b-4 border-red-900 disabled:opacity-50 disabled:grayscale"
                   >
                     <TargetIcon className="w-4 h-4" />
-                    <span>{isAttacker ? 'COMMENCE ASSAULT' : 'INITIATE INTERCEPTION'}</span>
+                    <span>
+                      {(warExp?.targets?.length ?? 0) > 0
+                        ? (isAttacker ? 'COMMENCE ASSAULT' : 'INITIATE INTERCEPTION')
+                        : 'NO ACTIVE TARGETS'}
+                    </span>
                   </button>
                 ) : (
                   <div className="flex-1 flex items-center justify-center gap-2 py-3.5 bg-blue-900/20 text-blue-400 font-black text-xs uppercase tracking-widest rounded-sm border border-blue-500/20 italic">
@@ -471,13 +608,13 @@ export function SectorPanel({
               </div>
               
               <div className="flex gap-3">
-                {warExp?.class_tag === 'INTEL' && (
+                {warExp?.canRecon && (
                   <button
-                    disabled={isRecovering}
+                    disabled={isRecovering || warExp?.isRevealed}
                     onClick={(e) => { e.stopPropagation(); handleRecon() }}
                     className="flex-1 py-3 bg-amber-600/20 hover:bg-amber-600/30 text-amber-500 font-black text-[0.8rem] uppercase tracking-widest rounded-sm border border-amber-500/30 disabled:opacity-50"
                   >
-                    [ RECON ] DECRYPT SECTOR
+                    {warExp?.isRevealed ? '[ RECON ] SECTOR DECRYPTED' : '[ RECON ] DECRYPT SECTOR'}
                   </button>
                 )}
                 {warExp?.class_tag === 'SUPPORT' && (
@@ -513,3 +650,5 @@ export function SectorPanel({
     </div>
   )
 }
+
+

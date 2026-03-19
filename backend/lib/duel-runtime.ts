@@ -247,28 +247,14 @@ export async function resolveDuelRoundWithAdmin(duelId: string) {
     return false
   }
 
-  const [roundResult, previousRoundsResult, cooldownsResult] = await Promise.all([
-    supabaseAdmin
-      .from('duel_rounds')
-      .select('id, duel_id, round_number, challenger_move, defender_move, challenger_move_submitted_at, defender_move_submitted_at, round_started_at, round_deadline, resolved_at')
-      .eq('duel_id', duelId)
-      .eq('round_number', duel.current_round)
-      .maybeSingle(),
-    supabaseAdmin
-      .from('duel_rounds')
-      .select('round_number, challenger_move, defender_move, challenger_hp_after, defender_hp_after, special_events')
-      .eq('duel_id', duelId)
-      .lt('round_number', duel.current_round)
-      .order('round_number', { ascending: true })
-      .limit(10),
-    supabaseAdmin
-      .from('duel_cooldowns')
-      .select('duel_id, user_id, ability_type, locked_until_round')
-      .eq('duel_id', duelId)
-      .limit(20),
-  ])
+  const { data: roundData } = await supabaseAdmin
+    .from('duel_rounds')
+    .select('id, duel_id, round_number, challenger_move, defender_move, challenger_move_submitted_at, defender_move_submitted_at, round_started_at, round_deadline, resolved_at')
+    .eq('duel_id', duelId)
+    .eq('round_number', duel.current_round)
+    .maybeSingle()
 
-  const round = roundResult.data as Pick<
+  const round = roundData as Pick<
     DuelRound,
     | 'id'
     | 'duel_id'
@@ -281,18 +267,15 @@ export async function resolveDuelRoundWithAdmin(duelId: string) {
     | 'round_deadline'
     | 'resolved_at'
   > | null
-  const previousRounds = ((previousRoundsResult.data as DuelRound[] | null) ?? [])
-  const cooldowns = ((cooldownsResult.data as DuelCooldown[] | null) ?? [])
 
   if (!round || round.resolved_at) {
     return false
   }
 
-  // If one or both players haven't submitted and the deadline passed, handle misses/forfeits
+  // Most status polls land here: no second move yet and the deadline has not passed.
   if (!round.challenger_move || !round.defender_move) {
     const deadline = round.round_deadline ? new Date(round.round_deadline).getTime() : null
     if (!deadline || deadline > Date.now()) {
-      // Not yet due
       return false
     }
 
@@ -357,6 +340,24 @@ export async function resolveDuelRoundWithAdmin(duelId: string) {
     // If only one player missed this round but hasn't reached 2 misses overall, wait (no-op)
     return false
   }
+
+  const [previousRoundsResult, cooldownsResult] = await Promise.all([
+    supabaseAdmin
+      .from('duel_rounds')
+      .select('round_number, challenger_move, defender_move, challenger_hp_after, defender_hp_after, special_events')
+      .eq('duel_id', duelId)
+      .lt('round_number', duel.current_round)
+      .order('round_number', { ascending: true })
+      .limit(10),
+    supabaseAdmin
+      .from('duel_cooldowns')
+      .select('duel_id, user_id, ability_type, locked_until_round')
+      .eq('duel_id', duelId)
+      .limit(20),
+  ])
+
+  const previousRounds = ((previousRoundsResult.data as DuelRound[] | null) ?? [])
+  const cooldowns = ((cooldownsResult.data as DuelCooldown[] | null) ?? [])
 
   const resolution = resolveDuelRound({
     roundNumber: duel.current_round,

@@ -91,7 +91,8 @@ export async function POST(req: NextRequest) {
   const { data: existingWar } = await supabaseAdmin
     .from('faction_wars')
     .select('id')
-    .eq('district_id', districtId)
+    .eq('stakes', 'district')
+    .contains('stakes_detail', { district_id: district.id })
     .neq('status', 'complete')
     .maybeSingle()
 
@@ -107,9 +108,10 @@ export async function POST(req: NextRequest) {
     const war = await FactionWarModel.startWar({
       factionA: profile.faction,
       factionB: targetFactionId,
+      initiatorId: auth.user.id,
       stakes: 'district',
       stakesDetail: {
-        district_id: districtId,
+        district_id: district.id,
         description: `Control of ${district.name}`,
       },
       warMessage:

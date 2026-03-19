@@ -22,6 +22,15 @@ type ProfileFetchResult = {
   unauthorized: boolean
 }
 
+type StoredProfileCache = {
+  userId: string
+  profile: Profile | null
+  savedAt: number
+}
+
+const PROFILE_STORAGE_KEY = 'bsd:profile-cache'
+const PROFILE_STORAGE_TTL_MS = 60 * 1000
+
 let cachedProfileUserId: string | null = null
 let cachedProfile: Profile | null = null
 let inFlightProfileRequest:
@@ -31,12 +40,77 @@ let inFlightProfileRequest:
     }
   | null = null
 
+function readStoredProfile(userId: string): Profile | null {
+  if (typeof window === 'undefined') {
+    return null
+  }
+
+  try {
+    const raw = window.sessionStorage.getItem(PROFILE_STORAGE_KEY)
+    if (!raw) {
+      return null
+    }
+
+    const parsed = JSON.parse(raw) as StoredProfileCache
+    const isFresh =
+      parsed.userId === userId &&
+      Date.now() - parsed.savedAt < PROFILE_STORAGE_TTL_MS
+
+    if (!isFresh) {
+      window.sessionStorage.removeItem(PROFILE_STORAGE_KEY)
+      return null
+    }
+
+    return parsed.profile
+  } catch {
+    return null
+  }
+}
+
+function writeStoredProfile(userId: string, profile: Profile | null) {
+  if (typeof window === 'undefined') {
+    return
+  }
+
+  try {
+    const payload: StoredProfileCache = {
+      userId,
+      profile,
+      savedAt: Date.now(),
+    }
+    window.sessionStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(payload))
+  } catch {}
+}
+
+function clearStoredProfile() {
+  if (typeof window === 'undefined') {
+    return
+  }
+
+  try {
+    window.sessionStorage.removeItem(PROFILE_STORAGE_KEY)
+  } catch {}
+}
+
 async function fetchProfile(userId: string, force = false): Promise<ProfileFetchResult> {
   if (!force && cachedProfileUserId === userId) {
     return {
       profile: cachedProfile,
       error: null,
       unauthorized: false,
+    }
+  }
+
+  if (!force) {
+    const storedProfile = readStoredProfile(userId)
+    if (storedProfile) {
+      cachedProfileUserId = userId
+      cachedProfile = storedProfile
+      return {
+        profile: storedProfile,
+        error: null,
+        unauthorized: false,
+      }
     }
   }
 
@@ -52,6 +126,7 @@ async function fetchProfile(userId: string, force = false): Promise<ProfileFetch
       if (response.status === 401) {
         cachedProfileUserId = null
         cachedProfile = null
+        clearStoredProfile()
         return {
           profile: null,
           error: (json.error as string | null) ?? null,
@@ -62,6 +137,7 @@ async function fetchProfile(userId: string, force = false): Promise<ProfileFetch
       if (response.ok) {
         cachedProfileUserId = userId
         cachedProfile = nextProfile
+        writeStoredProfile(userId, nextProfile)
       }
 
       return {
@@ -100,6 +176,7 @@ export function useProfile(): UseProfileState {
       if (!nextUser) {
         cachedProfileUserId = null
         cachedProfile = null
+        clearStoredProfile()
         setState({
           user: null,
           profile: null,
@@ -195,7 +272,18 @@ export function useProfile(): UseProfileState {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'TOKEN_REFRESHED' && session?.user?.id === cachedProfileUserId) {
+        setState((current) => ({
+          ...current,
+          user: session.user,
+          loading: false,
+          error: null,
+          refresh,
+        }))
+        return
+      }
+
       setState((current) => ({
         ...current,
         loading: true,
@@ -203,7 +291,7 @@ export function useProfile(): UseProfileState {
         refresh,
       }))
 
-      void load(session?.user ?? null)
+      void load(session?.user ?? null, event === 'USER_UPDATED')
     })
 
     return () => {

@@ -7,6 +7,7 @@ import { createClient } from '@/frontend/lib/supabase/client'
 export function useRealtimeProfile(
   userId: string | null | undefined,
   initialProfile: Profile | null = null,
+  enabled = true,
 ) {
   const [profile, setProfile] = useState<Profile | null>(initialProfile)
 
@@ -17,21 +18,24 @@ export function useRealtimeProfile(
       }
 
       if (initialProfile?.id === userId) {
-        return current ?? initialProfile
+        return initialProfile
       }
 
       return current
     })
-  }, [initialProfile, userId])
+  }, [enabled, initialProfile, userId])
 
   useEffect(() => {
-    if (!userId) {
-      setProfile(null)
+    if (!enabled || !userId) {
+      if (!enabled) {
+        setProfile(initialProfile?.id === userId ? initialProfile : null)
+      }
       return
     }
 
     const supabase = createClient()
     let active = true
+    const hasFreshInitialProfile = initialProfile?.id === userId
 
     const load = async () => {
       const { data } = await supabase
@@ -43,7 +47,9 @@ export function useRealtimeProfile(
       setProfile((data as Profile | null) ?? null)
     }
 
-    void load()
+    if (!hasFreshInitialProfile) {
+      void load()
+    }
 
     const channel = supabase
       .channel(`profile:${userId}`)
@@ -65,7 +71,7 @@ export function useRealtimeProfile(
       active = false
       void supabase.removeChannel(channel)
     }
-  }, [userId])
+  }, [enabled, initialProfile, userId])
 
   return profile
 }

@@ -1,18 +1,15 @@
 import { redirect } from 'next/navigation'
-import { createClient } from '@/frontend/lib/supabase/server'
 import { FactionWarModel } from '@/backend/models/faction-war.model'
 import { FactionModel } from '@/backend/models/faction.model'
 import { OwnerWarsPanel } from '@/frontend/components/owner/OwnerWarsPanel'
 import { revalidatePath } from 'next/cache'
+import { getViewerProfile } from '@/frontend/lib/auth-server'
 
 export default async function OwnerWarsPage() {
-  const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const profile = await getViewerProfile()
 
-  if (!user) redirect('/login')
-
-  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
-  if (profile?.role !== 'owner') redirect('/')
+  if (!profile) redirect('/login')
+  if (profile.role !== 'owner') redirect('/')
 
   const [activeWar, factions] = await Promise.all([
     FactionWarModel.getActiveWar(),

@@ -1,22 +1,8 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import type { Profile } from '@/backend/types'
-import { createClient } from '@/frontend/lib/supabase/server'
 import { LoreSubmitForm } from '@/frontend/components/lore/LoreSubmitForm'
+import { getViewerProfile } from '@/frontend/lib/auth-server'
 
-async function getViewerProfile() {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    return null
-  }
-
-  const { data } = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle()
-  return (data as Profile | null) ?? null
-}
 
 export default async function LoreSubmitPage() {
   const viewer = await getViewerProfile()

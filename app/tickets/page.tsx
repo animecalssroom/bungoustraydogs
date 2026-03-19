@@ -1,21 +1,18 @@
 import { redirect } from 'next/navigation'
-import { createClient } from '@/frontend/lib/supabase/server'
 import { SupportModel } from '@/backend/models/support.model'
 import { TicketDesk } from '@/frontend/components/support/TicketDesk'
+import { getViewerUserId } from '@/frontend/lib/auth-server'
 
 export const dynamic = 'force-dynamic'
 
 export default async function TicketPage() {
-  const supabase = createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const userId = await getViewerUserId()
 
-  if (!user) {
+  if (!userId) {
     redirect('/login')
   }
 
-  const desk = await SupportModel.getUserDesk(user.id)
+  const desk = await SupportModel.getUserDesk(userId)
 
   return (
     <section className="section-wrap" style={{ paddingTop: '4rem', paddingBottom: '6rem' }}>

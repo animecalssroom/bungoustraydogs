@@ -1,7 +1,6 @@
 'use client'
 
 import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react'
-import { createClient } from '@/frontend/lib/supabase/client'
 import { useAuth } from './AuthContext'
 import type { Notification } from '@/backend/types'
 
@@ -29,7 +28,6 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const { user } = useAuth()
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [loading, setLoading] = useState(false)
-  const supabase = useMemo(() => createClient(), [])
 
   const load = useCallback(async () => {
     if (!user) return
@@ -61,12 +59,12 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     // Lightweight periodic refresh instead of always-on realtime channel
     const interval = window.setInterval(() => {
       void load()
-    }, 30000)
+    }, 60000)
 
     return () => {
       window.clearInterval(interval)
     }
-  }, [user, load, supabase])
+  }, [user, load])
 
   const unreadCount = useMemo(() => 
     notifications.filter((item) => !item.read_at).length

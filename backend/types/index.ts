@@ -87,6 +87,7 @@ export interface Profile {
   trait_scores: Record<string, number> | null
   behavior_scores: BehaviorScores | null
   avg_move_speed_minutes?: number | null
+  duel_moves_count?: number | null
   exam_retake_eligible_at: string | null
   exam_retake_used: boolean
   ap_total: number
@@ -868,7 +869,9 @@ export interface FactionWar {
   ends_at: string | null
   resolved_at: string | null
   boss_active: boolean
+  integrity?: number | null
   created_at: string
+  updated_at?: string | null
 }
 
 export interface WarContribution {

@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useCallback, useTransition } from 'react'
+import { useState, useCallback, useTransition, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { TacticalMap } from '@/frontend/components/wars/TacticalMap'
-import { SectorPanel } from '@/frontend/components/wars/SectorPanel'
+import { SectorPanel, type StrikeLaunchPayload } from '@/frontend/components/wars/SectorPanel'
 import { StrikeModal } from '@/frontend/components/wars/StrikeModal'
 import { TransmissionsFeed } from '@/frontend/components/wars/TransmissionsFeed'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -13,52 +13,109 @@ import type { FactionWar } from '@/backend/types'
 
 interface DistrictsClientProps {
   initialDistricts: District[]
-  activeWar: FactionWar | null
-  topContributors?: { user_id: string; username: string; rank: number; points: number; faction: string }[]
+  activeWars: FactionWar[]
+}
+
+function isValidWarId(value: string | null | undefined): value is string {
+  return Boolean(
+    value &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value),
+  )
 }
 
 export function DistrictsClient({
   initialDistricts,
-  activeWar,
-  topContributors = [],
+  activeWars,
 }: DistrictsClientProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
 
   const [selectedDistrict, setSelectedDistrict] = useState<District | null>(null)
-  const [userFaction, setUserFaction] = useState<string | null>(null)
   const [isStrikeModalOpen, setIsStrikeModalOpen] = useState(false)
+  const [strikePayload, setStrikePayload] = useState<StrikeLaunchPayload | null>(null)
+  const [currentActiveWars, setCurrentActiveWars] = useState<FactionWar[]>(activeWars)
 
-  // Determine enemy faction for strike filtering
-  const enemyFactionId = activeWar?.faction_a_id === userFaction ? activeWar?.faction_b_id : activeWar?.faction_a_id
-  const filteredTargets = topContributors.filter(tg => tg.faction === enemyFactionId)
+  const refreshActiveWar = useCallback(async () => {
+    try {
+      const res = await fetch('/api/war/active', { cache: 'no-store' })
+      const payload = await res.json()
+      if (res.ok) {
+        setCurrentActiveWars(Array.isArray(payload?.data) ? payload.data : [])
+      }
+    } catch (err) {
+      console.error('Failed to refresh active war:', err)
+    }
+  }, [])
 
-  // After a successful strike, refresh server data without full reload
-  const handleStrikeComplete = useCallback(() => {
+  const matchesDistrictWar = useCallback((district: District, war: FactionWar) => {
+    const districtRef = war.stakes_detail?.district_id
+    if (!districtRef || war.stakes !== 'district' || war.status === 'complete') {
+      return false
+    }
+
+    return (
+      districtRef === district.id ||
+      districtRef === district.slug ||
+      (district.slug === 'yokohama-port' && ['harbor', 'standard_island', 'standard-island', 'harbor-district'].includes(districtRef)) ||
+      (district.slug === 'minato-mirai' && districtRef === 'waterfront') ||
+      (district.slug === 'tsurumi-district' && districtRef === 'tsurumi') ||
+      (district.slug === 'honmoku-area' && districtRef === 'honmoku') ||
+      (district.slug === 'kannai-center' && districtRef === 'kannai') ||
+      (district.slug === 'northern-wards' && districtRef === 'northern_wards') ||
+      (district.slug === 'suribachi-city' && districtRef === 'suribachi')
+    )
+  }, [])
+
+  const selectedDistrictWar = selectedDistrict
+    ? currentActiveWars.find(
+        (war) => matchesDistrictWar(selectedDistrict, war),
+      ) ?? null
+    : null
+  const feedWarId = isValidWarId(selectedDistrictWar?.id)
+    ? selectedDistrictWar.id
+    : isValidWarId(currentActiveWars[0]?.id)
+      ? currentActiveWars[0].id
+      : null
+
+  const handleStrikeComplete = useCallback((result?: { warResolved?: boolean } | null) => {
     setIsStrikeModalOpen(false)
-    startTransition(() => {
-      router.refresh()
-    })
-  }, [router])
+    setStrikePayload(null)
+    void refreshActiveWar()
+    if (result?.warResolved) {
+      startTransition(() => {
+        router.refresh()
+      })
+    }
+  }, [refreshActiveWar, router])
 
   const handleDistrictSelect = useCallback((d: District) => {
     setSelectedDistrict(d)
+    setStrikePayload(null)
+    setIsStrikeModalOpen(false)
   }, [])
 
   const handlePanelClose = useCallback(() => {
     setSelectedDistrict(null)
-  }, [])
+    setStrikePayload(null)
+    setIsStrikeModalOpen(false)
+    void refreshActiveWar()
+  }, [refreshActiveWar])
+
+  useEffect(() => {
+    setCurrentActiveWars(activeWars)
+  }, [activeWars])
+
+  useEffect(() => {
+    void refreshActiveWar()
+  }, [refreshActiveWar])
 
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-black pt-16 flex flex-col md:flex-row">
-
-      {/* Side toolbar */}
       <div className="w-full md:w-16 bg-[#0a0a0a] border-b md:border-b-0 md:border-r border-[#222] flex md:flex-col items-center py-4 px-2 md:px-0 gap-6 z-20">
         <div className="p-2 bg-amber-500/10 rounded-lg border border-amber-500/20 mb-auto hidden md:block">
           <Terminal className="w-5 h-5 text-amber-500" />
         </div>
 
-        {/* Tactical map — only active view for now */}
         <button
           className="p-3 rounded-lg bg-white/10 text-white shadow-[0_0_15px_rgba(255,255,255,0.1)]"
           title="Tactical Map"
@@ -66,8 +123,7 @@ export function DistrictsClient({
           <MapIcon className="w-5 h-5" />
         </button>
 
-        {/* Active war indicator */}
-        {activeWar && (
+        {currentActiveWars.length > 0 && (
           <div className="mt-auto hidden md:flex flex-col items-center gap-2 pb-4">
             <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
             <Swords className="w-4 h-4 text-red-500/60" />
@@ -81,16 +137,14 @@ export function DistrictsClient({
         </div>
       </div>
 
-      {/* Main map */}
       <div className="flex-1 relative bg-black flex flex-col overflow-hidden">
         <div className="flex-1 relative min-h-[60vh]">
           <TacticalMap
             districts={initialDistricts}
             onDistrictSelect={handleDistrictSelect}
-            activeWar={activeWar}
+            activeWars={currentActiveWars}
           />
 
-          {/* Title HUD */}
           <div className="absolute top-6 left-6 pointer-events-none z-10">
             <div className="space-y-1">
               <h1 className="font-cinzel text-3xl text-white uppercase tracking-[0.2em]">
@@ -102,7 +156,6 @@ export function DistrictsClient({
             </div>
           </div>
 
-          {/* Refresh indicator */}
           {isPending && (
             <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20">
               <div className="bg-black/80 border border-amber-500/30 px-4 py-2 rounded font-space-mono text-[0.6rem] text-amber-500 tracking-widest flex items-center gap-2">
@@ -119,15 +172,12 @@ export function DistrictsClient({
           <div className="absolute inset-0 pointer-events-none opacity-[0.03] brain-scan-vignette" />
         </div>
 
-        {/* Transmissions Feed at the bottom of the map area */}
-        <TransmissionsFeed warId={activeWar?.id || null} />
+        <TransmissionsFeed warId={feedWarId} />
       </div>
 
-      {/* Sector panel — slide in from right */}
       <AnimatePresence>
         {selectedDistrict && (
           <>
-            {/* Mobile backdrop */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -147,24 +197,33 @@ export function DistrictsClient({
               <SectorPanel
                 district={selectedDistrict}
                 allDistricts={initialDistricts}
-                onStrikeClick={() => setIsStrikeModalOpen(true)}
-                onFactionSync={(f) => setUserFaction(f)}
+                onStrikeClick={(payload) => {
+                  setStrikePayload(payload)
+                  setIsStrikeModalOpen(true)
+                }}
                 onClose={handlePanelClose}
-                activeWar={activeWar}
-                topContributors={topContributors}
+                activeWar={selectedDistrictWar}
               />
             </motion.div>
           </>
         )}
       </AnimatePresence>
 
-      {/* Strike modal */}
       <AnimatePresence>
-        {isStrikeModalOpen && selectedDistrict && (
+        {isStrikeModalOpen && selectedDistrict && strikePayload && (
           <StrikeModal
             district={selectedDistrict}
+            warId={
+              isValidWarId(strikePayload.warId)
+                ? strikePayload.warId
+                : isValidWarId(selectedDistrictWar?.id)
+                  ? selectedDistrictWar.id
+                  : null
+            }
+            targets={strikePayload.targets}
+            specialLocked={strikePayload.specialLocked}
+            mustTargetGuards={strikePayload.mustTargetGuards}
             onClose={handleStrikeComplete}
-            targets={filteredTargets}
           />
         )}
       </AnimatePresence>

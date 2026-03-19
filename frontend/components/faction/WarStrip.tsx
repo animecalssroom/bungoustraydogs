@@ -16,10 +16,12 @@ export function WarStrip({ war, userFaction, onRetreat, canManageWar }: WarStrip
   const [currentWar, setCurrentWar] = useState<FactionWar>(war)
   const [timeLeft, setTimeLeft] = useState('')
   const [loadingRetreat, setLoadingRetreat] = useState(false)
+  const [integrity, setIntegrity] = useState<number>(war.integrity ?? 50)
   const supabase = createClient()
 
   useEffect(() => {
     setCurrentWar(war)
+    setIntegrity(war.integrity ?? 50)
   }, [war])
 
   useEffect(() => {
@@ -28,17 +30,30 @@ export function WarStrip({ war, userFaction, onRetreat, canManageWar }: WarStrip
       if (typeof document !== 'undefined' && document.hidden) {
         return
       }
-      const { data } = await supabase
-        .from('faction_wars')
-        .select('id, faction_a_id, faction_b_id, faction_a_points, faction_b_points, status, ends_at, stakes, stakes_detail')
-        .eq('id', war.id)
-        .single()
-      
-      if (data) {
-        setCurrentWar(data as FactionWar)
+      const [warResult, feedResult] = await Promise.allSettled([
+        supabase
+          .from('faction_wars')
+          .select('id, faction_a_id, faction_b_id, faction_a_points, faction_b_points, status, ends_at, stakes, stakes_detail')
+          .eq('id', war.id)
+          .single(),
+        fetch(`/api/war/experience?warId=${war.id}&mode=feed`, {
+          cache: 'no-store',
+        }),
+      ])
+
+      if (warResult.status === 'fulfilled' && warResult.value.data) {
+        setCurrentWar(warResult.value.data as FactionWar)
+      }
+
+      if (feedResult.status === 'fulfilled' && feedResult.value.ok) {
+        const payload = await feedResult.value.json().catch(() => null)
+        if (typeof payload?.integrity === 'number') {
+          setIntegrity(payload.integrity)
+        }
       }
     }
 
+    void poll()
     const interval = setInterval(poll, 60000)
     
     return () => clearInterval(interval)
@@ -66,9 +81,12 @@ export function WarStrip({ war, userFaction, onRetreat, canManageWar }: WarStrip
     return () => clearInterval(timer)
   }, [currentWar.ends_at])
 
-  const totalPoints = currentWar.faction_a_points + currentWar.faction_b_points
-  const pA = totalPoints > 0 ? (currentWar.faction_a_points / totalPoints) * 100 : 50
-  const pB = 100 - pA
+  const attackerPressure = Math.max(0, Math.min(100, 100 - integrity))
+  const defenderHold = Math.max(0, Math.min(100, integrity))
+  const opponentFaction =
+    currentWar.faction_a_id === userFaction ? currentWar.faction_b_id : currentWar.faction_a_id
+  const contestedLabel = currentWar.stakes_detail?.description || currentWar.stakes
+  const districtLabel = contestedLabel.replace(/^Control of\s+/i, '')
 
   return (
     <div className={styles.strip}>
@@ -81,19 +99,29 @@ export function WarStrip({ war, userFaction, onRetreat, canManageWar }: WarStrip
         <span className={styles.timer}>{timeLeft} remaining</span>
       </div>
 
+      <div className={styles.conflictBanner}>
+        <span className={styles.conflictLead}>IN WAR WITH {opponentFaction.toUpperCase()}</span>
+        <span className={styles.conflictDivider}>OVER</span>
+        <span className={styles.conflictTarget}>{districtLabel.toUpperCase()}</span>
+      </div>
+
+      {currentWar.war_message ? (
+        <p className={styles.warMessage}>{currentWar.war_message}</p>
+      ) : null}
+
       <div className={styles.battleLine}>
         <div className={styles.factionLabel}>
           <span className={styles.factionName}>{currentWar.faction_a_id.toUpperCase()}</span>
-          <span className={styles.points}>{currentWar.faction_a_points} pts</span>
+          <span className={styles.points}>{attackerPressure}% pressure</span>
         </div>
 
         <div className={styles.progressTrack}>
-          <div className={styles.barA} style={{ width: `${pA}%` }} />
-          <div className={styles.barB} style={{ width: `${pB}%` }} />
+          <div className={styles.barA} style={{ width: `${attackerPressure}%` }} />
+          <div className={styles.barB} style={{ width: `${defenderHold}%` }} />
         </div>
 
         <div className={styles.factionLabel}>
-          <span className={styles.points}>{currentWar.faction_b_points} pts</span>
+          <span className={styles.points}>{defenderHold}% hold</span>
           <span className={styles.factionName}>{currentWar.faction_b_id.toUpperCase()}</span>
         </div>
       </div>
@@ -101,6 +129,8 @@ export function WarStrip({ war, userFaction, onRetreat, canManageWar }: WarStrip
       <div className={styles.stakes}>
         <div className={styles.stakeInfo}>
           Stakes: <span className={styles.stakeDetail}>{currentWar.stakes_detail?.description || currentWar.stakes}</span>
+          {' · '}
+          Clash score: <span className={styles.stakeDetail}>{currentWar.faction_a_points} - {currentWar.faction_b_points}</span>
         </div>
         {canManageWar && (
           <button

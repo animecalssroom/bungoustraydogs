@@ -2,6 +2,11 @@ import getClient from '@/backend/lib/upstash'
 
 export type WarzoneRole = 'guard' | 'vanguard'
 export type DefenceStance = 'aggressive' | 'counter' | 'tactical'
+export interface WarDeploymentRecord {
+  role: WarzoneRole
+  stance: DefenceStance
+  deployedAt: string
+}
 
 export interface WarTransmission {
   id: string
@@ -11,6 +16,26 @@ export interface WarTransmission {
   timestamp: string
 }
 
+export interface WarReconSnapshot {
+  status: 'revealed'
+  sourceSlug: string | null
+  revealFields: string[]
+  revealedAt: string
+  durationSeconds: number
+}
+
+function parseDeploymentRecord(value: unknown): WarDeploymentRecord | null {
+  if (!value) return null
+  if (typeof value === 'string') {
+    try {
+      return JSON.parse(value) as WarDeploymentRecord
+    } catch {
+      return null
+    }
+  }
+  return value as WarDeploymentRecord
+}
+
 export const WarRedisModel = {
   // KEYS
   keys: {
@@ -18,7 +43,7 @@ export const WarRedisModel = {
     transmissions: (warId: string) => `war:${warId}:transmissions`,
     deployment: (warId: string, userId: string) => `war:${warId}:deployment:${userId}`,
     warzonePresence: (warId: string) => `war:${warId}:presence`,
-    activeDeployment: (userId: string) => `user:deployment:active`,
+    activeDeployment: (userId: string) => `user:${userId}:deployment:active`,
     recon: (districtId: string, factionId: string) => `war:recon:${districtId}:${factionId}`,
     recovery: (userId: string) => `user:recovery:${userId}`,
   },
@@ -37,20 +62,16 @@ export const WarRedisModel = {
     return val ?? 50 // Default to 50%
   },
 
-  async updateIntegrity(warId: string, delta: number): Promise<number> {
+  async setIntegrity(warId: string, value: number): Promise<number> {
     const redis = getClient()
-    const newVal = await redis.incrby(this.keys.integrity(warId), delta)
-    
-    // Clamp between 0 and 100
-    if (newVal < 0) {
-      await redis.set(this.keys.integrity(warId), 0)
-      return 0
-    }
-    if (newVal > 100) {
-      await redis.set(this.keys.integrity(warId), 100)
-      return 100
-    }
-    return newVal
+    const normalized = Math.max(0, Math.min(100, value))
+    await redis.set(this.keys.integrity(warId), normalized, { ex: 259200 })
+    return normalized
+  },
+
+  async updateIntegrity(warId: string, delta: number): Promise<number> {
+    const current = await this.getIntegrity(warId)
+    return await this.setIntegrity(warId, current + delta)
   },
 
   /**
@@ -75,7 +96,9 @@ export const WarRedisModel = {
   async getTransmissions(warId: string, limit = 20): Promise<WarTransmission[]> {
     const redis = getClient()
     const list = await redis.lrange(this.keys.transmissions(warId), 0, limit - 1)
-    return list.map(item => (typeof item === 'string' ? JSON.parse(item) : item))
+    return list
+      .map(item => (typeof item === 'string' ? JSON.parse(item) : item))
+      .reverse()
   },
 
   /**
@@ -95,23 +118,93 @@ export const WarRedisModel = {
 
   async getPlayerDeployment(userId: string, warId: string) {
     const redis = getClient()
-    const data = await redis.get<{ role: WarzoneRole, stance: DefenceStance, deployedAt: string }>(this.keys.deployment(warId, userId))
-    return data
+    const data = await redis.get(this.keys.deployment(warId, userId))
+    return parseDeploymentRecord(data)
+  },
+
+  async getWarzonePresence(warId: string): Promise<string[]> {
+    const redis = getClient()
+    const members = await redis.smembers(this.keys.warzonePresence(warId))
+    return Array.isArray(members) ? members.map(String) : []
+  },
+
+  async getDeployments(warId: string, userIds: string[]) {
+    const deployments = await Promise.all(
+      userIds.map(async (userId) => ({
+        userId,
+        deployment: await this.getPlayerDeployment(userId, warId),
+      })),
+    )
+
+    return deployments.reduce<Record<string, WarDeploymentRecord>>((acc, entry) => {
+      if (entry.deployment) {
+        acc[entry.userId] = entry.deployment
+      }
+      return acc
+    }, {})
+  },
+
+  async clearPlayerDeployment(userId: string, warId: string) {
+    const redis = getClient()
+    await Promise.all([
+      redis.del(this.keys.deployment(warId, userId)),
+      redis.del(this.keys.activeDeployment(userId)),
+      redis.srem(this.keys.warzonePresence(warId), userId),
+    ])
+  },
+
+  async clearWarzone(warId: string) {
+    const userIds = await this.getWarzonePresence(warId)
+    await Promise.all(userIds.map((userId) => this.clearPlayerDeployment(userId, warId)))
+    return userIds.length
   },
 
   /**
    * Recon (Intelligence)
    */
-  async revealDistrict(districtId: string, factionId: string, durationSeconds = 43200) { // Default 12h
+  async revealDistrict(
+    districtId: string,
+    factionId: string,
+    options: { durationSeconds?: number; sourceSlug?: string | null; revealFields?: string[] } = {},
+  ) {
     const redis = getClient()
     const key = this.keys.recon(districtId, factionId)
-    await redis.set(key, 'revealed', { ex: durationSeconds })
+    const durationSeconds = options.durationSeconds ?? 43200
+    const snapshot: WarReconSnapshot = {
+      status: 'revealed',
+      sourceSlug: options.sourceSlug ?? null,
+      revealFields: options.revealFields ?? [],
+      revealedAt: new Date().toISOString(),
+      durationSeconds,
+    }
+    await redis.set(key, JSON.stringify(snapshot), { ex: durationSeconds })
+  },
+
+  async getDistrictReconData(districtId: string, factionId: string): Promise<WarReconSnapshot | null> {
+    const redis = getClient()
+    const val = await redis.get(this.keys.recon(districtId, factionId))
+    if (!val) return null
+    if (val === 'revealed') {
+      return {
+        status: 'revealed',
+        sourceSlug: null,
+        revealFields: [],
+        revealedAt: new Date().toISOString(),
+        durationSeconds: 43200,
+      }
+    }
+    if (typeof val === 'string') {
+      try {
+        return JSON.parse(val) as WarReconSnapshot
+      } catch {
+        return null
+      }
+    }
+    return val as WarReconSnapshot
   },
 
   async isDistrictRevealed(districtId: string, factionId: string): Promise<boolean> {
-    const redis = getClient()
-    const val = await redis.get(this.keys.recon(districtId, factionId))
-    return val === 'revealed'
+    return Boolean(await this.getDistrictReconData(districtId, factionId))
   },
 
   /**

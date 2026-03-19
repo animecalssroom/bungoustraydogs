@@ -80,7 +80,7 @@ export function DuelHubClient({
     let active = true
     const timeout = window.setTimeout(async () => {
       const normalizedQuery = query.trim().replace(/^@+/, '')
-      if (!normalizedQuery) { setResults([]); return }
+      if (normalizedQuery.length < 2) { setResults([]); return }
       const response = await fetch(`/api/duels/search?q=${encodeURIComponent(normalizedQuery)}`)
       const json = await response.json()
       if (active) setResults(json.data ?? [])
@@ -89,16 +89,22 @@ export function DuelHubClient({
   }, [query])
 
   useEffect(() => {
+    const syncDuel = (duel: Duel | undefined) => {
+      if (!duel) return
+      setDuels((current) => {
+        const next = current.filter((entry) => entry.id !== duel.id)
+        if (duel.status === 'pending' || duel.status === 'active') return [duel, ...next].slice(0, 20)
+        return next
+      })
+    }
+
     const channel = supabase
       .channel(`duel-hub:${userId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'duels' }, (payload) => {
-        const duel = payload.new as Duel
-        if (!duel || (duel.challenger_id !== userId && duel.defender_id !== userId)) return
-        setDuels((current) => {
-          const next = current.filter((entry) => entry.id !== duel.id)
-          if (duel.status === 'pending' || duel.status === 'active') return [duel, ...next].slice(0, 20)
-          return next // Remove from active list when completed
-        })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'duels', filter: `challenger_id=eq.${userId}` }, (payload) => {
+        syncDuel((payload.new ?? payload.old) as Duel | undefined)
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'duels', filter: `defender_id=eq.${userId}` }, (payload) => {
+        syncDuel((payload.new ?? payload.old) as Duel | undefined)
       })
       .subscribe()
     return () => { void supabase.removeChannel(channel) }
@@ -131,7 +137,6 @@ export function DuelHubClient({
       setNotice('Challenge sent. Awaiting their response.')
       setQuery('')
       setResults([])
-      router.refresh()
     } finally {
       setBusy(false)
     }
@@ -404,3 +409,4 @@ export function DuelHubClient({
     </div>
   )
 }
+

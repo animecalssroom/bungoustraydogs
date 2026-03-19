@@ -230,21 +230,12 @@ export default function QuizPage() {
       return
     }
 
-    // Fallback: poll for updated profile (rare)
-    let pollCount = 0
-    const maxPolls = 18 // ~5 seconds
-    let profileReady = false
-    while (pollCount < maxPolls && !profileReady) {
-      try {
-        const resp = await fetch('/api/auth/me', { cache: 'no-store' })
-        const data = await resp.json()
-        if (data?.data?.quiz_completed && data?.data?.faction) {
-          profileReady = true
-          break
-        }
-      } catch { }
-      await new Promise((resolve) => setTimeout(resolve, 300))
-      pollCount++
+    try {
+      if (typeof refreshProfile === 'function') {
+        await refreshProfile()
+      }
+    } catch (err) {
+      console.error('Failed to refresh profile after quiz submission', err)
     }
 
     router.push('/onboarding/result')
@@ -477,3 +468,4 @@ export default function QuizPage() {
     </div>
   )
 }
+

@@ -51,7 +51,7 @@ const FACTION_SEALS: Record<'agency' | 'mafia' | 'guild' | 'hunting_dogs', strin
 
 export default function QuizResultPage() {
   const router = useRouter()
-  const { user, profile, loading } = useAuth()
+  const { user, profile, loading, refreshProfile } = useAuth()
   const [state, setState] = useState<{
     loading: boolean
     error: string
@@ -174,32 +174,19 @@ export default function QuizResultPage() {
       return
     }
 
-    // Poll for updated profile before redirecting to faction/private area
-    let pollCount = 0
-    const maxPolls = 18 // ~5 seconds
-    let profileReady = false
-    let lastProfile = null
-    while (pollCount < maxPolls && !profileReady) {
+    const factionId = json.data?.factionId ?? json.data?.faction ?? null
+
+    if (factionId) {
       try {
-        const resp = await fetch('/api/auth/me', { cache: 'no-store' })
-        const data = await resp.json()
-        lastProfile = data?.data
-        if (lastProfile?.quiz_completed && lastProfile?.quiz_locked && lastProfile?.faction) {
-          profileReady = true
-          break
-        }
+        await refreshProfile()
       } catch (err) {
-        console.error('Polling error in result page', err)
-        // Optionally, you could set an error state here:
-        // setState((current) => ({ ...current, error: 'Polling error: ' + (err?.message || err) }))
+        console.error('Failed to refresh profile after accepting assignment', err)
       }
-      await new Promise((resolve) => setTimeout(resolve, 300))
-      pollCount++
-    }
-    if (lastProfile?.faction) {
-      router.push(privateFactionPath(lastProfile.faction))
+
+      router.push(privateFactionPath(factionId))
       return
     }
+
     router.push('/')
   }
 
@@ -509,3 +496,4 @@ export default function QuizResultPage() {
     </div>
   )
 }
+

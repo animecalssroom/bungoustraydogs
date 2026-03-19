@@ -1,10 +1,10 @@
 import { unstable_noStore as noStore } from 'next/cache'
 import { UserModel } from '@/backend/models/user.model'
-import { createClient } from '@/frontend/lib/supabase/server'
 import { AngoProfileAction } from '@/frontend/components/ango/AngoProfileAction'
 import { ProfileExperience } from '@/frontend/components/profile/ProfileExperience'
 import { ProfileViewPing } from '@/frontend/components/profile/ProfileViewPing'
 import { ErrorBoundary } from '@/frontend/components/ui/ErrorBoundary'
+import { getViewerUserId } from '@/frontend/lib/auth-server'
 
 export default async function ProfilePage({
   params,
@@ -38,17 +38,14 @@ export default async function ProfilePage({
       </ErrorBoundary>
     )
   }
-  const supabase = createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const viewerUserId = await getViewerUserId()
   const initialEvents =
-    user?.id === profile.id ? await UserModel.getRecentEvents(profile.id, 50) : []
+    viewerUserId === profile.id ? await UserModel.getRecentEvents(profile.id, 50) : []
   return (
     <ErrorBoundary>
       <ProfileViewPing
         username={profile.username}
-        isOwnProfile={user?.id === profile.id}
+        isOwnProfile={viewerUserId === profile.id}
       />
       <div
         className="section-wrap"
@@ -57,11 +54,11 @@ export default async function ProfilePage({
         <ProfileExperience
           initialProfile={profile}
           initialEvents={initialEvents}
-          viewerUserId={user?.id ?? null}
+          viewerUserId={viewerUserId}
         />
         <AngoProfileAction
           profile={profile}
-          isOwnProfile={user?.id === profile.id}
+          isOwnProfile={viewerUserId === profile.id}
         />
       </div>
     </ErrorBoundary>

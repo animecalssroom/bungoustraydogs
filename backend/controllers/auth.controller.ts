@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { validate } from '@/backend/middleware/validate'
 import { UserModel } from '@/backend/models/user.model'
+import { resolvePostAuthPath } from '@/frontend/lib/launch'
 
 const LoginSchema = z.object({
   email: z.string().email(),
@@ -193,8 +194,22 @@ export const AuthController = {
       )
     }
 
+    const profile = user ? await UserModel.getById(user.id) : null
+    const response = NextResponse.json({
+      data: {
+        success: true,
+        redirectTo: resolvePostAuthPath(profile),
+      },
+    })
+    response.cookies.set('sb-session-hint', 'true', {
+      path: '/',
+      httpOnly: false,
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 7,
+    })
+
     console.log('[AuthController] Login sequence complete.')
-    return NextResponse.json({ data: { success: true } })
+    return response
   },
 
   async signup(req: NextRequest) {
@@ -224,36 +239,47 @@ export const AuthController = {
   async signout() {
     const supabase = createClient()
     await supabase.auth.signOut()
-    return NextResponse.json({ data: { success: true } })
+    const response = NextResponse.json({ data: { success: true } })
+    response.cookies.set('sb-session-hint', '', {
+      path: '/',
+      maxAge: 0,
+    })
+    return response
   },
 
   async me() {
     const supabase = createClient()
     const start = Date.now()
-    
-    let userResult
+    let user = null as Awaited<ReturnType<typeof supabase.auth.getUser>>['data']['user'] | null
+
     try {
-      userResult = await supabase.auth.getUser()
+      const userResult = await supabase.auth.getUser()
+      user = userResult.data.user ?? null
+      console.log(`[auth:me] getUser took ${Date.now() - start}ms. User: ${user?.id || 'null'}, Error: ${userResult.error?.message || 'none'}`)
+
+      if (userResult.error) {
+        const response = NextResponse.json({ error: userResult.error.message }, { status: 401 })
+        response.cookies.set('sb-session-hint', '', { path: '/', maxAge: 0 })
+        return response
+      }
     } catch (e: any) {
-      console.error(`[auth:me] getUser CRITICAL ERROR:`, e)
+      console.error('[auth:me] getUser error:', e)
       return NextResponse.json({ error: 'Connection failed', details: e.message }, { status: 503 })
     }
 
-    const { data: { user }, error } = userResult
-
-    console.log(`[auth:me] getUser took ${Date.now() - start}ms. User: ${user?.id || 'null'}, Error: ${error?.message || 'none'}`)
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 401 })
-    }
-
     if (!user) {
-      return NextResponse.json({ error: 'No session' }, { status: 401 })
+      const response = NextResponse.json({ error: 'No session' }, { status: 401 })
+      response.cookies.set('sb-session-hint', '', { path: '/', maxAge: 0 })
+      return response
     }
 
     const profileStart = Date.now()
     try {
-      const profile = await UserModel.getById(user.id)
+      let profile = await UserModel.getById(user.id)
+      if (!profile) {
+        await ensureProfile(user)
+        profile = await UserModel.getById(user.id)
+      }
       console.log(`[auth:me] getProfile took ${Date.now() - profileStart}ms`)
 
       if (!profile) {
@@ -261,7 +287,14 @@ export const AuthController = {
         return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
       }
 
-      return NextResponse.json({ data: profile })
+      const response = NextResponse.json({ data: profile })
+      response.cookies.set('sb-session-hint', 'true', {
+        path: '/',
+        httpOnly: false,
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 7,
+      })
+      return response
     } catch (e: any) {
       console.error(`[auth:me] Profile fetch error:`, e)
       return NextResponse.json({ error: 'Data fetch failed', details: e.message }, { status: 500 })

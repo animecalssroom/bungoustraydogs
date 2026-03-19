@@ -2,28 +2,25 @@
 
 import { useEffect } from 'react'
 import type { FactionId } from '@/backend/types'
+import { scheduleBehaviorPing } from '@/frontend/lib/behavior-ping'
 
 export function FactionFeedPing({ factionId }: { factionId: FactionId }) {
   useEffect(() => {
-    const storageKey = `bsd_feed_view_${factionId}`
+    const dateKey = new Date().toISOString().slice(0, 10)
 
-    if (window.sessionStorage.getItem(storageKey) === '1') {
-      return
-    }
-
-    window.sessionStorage.setItem(storageKey, '1')
-
-    void fetch('/api/behavior/update', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+    return scheduleBehaviorPing({
+      storageKey: `bsd_feed_view_${factionId}_${dateKey}`,
+      storageArea: 'session',
+      delayMs: 8000,
+      body: {
         eventType: 'feed_view',
         metadata: {
           faction: factionId,
           source: 'faction_feed',
+          date_key: dateKey,
         },
-      }),
-    }).catch(() => null)
+      },
+    })
   }, [factionId])
 
   return null

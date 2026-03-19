@@ -1,37 +1,17 @@
 import { redirect } from 'next/navigation'
 export const dynamic = 'force-dynamic'
-import type { Profile } from '@/backend/types'
 import { FactionModel } from '@/backend/models/faction.model'
 import { FactionSpaceModel } from '@/backend/models/faction-space.model'
 import { RegistryModel } from '@/backend/models/registry.model'
 import { FactionWarModel } from '@/backend/models/faction-war.model'
-import { FactionCheckIn } from '@/frontend/components/ui/FactionCheckIn'
 import { FactionPrivateSpace } from '@/frontend/components/faction/FactionPrivateSpace'
 import {
   normalizePrivateFactionRouteId,
   privateFactionPath,
 } from '@/frontend/lib/launch'
-import { createClient } from '@/frontend/lib/supabase/server'
 import { DistrictModel, type District } from '@/backend/models/district.model'
+import { getViewerProfile } from '@/frontend/lib/auth-server'
 
-async function getViewerProfile() {
-  const supabase = createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    return null
-  }
-
-  const { data } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .maybeSingle()
-
-  return (data as Profile | null) ?? null
-}
 
 export default async function FactionPrivateSpacePage({
   params,
@@ -63,16 +43,21 @@ export default async function FactionPrivateSpacePage({
     redirect('/')
   }
 
-  const [space, bulletins, activity, messages, warFactions, pendingRegistryPosts, activeWar, districts] = await Promise.all([
+  const [space, bulletins, activity, messages, warFactions, pendingRegistryPosts, activeWars, districts] = await Promise.all([
     FactionSpaceModel.getSpace(factionId),
     FactionSpaceModel.getBulletins(factionId),
     FactionSpaceModel.getActivity(factionId),
     FactionSpaceModel.getMessages(factionId),
     FactionModel.getAll(),
     RegistryModel.getPendingForFaction(factionId, profile),
-    FactionWarModel.getActiveWar(),
+    FactionWarModel.getActiveWars(),
     DistrictModel.getAll()
   ])
+
+  const activeWar =
+    activeWars.find(
+      (war) => war.faction_a_id === factionId || war.faction_b_id === factionId,
+    ) ?? null
 
   if (!space) {
     redirect(privateFactionPath(profile.faction ?? factionId))
@@ -88,7 +73,6 @@ export default async function FactionPrivateSpacePage({
   }
   return (
     <div style={{ paddingTop: '36px' }}>
-      <FactionCheckIn factionId={factionId} />
       <FactionPrivateSpace
         factionId={factionId}
         profile={profile}
@@ -105,3 +89,4 @@ export default async function FactionPrivateSpacePage({
     </div>
   )
 }
+

@@ -57,7 +57,7 @@ interface TacticalSectorMapProps {
   districts: District[]
   onDistrictSelect: (district: District) => void
   selectedId?: string
-  activeWar: FactionWar | null
+  activeWars: FactionWar[]
 }
 
 const OLD_SLUG_MAP: Record<string, string> = {
@@ -71,14 +71,26 @@ const OLD_SLUG_MAP: Record<string, string> = {
   'suribachi': 'suribachi-city'
 }
 
-export function TacticalSectorMap({ districts, onDistrictSelect, selectedId, activeWar }: TacticalSectorMapProps) {
+export function TacticalSectorMap({ districts, onDistrictSelect, selectedId, activeWars }: TacticalSectorMapProps) {
   const mappedSectors = useMemo(() => {
     return SECTORS.map(s => {
       const district = districts.find(d => d.slug === s.id || OLD_SLUG_MAP[d.slug] === s.id)
       const factionId = district?.controlling_faction as FactionId
       const factionColor = factionId ? FACTION_META[factionId]?.color : s.color
-      
-      const isContested = activeWar?.status === 'active' && activeWar.stakes === 'district' && activeWar.stakes_detail?.district_id === district?.id
+      const isContested = activeWars.some((war) => {
+        const contestedDistrictId = war?.stakes_detail?.district_id
+        return Boolean(
+          war?.status !== 'complete' &&
+          war.stakes === 'district' &&
+          district &&
+          contestedDistrictId &&
+          (
+            contestedDistrictId === district.id ||
+            contestedDistrictId === district.slug ||
+            OLD_SLUG_MAP[contestedDistrictId] === s.id
+          )
+        )
+      })
 
       return {
         ...s,
@@ -88,7 +100,7 @@ export function TacticalSectorMap({ districts, onDistrictSelect, selectedId, act
         isContested
       }
     })
-  }, [districts, activeWar])
+  }, [districts, activeWars])
 
   return (
     <div className="relative w-full h-full bg-[#050505] flex items-center justify-center p-4 overflow-hidden">

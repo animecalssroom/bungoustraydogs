@@ -8,7 +8,7 @@ import { cache } from '@/backend/lib/cache'
 import { FactionWarModel } from './faction-war.model'
 import { WarContributionModel } from './war-contribution.model'
 
-const PROFILE_SELECT = 'id, username, username_confirmed, email, avatar_url, bio, theme, role, faction, character_name, character_match_id, character_ability, character_ability_jp, character_description, character_type, character_assigned_at, secondary_character_slug, secondary_character_name, exam_completed, exam_taken_at, exam_answers, exam_scores, quiz_scores, exam_status, quiz_completed, quiz_locked, assignment_flag_used, trait_scores, behavior_scores, avg_move_speed_minutes, exam_retake_eligible_at, exam_retake_used, ap_total, rank, duel_wins, duel_losses, is_bot, login_streak, guide_bot_dismissed, guide_bot_opened_at, last_seen, created_at, updated_at, recovery_until, recovery_status'
+const PROFILE_SELECT = 'id, username, username_confirmed, email, avatar_url, bio, theme, role, faction, character_name, character_match_id, character_ability, character_ability_jp, character_description, character_type, character_assigned_at, secondary_character_slug, secondary_character_name, exam_completed, exam_taken_at, exam_answers, exam_scores, quiz_scores, exam_status, quiz_completed, quiz_locked, assignment_flag_used, trait_scores, behavior_scores, avg_move_speed_minutes, duel_moves_count, exam_retake_eligible_at, exam_retake_used, ap_total, rank, duel_wins, duel_losses, is_bot, login_streak, guide_bot_dismissed, guide_bot_opened_at, last_seen, created_at, updated_at, recovery_until, recovery_status'
 
 const TOKYO_TIME_ZONE = 'Asia/Tokyo'
 

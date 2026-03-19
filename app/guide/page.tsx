@@ -1,6 +1,6 @@
 import Link from 'next/link'
-import { createClient } from '@/frontend/lib/supabase/server'
 import { CharacterProgress } from '@/frontend/components/profile/CharacterProgress'
+import { getViewerUserId } from '@/frontend/lib/auth-server'
 
 const cardStyle = {
   border: '1px solid var(--border)',
@@ -9,8 +9,7 @@ const cardStyle = {
 } as const
 
 export default async function GuidePage() {
-  const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const userId = await getViewerUserId()
 
   return (
     <div style={{ paddingTop: '36px' }}>
@@ -27,7 +26,7 @@ export default async function GuidePage() {
         </p>
       </div>
 
-      {user ? (
+      {userId ? (
         <div className="section-wrap" style={{ marginBottom: '2rem' }}>
           <CharacterProgress />
         </div>

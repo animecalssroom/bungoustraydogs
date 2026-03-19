@@ -1,5 +1,4 @@
 import { notFound, redirect } from 'next/navigation'
-import { createClient } from '@/frontend/lib/supabase/server'
 import { DuelModel } from '@/backend/models/duel.model'
 import { DuelScreenClient } from '@/components/duels/DuelScreenClient'
 import { supabaseAdmin } from '@/backend/lib/supabase'
@@ -7,6 +6,7 @@ import { resolveDuelRoundWithAdmin } from '@/backend/lib/duel-runtime'
 import type { DuelRound, Profile } from '@/backend/types/index'
 import { GAMBIT_MAX_PER_DUEL, deriveMoveConstraints } from '@/lib/duels/shared'
 import type { MoveConstraints } from '@/backend/types/index'
+import { getViewerUserId } from '@/frontend/lib/auth-server'
 
 // deriveMoveConstraints moved to @/lib/duels/shared
 
@@ -26,24 +26,21 @@ export default async function DuelPage({
 }: {
   params: { duelId: string }
 }) {
-  const supabase = createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const userId = await getViewerUserId()
 
-  if (!user) redirect('/login')
+  if (!userId) redirect('/login')
 
   // Fetch duel + viewer in parallel
   const [duel, viewer] = await Promise.all([
     DuelModel.getDuelById(params.duelId),
-    DuelModel.getParticipant(user.id),
+    DuelModel.getParticipant(userId),
   ])
 
   if (!duel) notFound()
   if (!viewer) redirect('/duels')
 
   const isParticipant =
-    duel.challenger_id === user.id || duel.defender_id === user.id
+    duel.challenger_id === userId || duel.defender_id === userId
 
   // Non-participants can only view ranked duels or completed duels
   if (!isParticipant && !duel.is_ranked && duel.status !== 'complete') {
@@ -51,7 +48,7 @@ export default async function DuelPage({
   }
 
   // Resolve stuck round + fetch rounds in parallel
-  const [, roundsResult] = await Promise.all([
+  const [didResolve, roundsResult] = await Promise.all([
     resolveDuelRoundWithAdmin(duel.id),
     supabaseAdmin
       .from('duel_rounds')
@@ -61,12 +58,14 @@ export default async function DuelPage({
       .limit(10),
   ])
 
-  // Re-fetch after resolution so HP/status is fresh
-  const refreshedDuel = (await DuelModel.getDuelById(params.duelId)) ?? duel
+  // Re-fetch only when the resolver actually changed duel state.
+  const refreshedDuel = didResolve
+    ? (await DuelModel.getDuelById(params.duelId)) ?? duel
+    : duel
   const rounds = (roundsResult.data as DuelRound[] | null) ?? []
 
   const moveConstraints: MoveConstraints = isParticipant
-    ? deriveMoveConstraints(rounds, user.id, duel.challenger_id ?? '')
+    ? deriveMoveConstraints(rounds, userId, duel.challenger_id ?? '')
     : { gambitsRemaining: 0, specialAvailable: false }
 
   return (
