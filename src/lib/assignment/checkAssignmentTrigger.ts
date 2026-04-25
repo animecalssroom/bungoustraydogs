@@ -5,7 +5,10 @@ import {
 } from '@/backend/types'
 import { runCharacterAssignment } from './runCharacterAssignment'
 
-export async function checkAssignmentTrigger(userId: string): Promise<void> {
+export async function checkAssignmentTrigger(
+  userId: string, 
+  prefetchedCounts?: Record<string, number>
+): Promise<void> {
   // Skip if already assigned
   const { data: profile } = await supabaseAdmin
     .from('profiles')
@@ -16,14 +19,25 @@ export async function checkAssignmentTrigger(userId: string): Promise<void> {
   if (!profile || profile.character_name) return // already assigned
   if (!profile.faction) return // needs faction first
 
-  // Count qualifying events
-  const { count } = await supabaseAdmin
-    .from('user_events')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', userId)
-    .in('event_type', QUALIFYING_ASSIGNMENT_EVENTS)
+  let count = 0
 
-  if (!count || count < CHARACTER_ASSIGNMENT_THRESHOLD) return
+  if (prefetchedCounts) {
+    // Sum up only qualifying events
+    count = QUALIFYING_ASSIGNMENT_EVENTS.reduce(
+      (sum, type) => sum + (prefetchedCounts[type] || 0), 
+      0
+    )
+  } else {
+    // Count qualifying events from DB
+    const { count: dbCount } = await supabaseAdmin
+      .from('user_events')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .in('event_type', QUALIFYING_ASSIGNMENT_EVENTS)
+    count = dbCount || 0
+  }
+
+  if (count < CHARACTER_ASSIGNMENT_THRESHOLD) return
 
   // Threshold reached — fire assignment
   await runCharacterAssignment(userId)

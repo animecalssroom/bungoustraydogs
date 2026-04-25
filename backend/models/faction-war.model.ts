@@ -5,7 +5,6 @@ import { cache as reactCache } from 'react'
 import { cache as appCache } from '@/backend/lib/cache'
 import { invalidateNotificationsCache } from '@/backend/lib/notifications-cache'
 import type { DefenceStance, WarzoneRole } from './war-redis.model'
-import { getStrikeAbilityOutcome } from '@/backend/lib/war-abilities'
 import { CharacterModel } from './character.model'
 
 const WAR_SELECT = 'id, faction_a_id, faction_b_id, status, winner_id, starts_at, ends_at, day2_at, day3_at, faction_a_points, faction_b_points, boss_active, stakes, stakes_detail, war_message, resolved_at, created_at, updated_at, chronicle_id'
@@ -30,35 +29,8 @@ type TacticalParticipant = {
   is_recovering: boolean
 }
 
-function clamp(value: number, min: number, max: number) {
-  return Math.max(min, Math.min(max, value))
-}
-
 function isRecoveryActive(recoveryUntil: string | null | undefined) {
   return Boolean(recoveryUntil && new Date(recoveryUntil).getTime() > Date.now())
-}
-
-function getApproachBonus(approach: 'Frontal Assault' | 'Outmaneuver' | 'Ability Overload', classTag: string | null) {
-  if (approach === 'Frontal Assault' && classTag === 'BRUTE') return 10
-  if (approach === 'Outmaneuver' && classTag === 'INTEL') return 12
-  if (approach === 'Ability Overload' && classTag === 'ANOMALY') return 15
-  if (approach === 'Frontal Assault' && classTag === 'SUPPORT') return -4
-  return 0
-}
-
-function getClassMatchBonus(attackerClass: string | null, defenderClass: string | null) {
-  if (!attackerClass || !defenderClass) return 0
-  if (attackerClass === 'ANOMALY' && defenderClass === 'BRUTE') return 8
-  if (attackerClass === 'INTEL' && defenderClass === 'ANOMALY') return 7
-  if (attackerClass === 'BRUTE' && defenderClass === 'SUPPORT') return 6
-  if (attackerClass === 'SUPPORT' && defenderClass === 'INTEL') return 4
-  return 0
-}
-
-function getStanceBonus(stance: DefenceStance) {
-  if (stance === 'counter') return 8
-  if (stance === 'tactical') return 4
-  return 0
 }
 
 export const FactionWarModel = {
@@ -127,7 +99,7 @@ export const FactionWarModel = {
   }),
 
   async getActiveWars(): Promise<FactionWar[]> {
-    return appCache.getOrSet('war:active:list', 3, async () => {
+    return appCache.getOrSet('war:active:list', 30, async () => {
       const { data, error } = await supabaseAdmin
         .from('faction_wars')
         .select(WAR_SELECT)
@@ -144,7 +116,7 @@ export const FactionWarModel = {
   },
 
   async getById(warId: string): Promise<FactionWar | null> {
-    return appCache.getOrSet(`war:detail:${warId}`, 3, async () => {
+    return appCache.getOrSet(`war:detail:${warId}`, 30, async () => {
       const { data, error } = await supabaseAdmin
         .from('faction_wars')
         .select(WAR_SELECT)
@@ -161,7 +133,7 @@ export const FactionWarModel = {
   },
 
   async getWarRoster(warId: string): Promise<TacticalParticipant[]> {
-    return appCache.getOrSet(`war:roster:${warId}`, 3, async () => {
+    return appCache.getOrSet(`war:roster:${warId}`, 20, async () => {
       const { WarRedisModel } = await import('./war-redis.model')
       const userIds = await WarRedisModel.getWarzonePresence(warId)
 
@@ -713,188 +685,8 @@ export const FactionWarModel = {
     warId: string,
     approach: 'Frontal Assault' | 'Outmaneuver' | 'Ability Overload'
   ) {
-    const { WarRedisModel } = await import('./war-redis.model')
-    const war = await this.getById(warId)
-    if (!war || war.status === 'complete') {
-      throw new Error('Conflict signature not found or already resolved.')
-    }
-
-    const roster = await this.getWarRoster(warId)
-    const rosterMap = new Map(roster.map((entry) => [entry.user_id, entry]))
-    const attacker = rosterMap.get(attackerId)
-    const defender = rosterMap.get(defenderId)
-
-    if (!attacker || !defender) {
-      throw new Error('One or more operatives are not deployed in this warzone.')
-    }
-
-    if (attacker.deployment_role !== 'vanguard') {
-      throw new Error('Only deployed vanguard operatives can initiate a strike.')
-    }
-
-    if (attacker.faction !== war.faction_a_id && attacker.faction !== war.faction_b_id) {
-      throw new Error('Attacker faction is not registered to this conflict.')
-    }
-
-    if (defender.faction !== war.faction_a_id && defender.faction !== war.faction_b_id) {
-      throw new Error('Defender faction is not registered to this conflict.')
-    }
-
-    if (!attacker.faction || !defender.faction || attacker.faction === defender.faction) {
-      throw new Error('Target is not a hostile operative.')
-    }
-
-    if (attacker.is_recovering) {
-      throw new Error('Your operative is still in recovery and cannot engage.')
-    }
-
-    if (defender.is_recovering) {
-      throw new Error('That target has already been incapacitated.')
-    }
-
-    const activeEnemyGuards = roster.filter(
-      (entry) =>
-        entry.faction === defender.faction &&
-        entry.deployment_role === 'guard' &&
-        !entry.is_recovering,
-    )
-
-    const districtId = war.stakes_detail?.district_id as string | undefined
-    const hasRecon =
-      attacker.faction === war.faction_b_id ||
-      (districtId ? await WarRedisModel.isDistrictRevealed(districtId, attacker.faction) : false)
-
-    const strikeAbility = getStrikeAbilityOutcome({
-      attacker,
-      defender,
-      roster,
-      hasRecon,
-      approach,
-    })
-
-    if (activeEnemyGuards.length > 0 && defender.deployment_role !== 'guard' && !strikeAbility.bypassGuards) {
-      throw new Error('Enemy guards are still holding the line. Clear deployed guards before hitting open operatives.')
-    }
-
-    if (strikeAbility.suppressedReason) {
-      throw new Error(strikeAbility.suppressedReason)
-    }
-
-    const attackerPower =
-      attacker.stat_power * 0.5 +
-      attacker.stat_speed * 0.25 +
-      attacker.stat_control * 0.25 +
-      getApproachBonus(approach, attacker.class_tag) +
-      getClassMatchBonus(attacker.class_tag, defender.class_tag) +
-      strikeAbility.attackerPowerBonus
-
-    const defenderPower =
-      defender.stat_power * 0.42 +
-      defender.stat_speed * 0.18 +
-      defender.stat_control * 0.4 +
-      getStanceBonus(defender.deployment_stance) +
-      (defender.deployment_role === 'guard' ? 10 : 0) +
-      strikeAbility.defenderPowerBonus
-
-    const reconModifier = hasRecon ? 6 : -6
-    const baseWinChance = attackerPower / Math.max(attackerPower + defenderPower, 1)
-    const winChance = clamp(baseWinChance + reconModifier / 100, 0.18, 0.82)
-    const attackerWins = Math.random() < winChance
-
-    const winner = attackerWins ? attacker : defender
-    const loser = attackerWins ? defender : attacker
-    const recoveryHours = strikeAbility.loserRecoveryHours
-    const recoveryUntil = new Date(Date.now() + recoveryHours * 60 * 60 * 1000).toISOString()
-
-    await Promise.all([
-      supabaseAdmin
-        .from('user_characters')
-        .update({ recovery_until: recoveryUntil })
-        .eq('user_id', loser.user_id)
-        .eq('is_equipped', true),
-      supabaseAdmin
-        .from('profiles')
-        .update({ recovery_until: recoveryUntil, recovery_status: 'defeated' })
-        .eq('id', loser.user_id),
-      WarRedisModel.setRecovery(loser.user_id),
-    ])
-
-    const integrityDelta =
-      winner.faction === war.faction_a_id
-        ? -(5 + (attackerWins ? strikeAbility.integrityBonusOnWin : 0))
-        : 5 + (!attackerWins ? strikeAbility.integrityBonusOnDefenseWin : 0)
-    const finalIntegrity = await WarRedisModel.updateIntegrity(warId, integrityDelta)
-
-    await Promise.all([
-      this.updatePoints(warId, winner.faction as string, 5),
-      supabaseAdmin.from('war_contributions').insert({
-        war_id: warId,
-        user_id: winner.user_id,
-        contribution_type: 'duel_win',
-        points: 5,
-        reference_id: null,
-      }),
-    ])
-
-    const combatSteps = [
-      { phase: 'ENGAGEMENT', text: `@${attacker.username} commits to ${approach.toUpperCase()}.` },
-      { phase: 'CONFLICT', text: `${attacker.character_name ?? attacker.username} [${attacker.class_tag ?? 'UNKNOWN'}] clashes with ${defender.character_name ?? defender.username} [${defender.class_tag ?? 'UNKNOWN'}].` },
-      {
-        phase: 'CLIMAX',
-        text: attackerWins
-          ? `${winner.character_name ?? winner.username} breaks the line and drops ${loser.character_name ?? loser.username}.`
-          : `${winner.character_name ?? winner.username} repulses the advance and forces ${loser.character_name ?? loser.username} out of the sector.`,
-      },
-      ...strikeAbility.notes.map((note, index) => ({
-        phase: `ABILITY_${index + 1}`,
-        text: note,
-      })),
-    ]
-
-    const msg = `[COMBAT] @${attacker.username} engaged @${defender.username}. ${winner.faction?.toUpperCase()} won the clash. ${loser.character_name ?? loser.username} is down for ${recoveryHours}h. Integrity: ${finalIntegrity}%`
-    await WarRedisModel.pushTransmission(warId, msg, 'combat')
-
-    const postBattleRoster = roster.map((entry) =>
-      entry.user_id === loser.user_id ? { ...entry, is_recovering: true } : entry,
-    )
-    const activeAttackers = postBattleRoster.filter(
-      (entry) => entry.faction === war.faction_a_id && !entry.is_recovering,
-    ).length
-    const activeDefenders = postBattleRoster.filter(
-      (entry) => entry.faction === war.faction_b_id && !entry.is_recovering,
-    ).length
-
-    let resolvedWinner: string | null = null
-    if (finalIntegrity <= 0) {
-      resolvedWinner = war.faction_a_id
-    } else if (finalIntegrity >= 100) {
-      resolvedWinner = war.faction_b_id
-    } else if (activeAttackers === 0 && activeDefenders > 0) {
-      resolvedWinner = war.faction_b_id
-    } else if (activeDefenders === 0 && activeAttackers > 0) {
-      resolvedWinner = war.faction_a_id
-    }
-
-    if (resolvedWinner) {
-      await this.resolveWar(warId, resolvedWinner)
-    }
-
-    return {
-      success: attackerWins,
-      winner: winner.character_name ?? winner.username,
-      loser: loser.character_name ?? loser.username,
-      message: msg,
-      combatSteps,
-      stats: {
-        attackerPower: Math.round(attackerPower),
-        defenderPower: Math.round(defenderPower),
-        approachBonus: getApproachBonus(approach, attacker.class_tag),
-      },
-      integrity: finalIntegrity,
-      warResolved: Boolean(resolvedWinner),
-      resolvedWinner,
-      districtId: districtId ?? null,
-    }
+    const { resolveShadowDuel } = await import('./resolve-shadow-duel-method')
+    return resolveShadowDuel(attackerId, defenderId, warId, approach)
   },
 
   /**
@@ -916,6 +708,19 @@ export const FactionWarModel = {
    * Periodically sync Redis live state to Supabase for permanence.
    */
   async syncRedisToSupabase() {
+    // Check cache first to avoid DB query when no wars exist
+    const cached = await appCache.getOrSet('war:any:active', 60, async () => {
+      const { count } = await supabaseAdmin
+        .from('faction_wars')
+        .select('id', { count: 'exact', head: true })
+        .neq('status', 'complete')
+      return (count ?? 0) > 0
+    })
+
+    if (!cached) {
+      return { synced: 0 }
+    }
+
     const { data: activeWars, error } = await supabaseAdmin
       .from('faction_wars')
       .select('id')
@@ -925,7 +730,6 @@ export const FactionWarModel = {
     if (!activeWars || activeWars.length === 0) return { synced: 0 }
 
     const results = await Promise.all(activeWars.map(w => this.syncWarState(w.id)))
-
     return { synced: activeWars.length, results }
   }
 }

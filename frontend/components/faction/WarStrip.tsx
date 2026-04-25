@@ -30,23 +30,15 @@ export function WarStrip({ war, userFaction, onRetreat, canManageWar }: WarStrip
       if (typeof document !== 'undefined' && document.hidden) {
         return
       }
-      const [warResult, feedResult] = await Promise.allSettled([
-        supabase
-          .from('faction_wars')
-          .select('id, faction_a_id, faction_b_id, faction_a_points, faction_b_points, status, ends_at, stakes, stakes_detail')
-          .eq('id', war.id)
-          .single(),
-        fetch(`/api/war/experience?warId=${war.id}&mode=feed`, {
-          cache: 'no-store',
-        }),
-      ])
+      const feedResult = await fetch(`/api/war/experience?warId=${war.id}&mode=feed`, {
+        cache: 'no-store',
+      })
 
-      if (warResult.status === 'fulfilled' && warResult.value.data) {
-        setCurrentWar(warResult.value.data as FactionWar)
-      }
-
-      if (feedResult.status === 'fulfilled' && feedResult.value.ok) {
-        const payload = await feedResult.value.json().catch(() => null)
+      if (feedResult.ok) {
+        const payload = await feedResult.json().catch(() => null)
+        if (payload?.war) {
+          setCurrentWar(payload.war as FactionWar)
+        }
         if (typeof payload?.integrity === 'number') {
           setIntegrity(payload.integrity)
         }

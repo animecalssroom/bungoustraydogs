@@ -1,0 +1,63 @@
+{
+  "framework": "nextjs",
+  "buildCommand": "next build",
+  "functions": {
+    "app/api/behavior/**": {
+      "maxDuration": 10
+    },
+    "app/api/duels/submit-move/route.ts": {
+      "maxDuration": 30
+    },
+    "app/api/guide-bot/chat/route.ts": {
+      "maxDuration": 60
+    },
+    "app/api/bots/**": {
+      "maxDuration": 60
+    },
+    "app/api/war/strike/route.ts": {
+      "maxDuration": 30
+    }
+  },
+  "headers": [
+    {
+      "source": "/api/arena(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "s-maxage=30, stale-while-revalidate=60" }
+      ]
+    },
+    {
+      "source": "/api/faction(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "s-maxage=60, stale-while-revalidate=120" }
+      ]
+    },
+    {
+      "source": "/api/character(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "s-maxage=3600, stale-while-revalidate=7200" }
+      ]
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/war/cron",
+      "schedule": "*/30 * * * *"
+    },
+    {
+      "path": "/api/cron/war-sync",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/bots/faction-post",
+      "schedule": "0 */8 * * *"
+    },
+    {
+      "path": "/api/bots/check-replies",
+      "schedule": "*/20 * * * *"
+    },
+    {
+      "path": "/api/bots/daily-login",
+      "schedule": "0 0 * * *"
+    }
+  ]
+}

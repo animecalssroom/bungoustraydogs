@@ -8,8 +8,6 @@ import { GAMBIT_MAX_PER_DUEL, deriveMoveConstraints } from '@/lib/duels/shared'
 import type { MoveConstraints } from '@/backend/types/index'
 import { getViewerUserId } from '@/frontend/lib/auth-server'
 
-// deriveMoveConstraints moved to @/lib/duels/shared
-
 const ROUNDS_SELECT = [
   'id', 'duel_id', 'round_number',
   'challenger_move', 'challenger_override_character', 'challenger_move_submitted_at',
@@ -21,16 +19,21 @@ const ROUNDS_SELECT = [
   'special_events', 'narrative', 'narrative_is_fallback', 'resolved_at',
 ].join(', ')
 
+/** Only trigger resolution if the active round is actually past its deadline */
+function shouldResolve(rounds: DuelRound[]): boolean {
+  const activeRound = rounds.find(r => !r.resolved_at)
+  if (!activeRound?.round_deadline) return false
+  return new Date(activeRound.round_deadline).getTime() < Date.now()
+}
+
 export default async function DuelPage({
   params,
 }: {
   params: { duelId: string }
 }) {
   const userId = await getViewerUserId()
-
   if (!userId) redirect('/login')
 
-  // Fetch duel + viewer in parallel
   const [duel, viewer] = await Promise.all([
     DuelModel.getDuelById(params.duelId),
     DuelModel.getParticipant(userId),
@@ -42,27 +45,39 @@ export default async function DuelPage({
   const isParticipant =
     duel.challenger_id === userId || duel.defender_id === userId
 
-  // Non-participants can only view ranked duels or completed duels
   if (!isParticipant && !duel.is_ranked && duel.status !== 'complete') {
     redirect('/duels')
   }
 
-  // Resolve stuck round + fetch rounds in parallel
-  const [didResolve, roundsResult] = await Promise.all([
-    resolveDuelRoundWithAdmin(duel.id),
-    supabaseAdmin
-      .from('duel_rounds')
-      .select(ROUNDS_SELECT)
-      .eq('duel_id', duel.id)
-      .order('round_number', { ascending: true })
-      .limit(10),
-  ])
+  // Fetch rounds first
+  const roundsResult = await supabaseAdmin
+    .from('duel_rounds')
+    .select(ROUNDS_SELECT)
+    .eq('duel_id', duel.id)
+    .order('round_number', { ascending: true })
+    .limit(10)
 
-  // Re-fetch only when the resolver actually changed duel state.
-  const refreshedDuel = didResolve
-    ? (await DuelModel.getDuelById(params.duelId)) ?? duel
-    : duel
-  const rounds = (roundsResult.data as DuelRound[] | null) ?? []
+  let rounds = (roundsResult.data as DuelRound[] | null) ?? []
+
+  // ── KEY FIX: Only call the resolver when deadline has actually passed ──
+  let refreshedDuel = duel
+  if (duel.status === 'active' && shouldResolve(rounds)) {
+    const didResolve = await resolveDuelRoundWithAdmin(duel.id)
+    if (didResolve) {
+      // Re-fetch only what changed
+      const [newDuel, newRoundsResult] = await Promise.all([
+        DuelModel.getDuelById(params.duelId),
+        supabaseAdmin
+          .from('duel_rounds')
+          .select(ROUNDS_SELECT)
+          .eq('duel_id', duel.id)
+          .order('round_number', { ascending: true })
+          .limit(10),
+      ])
+      refreshedDuel = newDuel ?? duel
+      rounds = (newRoundsResult.data as DuelRound[] | null) ?? rounds
+    }
+  }
 
   const moveConstraints: MoveConstraints = isParticipant
     ? deriveMoveConstraints(rounds, userId, duel.challenger_id ?? '')

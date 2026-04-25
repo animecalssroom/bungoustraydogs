@@ -55,7 +55,7 @@ export function TransmissionsFeed({ warId }: TransmissionsFeedProps) {
     }
 
     fetchFeed()
-    const interval = setInterval(fetchFeed, 30000)
+    const interval = setInterval(fetchFeed, 120000) // Increased to 120s to reduce I/O
     return () => clearInterval(interval)
   }, [warId])
 

@@ -82,6 +82,21 @@ export const cache = {
         }
     },
 
+    /** Explicitly set a value in both layers. */
+    async set<T>(key: string, value: T, ttlSeconds: number) {
+        const now = Date.now()
+        // Save to Redis
+        if (redis) {
+            try {
+                await redis.set(key, JSON.stringify(value), { ex: ttlSeconds })
+            } catch (err) {
+                console.warn(`[cache] redis set failed for ${key}:`, err)
+            }
+        }
+        // Save to Memory
+        memoryStore.set(key, { value, expiresAt: now + ttlSeconds * 1000 })
+    },
+
     /** Clear all local in-memory cache. */
     clearLocal() {
         memoryStore.clear()

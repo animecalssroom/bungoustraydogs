@@ -9,35 +9,43 @@ export async function GET(req: Request) {
   // }
 
   try {
-    const war = await FactionWarModel.getActiveWar()
-    if (!war) {
-      return NextResponse.json({ message: 'No active war' })
+    const activeWars = await FactionWarModel.getActiveWars()
+    if (activeWars.length === 0) {
+      return NextResponse.json({ message: 'No active wars' })
     }
 
-    const now = new Date()
-    const endsAt = new Date(war.ends_at!)
-    const day3At = new Date(war.day3_at!)
-    const day2At = new Date(war.day2_at!)
+    const results = []
 
-    if (now >= endsAt) {
-      await FactionWarModel.resolveWar(war.id)
-      return NextResponse.json({ message: 'War resolved', war_id: war.id })
+    for (const war of activeWars) {
+      const now = new Date()
+      const endsAt = new Date(war.ends_at!)
+      const day3At = new Date(war.day3_at!)
+      const day2At = new Date(war.day2_at!)
+
+      if (now >= endsAt) {
+        await FactionWarModel.resolveWar(war.id)
+        results.push({ war_id: war.id, action: 'resolved' })
+        continue
+      }
+
+      if (now >= day3At && war.status === 'day2') {
+        await FactionWarModel.transitionToDay(war.id, 'day3')
+        results.push({ war_id: war.id, action: 'transitioned_to_day3' })
+        continue
+      }
+
+      if (now >= day2At && war.status === 'active') {
+        await FactionWarModel.transitionToDay(war.id, 'day2')
+        results.push({ war_id: war.id, action: 'transitioned_to_day2' })
+        continue
+      }
+
+      // Always sync integrity state for permanence
+      await FactionWarModel.syncWarState(war.id)
+      results.push({ war_id: war.id, action: 'synced_integrity' })
     }
 
-    if (now >= day3At && war.status === 'day2') {
-      await FactionWarModel.transitionToDay(war.id, 'day3')
-      return NextResponse.json({ message: 'Transitioned to Day 3', war_id: war.id })
-    }
-
-    if (now >= day2At && war.status === 'active') {
-      await FactionWarModel.transitionToDay(war.id, 'day2')
-      return NextResponse.json({ message: 'Transitioned to Day 2', war_id: war.id })
-    }
-
-    // Always sync integrity state for permanence
-    await FactionWarModel.syncWarState(war.id)
-
-    return NextResponse.json({ message: 'No action needed', status: war.status })
+    return NextResponse.json({ message: 'Cron cycle complete', results })
   } catch (error: any) {
     console.error('[WarCron] Error:', error)
     return NextResponse.json({ error: error.message }, { status: 500 })

@@ -355,13 +355,11 @@ export function FactionPrivateSpace({
   useEffect(() => {
     if (
       initialRoster.length === 0 &&
-      initialMessages.length === 0 &&
-      initialBulletins.length === 0 &&
       initialActivity.length === 0
     ) {
       void loadSpace()
     }
-  }, [loadSpace])
+  }, [loadSpace, initialRoster.length, initialActivity.length])
 
   useEffect(() => {
     if (!chatLogRef.current) {

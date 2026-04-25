@@ -28,6 +28,71 @@ function getTokyoDateKey(value: string | Date) {
   return `${year}-${month}-${day}`
 }
 
+export async function throttledAssignmentCheck(userId: string): Promise<void> {
+  // Only trigger once per 5 minutes per user — prevents hammering on active users
+  const throttleKey = `assignment_check:${userId}`
+  try {
+    const alreadyScheduled = await redis.set(throttleKey, '1', {
+      ex: 300,      // 5 minutes
+      nx: true,     // Only set if key doesn't exist
+    })
+    if (!alreadyScheduled) return  // Another check fired recently, skip
+  } catch {
+    // Redis unavailable — fall through and run anyway (once)
+  }
+  
+  const { checkAssignmentTrigger } = await import('@/src/lib/assignment/checkAssignmentTrigger')
+  checkAssignmentTrigger(userId).catch(err => {
+    console.error(`[assignment-trigger] error for ${userId}:`, err)
+  })
+}
+
+export async function isBehaviorEventThrottled(
+  userId: string,
+  eventType: string,
+  metadata: Record<string, unknown> = {},
+): Promise<boolean> {
+  if (!['feed_view', 'archive_read', 'profile_view'].includes(eventType)) {
+    return false
+  }
+
+  const todayKey = new Date().toISOString().slice(0, 10)
+  const cacheKey = `throttle:${userId}:${eventType}:${todayKey}`
+
+  try {
+    if (eventType === 'feed_view') {
+      const count = await redis.incr(cacheKey)
+      if (count === 1) await redis.expire(cacheKey, 86400)
+      return count > 1
+    }
+
+    if (eventType === 'archive_read') {
+      const slug = String(metadata.slug || '').trim().toLowerCase()
+      if (!slug) return true
+      const setKey = `${cacheKey}:slugs`
+      const isNew = await redis.sadd(setKey, slug)
+      const total = await redis.scard(setKey)
+      if (isNew === 1) await redis.expire(setKey, 86400)
+      return isNew === 0 || total > 10
+    }
+
+    if (eventType === 'profile_view') {
+      const username = String(metadata.username || '').trim().toLowerCase()
+      if (!username) return true
+      const setKey = `${cacheKey}:users`
+      const isNew = await redis.sadd(setKey, username)
+      if (isNew === 1) await redis.expire(setKey, 86400)
+      return isNew === 0
+    }
+  } catch {
+    // Redis is down — allow the event through rather than hitting DB
+    // This means slightly more events counted during Redis outages, acceptable
+    return false
+  }
+
+  return false
+}
+
 export const UserModel = {
   async getById(id: string): Promise<Profile | null> {
     const cacheKey = `profile:id:${id}`
@@ -125,86 +190,13 @@ export const UserModel = {
     })
   },
 
-  async shouldThrottleBehaviorEvent(
-    userId: string,
-    eventType: UserEventType,
-    metadata: Record<string, unknown> = {},
-  ) {
-    if (!['feed_view', 'archive_read', 'profile_view'].includes(eventType)) {
-      return false
-    }
-
-    const todayKey = getTokyoDateKey(new Date())
-    const cacheKey = `throttle:${userId}:${eventType}:${todayKey}`
-
-    try {
-      // Fast path: Check and update Redis throttling counters
-      if (eventType === 'feed_view') {
-        const count = await redis.incr(cacheKey)
-        if (count === 1) await redis.expire(cacheKey, 86400)
-        return count > 1
-      }
-
-      if (eventType === 'archive_read') {
-        const slug = String(metadata.slug || '').trim().toLowerCase()
-        if (!slug) return true
-        
-        const setKey = `${cacheKey}:slugs`
-        const [isNew, total] = await Promise.all([
-          redis.sadd(setKey, slug),
-          redis.scard(setKey)
-        ])
-        if (isNew === 1) await redis.expire(setKey, 86400)
-        // Throttle if already read today OR if they've already hit 10 unique slugs
-        return isNew === 0 || total > 10
-      }
-
-      if (eventType === 'profile_view') {
-        const username = String(metadata.username || '').trim().toLowerCase()
-        if (!username) return true
-
-        const setKey = `${cacheKey}:users`
-        const isNew = await redis.sadd(setKey, username)
-        if (isNew === 1) await redis.expire(setKey, 86400)
-        return isNew === 0
-      }
-    } catch (e) {
-      console.warn(`[UserModel] Redis throttle failed, falling back to DB:`, e)
-    }
-
-    // Fallback: DB count (expensive but safe)
-    const todayStart = new Date()
-    todayStart.setUTCHours(0, 0, 0, 0)
-
-    const { data } = await supabaseAdmin
-      .from('user_events')
-      .select('event_type, metadata')
-      .eq('user_id', userId)
-      .eq('event_type', eventType)
-      .gte('created_at', todayStart.toISOString())
-
-    const events = (data ?? []) as any[]
-
-    if (eventType === 'feed_view') return events.length > 0
-    if (eventType === 'profile_view') {
-      const target = String(metadata.username || '').trim().toLowerCase()
-      return events.some(e => String(e.metadata?.username || '').toLowerCase() === target)
-    }
-    if (eventType === 'archive_read') {
-      const target = String(metadata.slug || '').trim().toLowerCase()
-      return events.some(e => String(e.metadata?.slug || '').toLowerCase() === target) || events.length >= 10
-    }
-
-    return false
-  },
-
   async addAp(
     userId: string,
     eventType: UserEventType,
     apAwarded: number,
     metadata?: Record<string, unknown>,
   ) {
-    if (await this.shouldThrottleBehaviorEvent(userId, eventType, metadata ?? {})) {
+    if (await isBehaviorEventThrottled(userId, eventType, metadata ?? {})) {
       return
     }
 
@@ -246,16 +238,28 @@ export const UserModel = {
           message: `Rank ${nextRank} achieved.`,
           payload: { old_rank: currentRank, new_rank: nextRank },
         })
+        // Only invalidate when rank or character state changed (not every AP tick)
+        await this.invalidateCache(userId)
+      } else {
+        // Otherwise, update the cached object locally to avoid a DB hit on next getById
+        const cacheKey = `profile:id:${userId}`
+        if (profile) {
+          const updated = { 
+            ...profile, 
+            ap_total: nextTotal, 
+            rank: nextRank,
+            behavior_scores: nextBehaviorScores 
+          }
+          await cache.set(cacheKey, updated, 3600)
+        }
       }
 
-      await this.invalidateCache(userId)
-      // Background the assignment trigger to prevent blocking critical actions (like chat)
-      checkAssignmentTrigger(userId).catch(err => {
-        console.error(`[assignment-trigger] Background error for user ${userId}:`, err)
-      })
+      // Background the assignment trigger via throttled check
+      throttledAssignmentCheck(userId)
       return
     }
 
+    // Fallback if RPC failed
     await supabaseAdmin
       .from('profiles')
       .update({
@@ -273,9 +277,9 @@ export const UserModel = {
         message: `Rank ${nextRank} achieved.`,
         payload: { old_rank: currentRank, new_rank: nextRank },
       })
+      await this.invalidateCache(userId)
     }
 
-    await this.invalidateCache(userId)
     await supabaseAdmin.from('user_events').insert({
       user_id: userId,
       event_type: eventType,
@@ -284,17 +288,28 @@ export const UserModel = {
       metadata: metadata ?? {},
     })
 
-    try {
-      const { redis } = await import('@/src/lib/redis')
-      await redis.del(`event_summary:${userId}`)
-    } catch (e) {
-      /* ignore cache-bust error */
+    // Background the assignment trigger via throttled check
+    throttledAssignmentCheck(userId)
+  },
+
+  async throttledAssignmentCheck(userId: string) {
+    return throttledAssignmentCheck(userId)
+  },
+
+  async getAssignmentEventCounts(userId: string): Promise<Record<string, number>> {
+    const { data, error } = await supabaseAdmin.rpc('get_assignment_event_counts', {
+      p_user_id: userId
+    })
+
+    if (error) {
+      console.error('[UserModel] Error fetching event counts:', error)
+      return {}
     }
 
-    // Background the assignment trigger to prevent blocking critical actions (like chat)
-    checkAssignmentTrigger(userId).catch((err) => {
-      console.error(`[assignment-trigger] Background error for user ${userId}:`, err)
-    })
+    return (data as any[]).reduce((acc, row) => {
+      acc[row.event_type] = Number(row.event_count)
+      return acc
+    }, {} as Record<string, number>)
   },
 
   async claimDailyLogin(userId: string) {

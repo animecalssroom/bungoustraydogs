@@ -50,6 +50,7 @@ export async function GET(request: NextRequest) {
         return {
           integrity,
           transmissions,
+          war,
         }
       }
 
@@ -152,6 +153,9 @@ export async function GET(request: NextRequest) {
         class_tag: operative.class_tag || 'BRUTE',
         character_slug: operative.slug || null,
         userFaction,
+        isParticipant: Boolean(userFaction && (userFaction === war.faction_a_id || userFaction === war.faction_b_id)),
+        isAttacker: userFaction === war.faction_a_id,
+        isDefender: userFaction === war.faction_b_id,
         canRecon: canUseWarRecon(operative.slug || null, operative.class_tag || null),
         abilitySummary: getWarAbilitySummary(operative.slug || null, operative.class_tag || null),
         specialLocked,
@@ -159,9 +163,14 @@ export async function GET(request: NextRequest) {
           ? (isRevealed ? 'Enemy nullification guard detected in the sector.' : 'Area interference is disrupting special ability use.')
           : null,
         mustTargetGuards: activeEnemyGuards.length > 0,
+        activeGuardCount: activeEnemyGuards.length,
         reconFields: revealFields,
         roster: visibleRoster,
         targets: visibleTargets,
+        factionAId: war.faction_a_id,
+        factionBId: war.faction_b_id,
+        factionAPoints: war.faction_a_points || 0,
+        factionBPoints: war.faction_b_points || 0,
       }
     }
 

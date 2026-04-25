@@ -1,10 +1,12 @@
 'use client'
 
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Sword, Target as TargetIcon, Shield, Activity, Info, ChevronRight, User, AlertTriangle, Zap, Clock } from 'lucide-react'
+import {
+  X, Sword, Target as TargetIcon, Shield, Activity, Info,
+  ChevronRight, AlertTriangle, Zap, Clock,
+} from 'lucide-react'
 import type { District } from '@/backend/models/district.model'
 import { FACTION_META } from '@/frontend/lib/launch'
-import { DISTRICTS } from '@/frontend/lib/data/districts.data'
 import type { FactionWar } from '@/backend/types'
 import { useState, useEffect, useCallback } from 'react'
 import type { FactionId } from '@/backend/types'
@@ -58,55 +60,71 @@ interface WarExperiencePayload {
   class_tag: string
   character_slug: string | null
   userFaction: FactionId | null
+  isParticipant: boolean
+  isAttacker: boolean
+  isDefender: boolean
   canRecon: boolean
-  abilitySummary: string
   specialLocked: boolean
   specialLockedReason: string | null
   mustTargetGuards: boolean
-  reconFields: string[]
+  activeGuardCount: number
   roster: WarRosterEntry[]
   targets: WarTarget[]
+  factionAId: string
+  factionBId: string
+  factionAPoints: number
+  factionBPoints: number
 }
 
-const EncryptedAvatar = () => (
-  <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden relative">
-    <div className="absolute inset-0 bg-blue-500/10 animate-pulse" />
-    <Activity className="w-3 h-3 text-white/20 animate-spin-slow" />
-  </div>
-)
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
-const SLUG_ALIASES: Record<string, string> = {
-  harbor: 'yokohama-port',
-  'harbor-district': 'yokohama-port',
-  standard_island: 'yokohama-port',
-  'standard-island': 'yokohama-port',
-  harbour: 'yokohama-port',
-  waterfront: 'minato-mirai',
-  tsurumi: 'tsurumi-district',
-  honmoku: 'honmoku-area',
-  kannai: 'kannai-center',
-  northern_wards: 'northern-wards',
-  suribachi: 'suribachi-city',
+function isValidWarId(value: string | null | undefined): value is string {
+  return Boolean(value && UUID_RE.test(value))
 }
 
-function resolveDistrictData(slug: string) {
-  const normalised = SLUG_ALIASES[slug] ?? slug
+function ClassBadge({ tag }: { tag: string | null }) {
+  const color =
+    tag === 'BRUTE'   ? '#ef4444' :
+    tag === 'INTEL'   ? '#3b82f6' :
+    tag === 'SUPPORT' ? '#22c55e' :
+    tag === 'ANOMALY' ? '#a855f7' : '#6b7280'
   return (
-    DISTRICTS.find((d) => d.id === normalised) ??
-    DISTRICTS.find((d) => d.id.includes(normalised) || normalised.includes(d.id))
+    <span className="text-[0.55rem] font-black font-space-mono tracking-[0.15em] px-1.5 py-0.5 border rounded-sm"
+      style={{ color, borderColor: color + '44', background: color + '11' }}>
+      {tag ?? '??'}
+    </span>
   )
 }
 
-function safeIntegrity(current?: number | null, required?: number | null): number {
-  if (!required || required <= 0) return 100
-  if (!current || current <= 0) return 0
-  return Math.min(100, Math.floor((current / required) * 100))
-}
-
-function isValidWarId(value: string | null | undefined): value is string {
-  return Boolean(
-    value &&
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value),
+function RosterRow({ entry, isEnemy }: { entry: WarRosterEntry; isEnemy: boolean }) {
+  return (
+    <div className={`flex justify-between items-center p-3 rounded-sm border ${isEnemy ? 'border-red-500/10 bg-red-950/10' : 'border-white/5 bg-white/[0.02]'}`}>
+      <div className="flex items-center gap-3">
+        <div className={`w-2 h-2 rounded-full ${entry.is_recovering ? 'bg-red-500' : isEnemy ? 'bg-red-400' : 'bg-blue-400'}`} />
+        <div>
+          <p className="text-[0.75rem] font-black text-white">
+            {entry.isEncrypted
+              ? <span className="text-blue-400 animate-pulse font-mono">[ ENCRYPTED ]</span>
+              : `@${(entry.username ?? entry.character_name ?? 'OPERATIVE').toUpperCase()}`}
+          </p>
+          <p className="text-[0.55rem] text-white/30 font-mono uppercase tracking-[0.15em]">
+            {entry.is_recovering
+              ? 'INCAPACITATED'
+              : entry.isEncrypted
+                ? 'RECON REQUIRED'
+                : `${(entry.deployment_role ?? 'OPERATIVE').toUpperCase()} · ${entry.class_tag ?? '??'}`}
+          </p>
+        </div>
+      </div>
+      <div className="flex items-center gap-2">
+        {entry.is_guard && !entry.is_recovering && (
+          <span className="text-[0.5rem] px-2 py-0.5 border border-amber-500/40 text-amber-400 font-mono tracking-widest">GUARD</span>
+        )}
+        {entry.is_recovering && (
+          <span className="text-[0.5rem] px-2 py-0.5 border border-red-500/30 text-red-400 font-mono tracking-widest">DOWN</span>
+        )}
+      </div>
+    </div>
   )
 }
 
@@ -117,538 +135,334 @@ export function SectorPanel({
   onClose,
   activeWar,
 }: SectorPanelProps) {
-  const [showRecon, setShowRecon] = useState(false)
-  const [showFieldHospital, setShowFieldHospital] = useState(false)
-  const [warExp, setWarExp] = useState<WarExperiencePayload | null>(null)
-  const [isLoadingWarExp, setIsLoadingWarExp] = useState(false)
-  const [isDeploying, setIsDeploying] = useState(false)
-  const [deployError, setDeployError] = useState<string | null>(null)
+  const [warExp, setWarExp]               = useState<WarExperiencePayload | null>(null)
+  const [loading, setLoading]             = useState(false)
+  const [isDeploying, setIsDeploying]     = useState(false)
+  const [isReconning, setIsReconning]     = useState(false)
+  const [deployError, setDeployError]     = useState<string | null>(null)
+
+  // ── Fetch tactical data ───────────────────────────────────────
   const refreshWarExp = useCallback(async () => {
     if (!activeWar || !district || !isValidWarId(activeWar.id)) return
     if (typeof document !== 'undefined' && document.hidden) return
-
     try {
-      setIsLoadingWarExp(true)
-      const res = await fetch(`/api/war/experience?warId=${activeWar.id}&districtId=${district.id}`, {
-        cache: 'no-store',
-      })
-      const data = await res.json()
+      setLoading(true)
+      const res = await fetch(
+        `/api/war/experience?warId=${activeWar.id}&districtId=${district.id}`,
+        { cache: 'no-store' },
+      )
       if (res.ok) {
+        const data = await res.json()
         setWarExp(data)
       }
     } catch (err) {
-      console.error('Failed to fetch war exp:', err)
+      console.error('[SectorPanel] war exp fetch failed:', err)
     } finally {
-      setIsLoadingWarExp(false)
+      setLoading(false)
     }
   }, [activeWar?.id, district?.id])
 
   useEffect(() => {
     setWarExp(null)
     setDeployError(null)
-    setShowFieldHospital(false)
-    if (activeWar && district && isValidWarId(activeWar.id)) {
-      setIsLoadingWarExp(true)
-      void refreshWarExp()
-      return
-    }
-    setIsLoadingWarExp(false)
+    if (activeWar && district && isValidWarId(activeWar.id)) void refreshWarExp()
   }, [activeWar?.id, district?.id, refreshWarExp])
 
+  // Auto-refresh every 30s
   useEffect(() => {
     if (!activeWar || !district || !isValidWarId(activeWar.id)) return
-    const interval = window.setInterval(() => { void refreshWarExp() }, 30000)
-    return () => window.clearInterval(interval)
+    const t = window.setInterval(() => void refreshWarExp(), 30000)
+    return () => window.clearInterval(t)
   }, [activeWar?.id, district?.id, refreshWarExp])
 
-  useEffect(() => { setShowRecon(false) }, [district?.id])
-
+  // ESC to close
   useEffect(() => {
-    const handleEsc = (e: KeyboardEvent) => { if (e.key === 'Escape' && onClose) onClose() }
-    window.addEventListener('keydown', handleEsc)
-    return () => window.removeEventListener('keydown', handleEsc)
+    const h = (e: KeyboardEvent) => { if (e.key === 'Escape' && onClose) onClose() }
+    window.addEventListener('keydown', h)
+    return () => window.removeEventListener('keydown', h)
   }, [onClose])
 
+  // ── Deploy ────────────────────────────────────────────────────
   const handleDeploy = async (role: 'guard' | 'vanguard') => {
     if (!activeWar || !isValidWarId(activeWar.id)) return
     setIsDeploying(true)
     setDeployError(null)
-    
-    // Optimistic Update
-    const prevExp = warExp
-    setWarExp(prev => prev ? {
-      ...prev,
-      deployment: { role, stance: 'tactical', deployedAt: new Date().toISOString() }
-    } : null)
+
+    // Optimistic update
+    const prev = warExp
+    setWarExp(w => w ? { ...w, deployment: { role, stance: 'tactical', deployedAt: new Date().toISOString() } } : null)
 
     try {
       const res = await fetch('/api/war/deploy', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ warId: activeWar.id, role, stance: 'tactical' })
+        body: JSON.stringify({ warId: activeWar.id, role, stance: 'tactical' }),
       })
+      const data = await res.json()
       if (!res.ok) {
-        const payload = await res.json().catch(() => ({}))
-        setDeployError(payload?.error ?? 'Deployment failed.')
-        console.error('[war deploy]', payload)
-        // Rollback on failure
-        setWarExp(prevExp)
+        setDeployError(data?.error ?? 'Deployment failed.')
+        setWarExp(prev) // rollback
       } else {
         await refreshWarExp()
       }
-    } catch (err) {
-      setDeployError('Deployment failed.')
-      setWarExp(prevExp)
+    } catch {
+      setDeployError('Network failure. Try again.')
+      setWarExp(prev)
     } finally {
       setIsDeploying(false)
     }
   }
+
+  // ── Recon ─────────────────────────────────────────────────────
   const handleRecon = async () => {
     if (!activeWar || !district || !isValidWarId(activeWar.id)) return
+    setIsReconning(true)
     try {
       const res = await fetch('/api/war/recon', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ warId: activeWar.id, districtId: district.id })
+        body: JSON.stringify({ warId: activeWar.id, districtId: district.id }),
       })
-      if (res.ok) {
-        setShowRecon(true)
-        await refreshWarExp()
-      }
-    } catch (err) {
-      console.error('Recon failed:', err)
+      if (res.ok) await refreshWarExp()
+    } finally {
+      setIsReconning(false)
     }
   }
 
-  const handleRevive = async (targetId: string) => {
-    if (!activeWar || !isValidWarId(activeWar.id)) return
-    try {
-      const res = await fetch('/api/war/revive', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ warId: activeWar.id, targetUserId: targetId })
-      })
-      if (res.ok) {
-        await refreshWarExp()
-      }
-    } catch (err) {
-      console.error('Revive failed:', err)
-    }
-  }
-
-  // ── Empty state ──────────────────────────────────────────────
+  // ── Empty state ───────────────────────────────────────────────
   if (!district) {
     return (
       <div className="h-full flex flex-col p-6 bg-[#0a0a0a] border-l border-[#222] font-space-mono">
-        <div className="mb-8">
-          <p className="text-[0.7rem] text-[#666] tracking-[0.3em] mb-2 uppercase">Intelligence Terminal</p>
-          <h2 className="font-cinzel text-2xl text-white">Yokohama <em>Sectors</em></h2>
-          <div className="h-px w-full bg-gradient-to-r from-amber-500/50 to-transparent mt-4" />
-        </div>
-        <div className="flex-1 flex flex-col items-center justify-center text-center opacity-40 gap-4">
-          <Info className="w-12 h-12 text-[#444]" />
-          <p className="text-[0.9rem] uppercase tracking-widest leading-relaxed max-w-[200px]">
-            Select a sector on the tactical map to initialize data synchronization.
+        <p className="text-[0.7rem] text-[#666] tracking-[0.3em] mb-2 uppercase">Intelligence Terminal</p>
+        <h2 className="font-cinzel text-2xl text-white">Select a Sector</h2>
+        <div className="h-px w-full bg-gradient-to-r from-amber-500/50 to-transparent mt-4" />
+        <div className="flex-1 flex items-center justify-center opacity-40">
+          <p className="text-[0.9rem] uppercase tracking-widest text-center max-w-[200px]">
+            Click a sector on the map to initialize data.
           </p>
         </div>
       </div>
     )
   }
 
-  // ── Data ─────────────────────────────────────────────────────
-  const staticData = resolveDistrictData(district.slug)
-  const factionId = (district.controlling_faction || staticData?.default_faction || 'neutral') as FactionId
-  const faction = FACTION_META[factionId]
-  const integrity = warExp?.integrity ?? safeIntegrity(district.current_points, district.points_required)
-  const hasActiveWar = !!activeWar
-  const hasLoadedWarExp = !hasActiveWar || !!warExp
-  const isParticipant = !!activeWar && !!warExp?.userFaction && (activeWar.faction_a_id === warExp.userFaction || activeWar.faction_b_id === warExp.userFaction)
-  const isDeployed = !!warExp?.deployment
-  const isRecovering = !!warExp?.isRecovering
-  const isAttacker = activeWar?.faction_a_id === warExp?.userFaction
-  const isDefender = activeWar?.faction_b_id === warExp?.userFaction
+  const factionId        = (district.controlling_faction || 'neutral') as FactionId
+  const faction          = FACTION_META[factionId]
+  const integrity        = warExp?.integrity ?? 50
+  const isDeployed       = Boolean(warExp?.deployment)
+  const isRecovering     = Boolean(warExp?.isRecovering)
+  const isParticipant    = Boolean(warExp?.isParticipant)
+  const isAttacker       = Boolean(warExp?.isAttacker)
+  const isDefender       = Boolean(warExp?.isDefender)
 
-  const enemyFactionId = isAttacker ? activeWar?.faction_b_id : activeWar?.faction_a_id
-  const roster = warExp?.roster ?? []
-  const alliedRoster = roster.filter((entry) => entry.faction === warExp?.userFaction)
-  const enemyRoster = roster.filter((entry) => entry.faction === enemyFactionId)
-  const isEnemyDistrict = activeWar && district && district.controlling_faction !== warExp?.userFaction
-  
-  const totalPoints = (activeWar?.faction_a_points ?? 0) + (activeWar?.faction_b_points ?? 0)
-  const ratioA = totalPoints > 0 ? (activeWar!.faction_a_points / totalPoints) * 100 : 50
-  const threatLevel = staticData?.threat_level ?? 'HIGH'
-  const threatColor =
-    threatLevel === 'MAXIMUM' ? 'text-red-500' :
-    threatLevel === 'EXTREME' ? 'text-red-400' :
-    threatLevel === 'VERY HIGH' ? 'text-orange-400' :
-    threatLevel === 'HIGH' ? 'text-yellow-500' :
-    threatLevel === 'MODERATE' ? 'text-blue-400' : 'text-green-400'
+  const alliedRoster     = (warExp?.roster ?? []).filter(r => r.faction === warExp?.userFaction)
+  const enemyRoster      = (warExp?.roster ?? []).filter(r => r.faction !== warExp?.userFaction && r.faction !== null)
+
+  const guardLabel       = isAttacker ? 'RECON OBSERVER' : 'REINFORCE GARRISON'
+  const vanguardLabel    = isAttacker ? 'JOIN STRIKE FORCE' : 'COUNTER-STRIKE VANGUARD'
+  const strikeLabel      = isAttacker ? 'COMMENCE ASSAULT' : 'INITIATE COUNTER-STRIKE'
+
+  const hasTargets       = (warExp?.targets?.length ?? 0) > 0
+
+  // Integrity bar: low = attacker winning, high = defender holding
+  const attackerShare = 100 - integrity  // attacker "owns" the 0-side
 
   return (
     <div className="h-full flex flex-col overflow-hidden bg-black text-white font-space-mono">
-
       {/* Header */}
-      <div className="shrink-0 flex items-center gap-4 px-5 py-4 border-b border-white/10 bg-[#050505]">
+      <div className="shrink-0 flex items-center gap-3 px-5 py-4 border-b border-white/10 bg-[#050505]">
         {onClose && (
           <button
-            onClick={(e) => { e.stopPropagation(); onClose() }}
-            className="shrink-0 flex items-center gap-2 px-3 py-2 border border-white/30 bg-black hover:bg-white/10 hover:text-red-400 transition-all rounded-sm active:scale-90 text-white"
-            title="CLOSE TERMINAL [ESC]"
+            onClick={e => { e.stopPropagation(); onClose() }}
+            className="shrink-0 p-2 border border-white/20 hover:bg-white/10 hover:text-red-400 transition-all rounded-sm"
           >
             <X className="w-4 h-4" />
-            <span className="text-[0.75rem] font-black tracking-widest hidden sm:inline">EXIT</span>
           </button>
         )}
-        <div className="flex flex-col gap-0.5 min-w-0 flex-1">
-          <span className="text-[0.7rem] text-amber-500 tracking-[0.4em] uppercase font-bold">
-            MOD: {hasActiveWar ? 'WARZONE_SYNC' : 'INTEL_TERMINAL'}
+        <div className="flex-1 min-w-0">
+          <span className="text-[0.6rem] text-amber-500 tracking-[0.4em] uppercase font-bold block">
+            {activeWar ? 'WARZONE_ACTIVE' : 'INTEL_TERMINAL'}
           </span>
-          <h2 className="font-cinzel text-lg md:text-xl text-white uppercase tracking-wider font-black truncate">
+          <h2 className="font-cinzel text-lg text-white uppercase tracking-wider font-black truncate">
             {district.name}
           </h2>
           {isRecovering && (
-            <span className="text-[0.7rem] text-red-500 animate-pulse font-black px-1.5 py-0.5 border border-red-500/50 w-fit">
-              RECOVERY_LOCKOUT_ACTIVE
+            <span className="text-[0.6rem] text-red-500 animate-pulse font-black">
+              RECOVERY LOCKOUT ACTIVE
             </span>
           )}
         </div>
       </div>
 
       {/* Body */}
-      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
-        <div className="px-5 py-6 space-y-7">
+      <div className="flex-1 overflow-y-auto">
+        <div className="px-5 py-5 space-y-6">
 
-          {/* Jurisdiction + Threat */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="p-3 bg-white/[0.03] border border-white/10 rounded-sm">
-              <p className="text-[0.7rem] text-white/40 uppercase tracking-widest mb-2 font-bold">Jurisdiction</p>
-              <div className="flex items-center gap-3">
-                <div
-                  className="w-9 h-9 shrink-0 bg-black border border-white/20 flex items-center justify-center text-lg font-black"
-                  style={{ color: faction?.color ?? '#444' }}
-                >
-                  {faction?.kanji ?? '?'}
-                </div>
-                <span className="text-sm font-black uppercase tracking-wider leading-tight" style={{ color: faction?.color ?? '#666' }}>
+          {/* Current owner */}
+          <div className="p-3 bg-white/[0.03] border border-white/10 rounded-sm">
+            <p className="text-[0.6rem] text-white/40 uppercase tracking-widest mb-2 font-bold">Controlling Faction</p>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 border flex items-center justify-center text-xl font-black"
+                style={{ color: faction?.color ?? '#666', borderColor: (faction?.color ?? '#666') + '44' }}>
+                {faction?.kanji ?? '?'}
+              </div>
+              <div>
+                <p className="text-sm font-black uppercase tracking-wider" style={{ color: faction?.color ?? '#666' }}>
                   {faction?.name ?? 'NEUTRAL'}
-                </span>
+                </p>
+                <p className="text-[0.55rem] text-white/30 uppercase tracking-[0.2em]">Yokohama Jurisdiction</p>
               </div>
-            </div>
-            <div className="p-3 bg-red-950/10 border border-red-500/20 rounded-sm">
-              <p className="text-[0.7rem] text-red-400/60 uppercase tracking-widest mb-2 font-bold">Threat</p>
-              <p className={`text-base font-black tracking-tight uppercase ${threatColor}`}>
-                {threatLevel.replace(' ', '_')}
-              </p>
-              {staticData && (
-                <p className="text-[0.7rem] text-white/20 mt-1 font-mono">{staticData.real_location}</p>
-              )}
             </div>
           </div>
 
-          {/* Integrity */}
-          <div className="space-y-2">
-            <div className="flex justify-between text-[0.75rem] font-black uppercase tracking-widest text-white/40">
-              <span>{hasActiveWar ? 'FRONT_LINE_INTEGRITY' : 'STRUCTURAL_INTEGRITY'}</span>
-              <span className={integrity < 30 ? 'text-red-500' : 'text-white'}>{integrity}%</span>
+          {/* Integrity Tug-of-War */}
+          <div className="space-y-3">
+            <div className="flex justify-between text-[0.65rem] font-black uppercase tracking-[0.2em] text-white/40">
+              <span>{isAttacker ? 'SIEGE PROGRESS' : 'GARRISON STRENGTH'}</span>
+              <span>{integrity}%</span>
             </div>
-            <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden border border-white/10">
+            <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden border border-white/10 relative">
               <motion.div
-                initial={{ width: 0 }}
+                initial={{ width: '50%' }}
                 animate={{ width: `${integrity}%` }}
-                transition={{ duration: 0.8, ease: 'easeOut' }}
-                className={`h-full ${hasActiveWar ? 'bg-red-600' : 'bg-blue-600'}`}
+                className="h-full bg-blue-600 transition-all duration-1000"
               />
+              <div className="absolute top-0 bottom-0 left-1/2 w-px bg-white/30" />
+            </div>
+            <div className="flex justify-between text-[0.55rem] font-bold text-white/20">
+              <span>ATTACKER</span>
+              <span>DEFENDER</span>
             </div>
           </div>
 
-          {/* Flavour quote */}
-          {staticData?.flavour_quote && (
-            <div className="border-l-2 border-white/10 pl-4">
-              <p className="font-cormorant text-[0.95rem] text-white/50 leading-relaxed italic">
-                "{staticData.flavour_quote}"
-              </p>
-            </div>
-          )}
-
-          {warExp?.abilitySummary && (
-            <div className="p-3 bg-white/[0.03] border border-white/10 rounded-sm">
-              <p className="text-[0.65rem] text-amber-500/80 font-black uppercase tracking-[0.2em] mb-2">
-                ACTIVE WAR ABILITY
-              </p>
-              <p className="text-[0.8rem] text-white/70 leading-relaxed">
-                {warExp.abilitySummary}
-              </p>
-            </div>
-          )}
-
-          {/* Deployment Status */}
-          {hasActiveWar && isDeployed && (
-            <div className="p-3 bg-blue-950/20 border border-blue-500/30 rounded-sm">
-              <p className="text-[0.7rem] text-blue-400 font-black tracking-widest uppercase mb-1">Current Assignment</p>
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-black uppercase">
-                  {warExp?.deployment?.role === 'guard' 
-                    ? 'GARRISON' 
-                    : (isAttacker ? 'STRIKE FORCE' : 'INTERCEPTOR')}
-                </span>
-                <span className="text-[0.7rem] px-2 py-0.5 bg-blue-500/20 text-blue-300 border border-blue-500/30 rounded-full animate-pulse-slow">SIG_ACTIVE</span>
-              </div>
-            </div>
-          )}
-
-          {/* Lore */}
+          {/* Allied Roster */}
           <div className="space-y-3">
-            <p className="text-[0.7rem] text-white/20 font-black tracking-[0.4em] uppercase">---[ INTEL_BRIEFING ]---</p>
-            <p className="font-cormorant text-[1.15rem] text-white/80 leading-relaxed">
-              {staticData?.lore ?? district.description ?? 'No intelligence available.'}
+            <p className="text-[0.6rem] text-blue-400 font-black tracking-[0.3em] uppercase opacity-70">
+              Allied Forces
             </p>
+            <div className="space-y-2">
+              {alliedRoster.length > 0 ? (
+                alliedRoster.map(entry => (
+                  <RosterRow key={entry.user_id} entry={entry} isEnemy={false} />
+                ))
+              ) : (
+                <p className="text-[0.65rem] text-white/20 py-4 text-center border border-dashed border-white/10 italic">
+                  No allied signatures detected in this sector.
+                </p>
+              )}
+            </div>
           </div>
 
-          {/* Target registry */}
+          {/* Enemy Roster */}
           <div className="space-y-3">
-            <p className="text-[0.7rem] text-white/20 font-black tracking-[0.4em] uppercase">---[ DEPLOYED_OPERATIVES ]---</p>
+            <p className="text-[0.6rem] text-red-500 font-black tracking-[0.3em] uppercase opacity-70">
+              Hostile Signatures
+            </p>
             {warExp?.mustTargetGuards && (
-              <div className="p-3 bg-amber-950/20 border border-amber-500/30 rounded-sm text-[0.6rem] text-amber-300 uppercase tracking-[0.18em]">
-                Enemy guards are holding the line. Vanguard units must clear them before striking open targets.
+              <div className="p-2 bg-amber-950/20 border border-amber-500/20 text-[0.55rem] text-amber-300 uppercase tracking-widest flex items-center gap-2">
+                <AlertTriangle className="w-3 h-3" />
+                Guards must be cleared before targeting vanguards.
               </div>
             )}
-            {warExp?.specialLocked && (
-              <div className="p-3 bg-red-950/20 border border-red-500/30 rounded-sm text-[0.6rem] text-red-300 uppercase tracking-[0.18em]">
-                {warExp.specialLockedReason}
-              </div>
-            )}
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <p className="text-[0.6rem] text-blue-400/70 uppercase tracking-[0.25em] font-black">ALLIED FORMATION</p>
-                {alliedRoster.length > 0 ? alliedRoster.map((entry) => (
-                  <div key={entry.user_id} className="flex justify-between items-center p-3 bg-white/[0.02] border border-white/5 rounded-sm">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-[0.6rem] font-bold border border-white/10">
-                        {(entry.username || entry.character_name || '?').slice(0, 1).toUpperCase()}
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-[0.75rem] font-black tracking-wider text-white">
-                          @{(entry.username || entry.character_name || 'ALLY').toUpperCase()}
-                        </span>
-                        <span className="text-[0.55rem] text-white/30 uppercase tracking-[0.2em] font-medium font-mono">
-                          {(entry.deployment_role || 'OPERATIVE').toUpperCase()} · {(entry.class_tag || 'UNKNOWN').toUpperCase()}
-                        </span>
-                      </div>
-                    </div>
-                    {warExp?.class_tag === 'SUPPORT' && entry.is_recovering && (
-                      <button
-                        onClick={() => handleRevive(entry.user_id)}
-                        className="px-3 py-1.5 bg-green-600 hover:bg-green-500 text-[0.7rem] font-bold uppercase tracking-widest rounded-sm"
-                      >
-                        HEAL
-                      </button>
-                    )}
-                  </div>
-                )) : (
-                  <p className="py-4 text-center text-[0.7rem] text-white/20 uppercase tracking-widest italic border border-dashed border-white/10">
-                    No allied units deployed.
-                  </p>
-                )}
-              </div>
-              <div className="space-y-2">
-                <p className="text-[0.6rem] text-red-400/70 uppercase tracking-[0.25em] font-black">
-                  {isAttacker ? 'DISTRICT_GARRISON' : 'HOSTILE_STRIKE_FORCE'}
+            <div className="space-y-2">
+              {enemyRoster.length > 0 ? (
+                enemyRoster.map(entry => (
+                  <RosterRow key={entry.user_id} entry={entry} isEnemy={true} />
+                ))
+              ) : (
+                <p className="text-[0.65rem] text-white/20 py-4 text-center border border-dashed border-white/10 italic">
+                  Sector appearing clear of hostile signatures.
                 </p>
-                {enemyRoster.length > 0 ? enemyRoster.map((entry) => (
-                  <div key={entry.user_id} className="flex justify-between items-center p-3 bg-white/[0.02] border border-white/5 rounded-sm">
-                    <div className="flex items-center gap-3">
-                      {entry.isEncrypted ? <EncryptedAvatar /> : (
-                        <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-[0.6rem] font-bold border border-white/10">
-                          {(entry.username || entry.character_name || '?').slice(0, 1).toUpperCase()}
-                        </div>
-                      )}
-                      <div className="flex flex-col">
-                        <span className={`text-[0.75rem] font-black tracking-wider ${entry.isEncrypted ? 'text-blue-400 animate-pulse' : 'text-white'}`}>
-                          {entry.isEncrypted ? '[ ENCRYPTED_SIG ]' : `@${(entry.username || entry.character_name || 'HOSTILE').toUpperCase()}`}
-                        </span>
-                        <span className="text-[0.55rem] text-white/20 uppercase tracking-[0.2em] font-medium font-mono">
-                          {entry.isEncrypted
-                            ? 'DECRYPTION_REQUIRED'
-                            : `${(entry.deployment_role || 'OPERATIVE').toUpperCase()} · ${(entry.class_tag || 'UNKNOWN').toUpperCase()}`}
-                        </span>
-                      </div>
-                    </div>
-                    {entry.is_recovering && (
-                      <span className="text-[0.55rem] px-2 py-1 border border-red-500/30 text-red-400 uppercase tracking-[0.2em]">
-                        DOWN
-                      </span>
-                    )}
-                  </div>
-                )) : (
-                  <p className="py-4 text-center text-[0.7rem] text-white/20 uppercase tracking-widest italic border border-dashed border-white/10">
-                    No hostile units deployed.
-                  </p>
-                )}
-              </div>
+              )}
             </div>
           </div>
 
         </div>
       </div>
 
-      {/* Footer */}
-      <div className="shrink-0 border-t border-white/10 bg-[#050505]">
+      {/* Footer / Actions */}
+      <div className="shrink-0 p-5 border-t border-white/10 bg-[#050505] space-y-4">
+        {loading && !warExp && (
+          <div className="py-4 text-center text-[0.6rem] animate-pulse text-white/30 uppercase tracking-widest">
+            Syncing tactical data...
+          </div>
+        )}
 
-        {/* Action Controls */}
-        <div className="p-4 bg-black/50">
-          {isLoadingWarExp && hasActiveWar && (
-            <div className="w-full py-4 flex items-center justify-center gap-3 bg-white/5 border border-white/10 rounded-sm">
-               <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ repeat: Infinity, duration: 1 }}
-                  className="w-3 h-3 border border-white/20 border-t-white rounded-full"
-                />
-                <span className="text-[0.6rem] text-white/40 uppercase tracking-[0.2em]">Syncing Tactical Data...</span>
+        {/* Not deployed yet */}
+        {warExp && !isDeployed && isParticipant && (
+          <div className="space-y-3">
+            {deployError && <p className="text-[0.6rem] text-red-500 uppercase tracking-widest animate-pulse">{deployError}</p>}
+            <div className="flex gap-2">
+              <button
+                disabled={isDeploying || isRecovering}
+                onClick={() => handleDeploy('guard')}
+                className="flex-1 py-3 bg-blue-900/10 hover:bg-blue-900/20 border border-blue-500/30 text-blue-400 font-black text-[0.7rem] uppercase tracking-widest rounded-sm transition-all disabled:opacity-40"
+              >
+                {guardLabel}
+              </button>
+              <button
+                disabled={isDeploying || isRecovering}
+                onClick={() => handleDeploy('vanguard')}
+                className="flex-1 py-3 bg-red-900/10 hover:bg-red-900/20 border border-red-500/30 text-red-400 font-black text-[0.7rem] uppercase tracking-widest rounded-sm transition-all disabled:opacity-40"
+              >
+                {vanguardLabel}
+              </button>
             </div>
-          )}
+          </div>
+        )}
 
-          {warExp && !isDeployed && hasActiveWar && isParticipant && !isRecovering && (
-            <div className="space-y-4">
-              {deployError && (
-                <div className="p-3 bg-red-950/20 border border-red-500/30 rounded-sm text-[0.6rem] text-red-300 uppercase tracking-[0.18em]">
-                  {deployError}
+        {/* Deployed */}
+        {warExp && isDeployed && (
+          <div className="space-y-3">
+            {warExp.deployment?.role === 'vanguard' ? (
+              <button
+                disabled={!hasTargets || isRecovering}
+                onClick={() => onStrikeClick({
+                  warId: activeWar?.id ?? null,
+                  targets: warExp.targets,
+                  specialLocked: warExp.specialLocked,
+                  mustTargetGuards: warExp.mustTargetGuards,
+                })}
+                className="w-full py-4 bg-red-600 hover:bg-red-500 text-white font-black text-[0.8rem] uppercase tracking-[0.2em] rounded-sm transition-all active:scale-95 disabled:grayscale disabled:opacity-40 flex items-center justify-center gap-3 shadow-[0_0_20px_rgba(220,38,38,0.3)]"
+              >
+                <Sword className="w-4 h-4" />
+                {strikeLabel}
+              </button>
+            ) : (
+              <div className="py-3 px-4 bg-blue-950/30 border border-blue-500/20 rounded-sm flex items-center justify-between">
+                <span className="text-[0.65rem] text-blue-300 font-black uppercase tracking-widest flex items-center gap-3">
+                  <Shield className="w-4 h-4 opacity-50" />
+                  Garrison Duties Active
+                </span>
+                <span className="text-[0.55rem] text-blue-400/50 italic">Holding Sector</span>
+              </div>
+            )}
+
+            <div className="flex gap-2">
+              <button
+                disabled={isReconning || !warExp.canRecon}
+                onClick={handleRecon}
+                className="flex-1 py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-white/60 font-black text-[0.6rem] uppercase tracking-widest rounded-sm disabled:opacity-30"
+              >
+                {isReconning ? 'SCANNING...' : warExp.isRevealed ? 'RECON LOGGED' : 'REQUEST RECON'}
+              </button>
+              {isRecovering && (
+                <div className="flex-1 py-2 bg-red-950/20 border border-red-500/30 text-red-500 text-[0.6rem] flex items-center justify-center gap-2 uppercase font-black">
+                  <Clock className="w-3 h-3 animate-spin-slow" />
+                  Stabilizing
                 </div>
               )}
-              <div className="p-3 bg-white/[0.02] border border-white/10 rounded-sm">
-                <p className="text-[0.65rem] text-amber-500/80 font-black uppercase tracking-[0.2em] mb-2 flex items-center gap-2">
-                  <Info className="w-3 h-3" />
-                  Tactical Protocol: {isAttacker ? 'SIEGE_MODE' : 'INTERCEPTION_ADVISORY'}
-                </p>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className={`text-[0.6rem] font-bold uppercase mb-1 ${isDefender ? 'text-blue-400' : 'text-blue-500/40'}`}>
-                      {isAttacker ? 'GARRISON_BREACH' : 'GARRISON_DUTY'}
-                    </p>
-                    <p className="text-[0.55rem] text-white/40 leading-tight">
-                      {isAttacker ? 'Break the enemy wall to lower integrity.' : 'Passive defense. Hold the line to boost integrity.'}
-                    </p>
-                  </div>
-                  <div>
-                    <p className={`text-[0.6rem] font-bold uppercase mb-1 ${isAttacker ? 'text-red-500' : 'text-red-400/60'}`}>
-                      {isAttacker ? 'STRIKE_FORCE' : 'INTERCEPTOR'}
-                    </p>
-                    <p className="text-[0.55rem] text-white/40 leading-tight">
-                      {isAttacker ? 'Aggressive assault. Higher impact, high lockout risk.' : 'Seek and engage hostile strike force members.'}
-                    </p>
-                  </div>
-                </div>
-              </div>
-              <div className="flex gap-3">
-                <button
-                  disabled={isDeploying}
-                  onClick={() => handleDeploy('guard')}
-                  className="flex-1 py-3 bg-blue-900/50 hover:bg-blue-800 text-white font-black text-[0.8rem] uppercase tracking-widest rounded-sm border border-blue-500/30 transition-all disabled:opacity-50"
-                >
-                  {isAttacker ? 'DEPLOY_OBSERVER' : 'REINFORCE GARRISON'}
-                </button>
-                <button
-                  disabled={isDeploying}
-                  onClick={() => handleDeploy('vanguard')}
-                  className="flex-1 py-3 bg-red-900/50 hover:bg-red-800 text-white font-black text-[0.8rem] uppercase tracking-widest rounded-sm border border-red-500/30 transition-all disabled:opacity-50"
-                >
-                  {isAttacker ? 'JOIN STRIKE FORCE' : 'COMMENCE INTERCEPTION'}
-                </button>
-              </div>
             </div>
-          )}
+          </div>
+        )}
 
-          {hasLoadedWarExp && !isDeployed && hasActiveWar && !isParticipant && !isRecovering && (
-             <div className="w-full py-4 bg-white/5 text-white/20 font-black text-[0.65rem] uppercase tracking-widest rounded-sm border border-white/5 text-center px-4 leading-relaxed">
-               YOUR FACTION IS NOT ENGAGED IN THIS CONFLICT.<br/>
-               <span className="text-[0.5rem] opacity-50">OBSERVATION MODE ONLY.</span>
-             </div>
-          )}
-
-          {isDeployed && (
-            <div className="flex flex-col gap-3">
-              <div className="flex gap-3">
-                {warExp?.deployment?.role === 'vanguard' && hasActiveWar ? (
-                  <button
-                    disabled={isRecovering || (warExp?.targets?.length ?? 0) === 0}
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      onStrikeClick({
-                        warId: isValidWarId(activeWar?.id) ? activeWar.id : null,
-                        targets: warExp?.targets ?? [],
-                        specialLocked: Boolean(warExp?.specialLocked),
-                        mustTargetGuards: Boolean(warExp?.mustTargetGuards),
-                      })
-                    }}
-                    className="flex-1 flex items-center justify-center gap-2 py-3.5 bg-red-700 hover:bg-red-600 text-white font-black text-xs uppercase tracking-widest rounded-sm transition-all active:scale-95 border-b-4 border-red-900 disabled:opacity-50 disabled:grayscale"
-                  >
-                    <TargetIcon className="w-4 h-4" />
-                    <span>
-                      {(warExp?.targets?.length ?? 0) > 0
-                        ? (isAttacker ? 'COMMENCE ASSAULT' : 'INITIATE INTERCEPTION')
-                        : 'NO ACTIVE TARGETS'}
-                    </span>
-                  </button>
-                ) : (
-                  <div className="flex-1 flex items-center justify-center gap-2 py-3.5 bg-blue-900/20 text-blue-400 font-black text-xs uppercase tracking-widest rounded-sm border border-blue-500/20 italic">
-                    <Shield className="w-4 h-4 opacity-40" />
-                    <span>
-                      {warExp?.deployment?.role === 'guard' 
-                        ? 'GARRISON_SIGNATURE_LOCKED' 
-                        : (isAttacker ? 'STRIKE_FORCE_IDLE' : 'NO_TARGET_DETECTED')}
-                    </span>
-                  </div>
-                )}
-                <button
-                  disabled={isRecovering}
-                  onClick={(e) => { e.stopPropagation(); setShowRecon((v) => !v) }}
-                  className="w-14 flex items-center justify-center bg-white/5 text-white/60 border border-white/10 rounded-sm hover:bg-white/10 disabled:opacity-50"
-                >
-                  <Activity className="w-4 h-4" />
-                </button>
-              </div>
-              
-              <div className="flex gap-3">
-                {warExp?.canRecon && (
-                  <button
-                    disabled={isRecovering || warExp?.isRevealed}
-                    onClick={(e) => { e.stopPropagation(); handleRecon() }}
-                    className="flex-1 py-3 bg-amber-600/20 hover:bg-amber-600/30 text-amber-500 font-black text-[0.8rem] uppercase tracking-widest rounded-sm border border-amber-500/30 disabled:opacity-50"
-                  >
-                    {warExp?.isRevealed ? '[ RECON ] SECTOR DECRYPTED' : '[ RECON ] DECRYPT SECTOR'}
-                  </button>
-                )}
-                {warExp?.class_tag === 'SUPPORT' && (
-                  <button
-                    disabled={isRecovering}
-                    onClick={(e) => { e.stopPropagation(); setShowFieldHospital(v => !v) }}
-                    className="flex-1 py-3 bg-green-600/20 hover:bg-green-600/30 text-green-500 font-black text-[0.8rem] uppercase tracking-widest rounded-sm border border-green-500/30 disabled:opacity-50"
-                  >
-                    [ FIELD HOSPITAL ] ACCESS
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
-
-          {!hasActiveWar && (
-            <button
-               disabled
-               className="w-full py-4 bg-white/5 text-white/30 font-black text-[0.8rem] uppercase tracking-widest rounded-sm border border-white/10"
-            >
-              WAITING FOR CONFLICT SIGNATURES...
-            </button>
-          )}
-
-          {isRecovering && (
-             <div className="w-full py-4 bg-red-950/20 text-red-500 font-bold text-[0.6rem] uppercase tracking-widest rounded-sm border border-red-500/20 text-center">
-               Incapacitated — Awaiting Stabilization
-             </div>
-          )}
-        </div>
+        {/* Observer only */}
+        {warExp && !isParticipant && (
+          <div className="p-3 bg-white/[0.02] border border-white/5 text-center">
+            <p className="text-[0.6rem] text-white/30 uppercase tracking-[0.3em]">Observation Mode</p>
+            <p className="text-[0.5rem] text-white/10 mt-1 uppercase">External signature detected. Link unauthorized.</p>
+          </div>
+        )}
       </div>
-
     </div>
   )
 }
-
-
